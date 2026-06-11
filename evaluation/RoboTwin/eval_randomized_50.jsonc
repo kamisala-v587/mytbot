@@ -1,0 +1,131 @@
+// =============================================================================
+// RoboTwin 随机化 50 任务批量评测配置（JSONC）
+// -----------------------------------------------------------------------------
+// 用法：
+//   1) 使用本默认配置：
+//        cd /vla/my_tbot
+//        bash evaluation/RoboTwin/eval_randomized_50.sh
+//
+//   2) 指定配置文件：
+//        bash evaluation/RoboTwin/eval_randomized_50.sh --config /path/to/my_eval.jsonc
+//        bash evaluation/RoboTwin/eval_randomized_50.sh /path/to/my_eval.jsonc
+//
+//   3) 环境变量覆盖 JSONC（优先级：JSONC < 环境变量 < 命令行 checkpoint 参数）：
+//        GPU_IDS=0 TEST_NUM=10 bash evaluation/RoboTwin/eval_randomized_50.sh
+//
+//   4) 命令行 checkpoint 覆盖（最高优先级）：
+//        bash evaluation/RoboTwin/eval_randomized_50.sh /path/to/pretrained_model
+//
+// 说明：
+//   - 支持 // 行注释与 /* 块注释 */（字符串内的注释符号不会被误删）
+//   - 嵌套分组仅用于阅读，叶子 key 会映射为同名大写环境变量
+//   - 相对路径均相对于 my_tbot 项目根目录解析
+// =============================================================================
+
+{
+    // =========================================================================
+    // 一、模型与策略
+    // =========================================================================
+    "model": {
+        // 本地 checkpoint 目录或 HuggingFace repo id（必填）
+        "pretrained_ckpt": "/vla/.models/tbot_base",
+
+        // 策略类型；留空则从 checkpoint 自动推断
+        "policy_type": "",
+
+        // Qwen3-VL 视觉语言骨干权重与 processor
+        "qwen3_vl_pretrained_path": "/vla/.models/Qwen3-VL-2B-Instruct",
+        "qwen3_vl_processor_path": "/vla/.models/Qwen3-VL-2B-Instruct",
+
+        // Cosmos tokenizer（TBot_SA1 系列使用）
+        "cosmos_tokenizer_path_or_name": "/vla/.models/Cosmos-Tokenizer-CI8x8",
+
+        // Depth Anything 3（3D teacher）；评测时通常禁用
+        "da3_model_path_or_name": "/vla/.models/DA3-LARGE-1.1",
+        "da3_code_root": "",
+        "disable_da3_teacher_for_eval": true
+    },
+
+    // =========================================================================
+    // 二、任务范围与输出
+    // =========================================================================
+    "tasks": {
+        // 评测结果根目录（相对 my_tbot 根目录）
+        "base_output_path": "evaluation/RoboTwin/output_randomized_50",
+
+        // checkpoint 标签，用于自动生成 run_name
+        "ckpt_tag": "tbot_sa1-delta",
+
+        // 自定义运行名；留空则自动生成：{ckpt_tag}-robotwin-{时间戳}
+        "run_name": "",
+
+        // RoboTwin 场景配置名
+        "task_config": "demo_randomized",
+
+        // 起始任务索引（0-based）与本次评测任务数（最大 50）
+        "start_task_idx": 0,
+        "task_count": 10,
+
+        // 每任务独立评测参数（infer_horizon、binarize_gripper 等）
+        // 设为空字符串 "" 可禁用
+        "robotwin_eval_config": "configs/robotwin_eval_config.yaml"
+    },
+
+    // =========================================================================
+    // 三、GPU 并行调度
+    // =========================================================================
+    "gpu": {
+        // 使用的 GPU 编号，逗号分隔，如 "0,1,2"
+        "gpu_ids": "0",
+
+        // 每块 GPU 最大并行任务数
+        "max_jobs_per_gpu": 2,
+
+        // 等待空闲 slot 的轮询间隔（秒）
+        "poll_interval_seconds": 35
+    },
+
+    // =========================================================================
+    // 四、推理与仿真参数
+    // =========================================================================
+    "inference": {
+        // 输入图像缩放尺寸
+        "resize_size": 224,
+
+        // 动作表示：delta（增量）或 absolute（绝对）
+        "action_mode": "delta",
+
+        // 夹爪动作是否二值化（可被 robotwin_eval_config 中 per-task 配置覆盖）
+        "binarize_gripper": false,
+
+        // 每个任务的评测 episode 数
+        "test_num": 100,
+
+        // 随机种子
+        "seed": 42,
+
+        // 动作归一化统计量 key
+        "stats_key": "aloha",
+
+        // 模型推理精度：bfloat16 / float16 / float32
+        "dtype": "bfloat16",
+
+        // 图像历史帧间隔
+        "image_history_interval": 15,
+
+        // 每次推理输出的 action chunk 长度
+        "infer_horizon": 16,
+
+        // action buffer 容量
+        "action_horizon_size": 50,
+
+        // 指令类型：unseen / seen 等
+        "instruction_type": "unseen",
+
+        // 日志级别：DEBUG / INFO / WARNING / ERROR
+        "log_level": "WARNING",
+
+        // 是否解码并保存中间图像（调试用，会显著增加 IO）
+        "decode_image_flag": false
+    }
+}

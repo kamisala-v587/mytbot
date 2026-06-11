@@ -1,63 +1,16 @@
 #!/usr/bin/env bash
-#
-# =============================================================================
-# RoboTwin 随机化 50 任务批量评测脚本
-# =============================================================================
-#
-# 功能概述：
-#   在 RoboTwin 仿真环境中，对预训练策略模型进行 50 个随机化任务的并行评测。
-#   支持多 GPU 调度、断点续跑（已完成的任务自动跳过）、以及汇总成功率报告。
-#
-# 主要使用方式：
-#
-#   1) 使用默认 JSONC 配置（evaluation/RoboTwin/eval_randomized_50.jsonc）：
-#      cd /vla/my_tbot
-#      bash evaluation/RoboTwin/eval_randomized_50.sh
-#
-#   2) 指定 JSONC 配置文件：
-#      bash evaluation/RoboTwin/eval_randomized_50.sh --config /path/to/my_eval.jsonc
-#      bash evaluation/RoboTwin/eval_randomized_50.sh /path/to/my_eval.jsonc
-#
-#   3) 命令行指定 checkpoint（覆盖 JSONC 中的 pretrained_ckpt）：
-#      bash evaluation/RoboTwin/eval_randomized_50.sh /path/to/pretrained_model
-#
-#   4) 环境变量覆盖 JSONC（优先级：JSONC < 环境变量 < 命令行 checkpoint）：
-#      GPU_IDS=0 TEST_NUM=10 bash evaluation/RoboTwin/eval_randomized_50.sh
-#
-#   5) 通过 EVAL_CONFIG 指定配置文件路径：
-#      EVAL_CONFIG=/path/to/my_eval.jsonc bash evaluation/RoboTwin/eval_randomized_50.sh
-#
-# 配置优先级（从低到高）：
-#   脚本内置默认值 < JSONC 配置文件 < 环境变量 < 命令行 checkpoint 参数
-#
-# 完整参数说明见：evaluation/RoboTwin/eval_randomized_50.jsonc
-#
-# 输出目录结构：
-#   ${BASE_OUTPUT_PATH}/${RUN_NAME}/
-#     launch_info.txt      - 本次运行的配置快照
-#     launch_command.txt   - 可复现的启动命令
-#     job_status.tsv       - 各任务 GPU / 退出码 / 输出路径
-#     summary.json         - 聚合成功率（JSON）
-#     summary.txt          - 聚合成功率（可读文本）
-#     tasks/task_XX/       - 各任务独立输出（run.log、summary.json、视频等）
-#
-# 前置条件：
-#   - 在 my_tbot 项目根目录下执行，或确保 third_party/RoboTwin 已正确安装
-#   - 已激活包含依赖的 Python/Conda 环境
-#   - CUDA 与 nvidia-smi 可用（多 GPU 并行时需要）
-#
-# =============================================================================
 
 set -euo pipefail
 
 ###############################################################################
-################################# 环境变量配置 ##################################
+################################# ENV config ##################################
 
-# 以下为可选的 Conda / HuggingFace 环境配置（默认注释掉，按需取消注释）：
 # export HF_HOME="${HF_HOME:-${HOME}/.cache/huggingface}"
+
 # WANDB_TOKEN="${WANDB_TOKEN:-}"
 # CONDA_ROOT="${_CONDA_ROOT:-${CONDA_ROOT:-}}"
 # CONDA_ENV="${CONDA_ENV:-internvla_a1}"
+
 # if [[ -n "${CONDA_ROOT}" && -f "${CONDA_ROOT}/etc/profile.d/conda.sh" ]]; then
 #     source "${CONDA_ROOT}/etc/profile.d/conda.sh"
 #     conda activate "${CONDA_ENV}"
@@ -65,12 +18,10 @@ set -euo pipefail
 
 ###############################################################################
 
-# 分布式训练/通信相关（评测时保持默认即可）
 export MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
 export MASTER_PORT="${MASTER_PORT:-4545}"
 echo "MASTER_ADDR=${MASTER_ADDR}, MASTER_PORT=${MASTER_PORT}"
 
-# NCCL 与 CUDA 库路径，避免多进程 GPU 通信问题
 export NCCL_P2P_DISABLE=1
 export NCCL_SHM_DISABLE=1
 export NCCL_ASYNC_ERROR_HANDLING=1
@@ -78,7 +29,6 @@ export TORCH_NCCL_BLOCKING_WAIT=1
 export LD_LIBRARY_PATH="${CUDA_HOME:+${CUDA_HOME}/lib64:}${LD_LIBRARY_PATH:-}"
 export LD_LIBRARY_PATH="${CONDA_PREFIX:+${CONDA_PREFIX}/lib:}${LD_LIBRARY_PATH}"
 
-# Python / 数值计算线程与日志
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -87,9 +37,8 @@ export WANDB_MODE=offline
 export TOKENIZERS_PARALLELISM=false
 
 ###############################################################################
-############################## 评测参数配置 ####################################
+############################## EVAL config ####################################
 
-# 路径解析：脚本位于 evaluation/RoboTwin/，项目根目录为上两级
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 echo "SCRIPT_DIR = ${SCRIPT_DIR}"
@@ -97,93 +46,8 @@ echo "PROJ_ROOT  = ${PROJ_ROOT}"
 
 cd "${PROJ_ROOT}"
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
-
-CONFIG_KEYS=(
-    PRETRAINED_CKPT POLICY_TYPE QWEN3_VL_PRETRAINED_PATH QWEN3_VL_PROCESSOR_PATH
-    COSMOS_TOKENIZER_PATH_OR_NAME DA3_MODEL_PATH_OR_NAME DA3_CODE_ROOT
-    DISABLE_DA3_TEACHER_FOR_EVAL BASE_OUTPUT_PATH CKPT_TAG RUN_NAME TASK_CONFIG
-    START_TASK_IDX TASK_COUNT GPU_IDS MAX_JOBS_PER_GPU POLL_INTERVAL_SECONDS
-    RESIZE_SIZE ACTION_MODE BINARIZE_GRIPPER TEST_NUM SEED STATS_KEY DTYPE
-    IMAGE_HISTORY_INTERVAL INFER_HORIZON ACTION_HORIZON_SIZE INSTRUCTION_TYPE
-    LOG_LEVEL DECODE_IMAGE_FLAG ROBOTWIN_EVAL_CONFIG
-)
-
-declare -a PRESET_ENV_KEYS=()
-for config_key in "${CONFIG_KEYS[@]}"; do
-    if [[ -n "${!config_key+x}" ]]; then
-        PRESET_ENV_KEYS+=("${config_key}")
-    fi
-done
-
-CONFIG_FILE="${EVAL_CONFIG:-${SCRIPT_DIR}/eval_randomized_50.jsonc}"
-CLI_PRETRAINED_CKPT=""
-
-show_usage() {
-    echo "Usage:"
-    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME}"
-    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME} [--config|-c] <config.jsonc>"
-    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME} <config.jsonc>"
-    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME} <ckpt_dir_or_hf_repo_id>"
-    echo "  EVAL_CONFIG=/path/to/config.jsonc bash evaluation/RoboTwin/${SCRIPT_NAME}"
-    echo "  PRETRAINED_CKPT=/path/to/ckpt bash evaluation/RoboTwin/${SCRIPT_NAME}"
-    echo ""
-    echo "Config priority: script defaults < JSONC < env vars < CLI checkpoint"
-    echo "Default config: ${SCRIPT_DIR}/eval_randomized_50.jsonc"
-}
-
-# ---------- 命令行参数解析 ----------
-while (( $# > 0 )); do
-    case "$1" in
-        --config|-c)
-            if (( $# < 2 )); then
-                echo "--config requires a file path."
-                show_usage
-                exit 1
-            fi
-            CONFIG_FILE="$2"
-            shift 2
-            ;;
-        --help|-h)
-            show_usage
-            exit 0
-            ;;
-        *)
-            if [[ "$1" == *.jsonc ]]; then
-                CONFIG_FILE="$1"
-            elif [[ -z "${CLI_PRETRAINED_CKPT}" ]]; then
-                CLI_PRETRAINED_CKPT="$1"
-            else
-                echo "Too many positional arguments."
-                show_usage
-                exit 1
-            fi
-            shift
-            ;;
-    esac
-done
-
-apply_jsonc_config() {
-    local config_path="$1"
-    local preset_csv="$2"
-    local config_line config_key config_value
-
-    if [[ ! -f "${config_path}" ]]; then
-        echo "Config file not found (skipped): ${config_path}"
-        return 0
-    fi
-
-    while IFS= read -r config_line; do
-        [[ -z "${config_line}" ]] && continue
-        config_key="${config_line%%=*}"
-        config_value="${config_line#*=}"
-        export "${config_key}=${config_value}"
-    done < <(python "${SCRIPT_DIR}/load_jsonc_config.py" "${config_path}" "${preset_csv}")
-
-    echo "Loaded JSONC config: ${config_path}"
-}
-
-# ---------- 脚本内置默认值（可被 JSONC / 环境变量 / 命令行覆盖）----------
 PRETRAINED_CKPT="${PRETRAINED_CKPT:-zaleni/TBot-SA1-RoboTwin}"
+
 POLICY_TYPE="${POLICY_TYPE:-}"
 QWEN3_VL_PRETRAINED_PATH="${QWEN3_VL_PRETRAINED_PATH:-Qwen/Qwen3-VL-2B-Instruct}"
 QWEN3_VL_PROCESSOR_PATH="${QWEN3_VL_PROCESSOR_PATH:-${QWEN3_VL_PRETRAINED_PATH}}"
@@ -192,9 +56,7 @@ DA3_MODEL_PATH_OR_NAME="${DA3_MODEL_PATH_OR_NAME:-depth-anything/DA3-LARGE-1.1}"
 DA3_CODE_ROOT="${DA3_CODE_ROOT:-}"
 DISABLE_DA3_TEACHER_FOR_EVAL="${DISABLE_DA3_TEACHER_FOR_EVAL:-true}"
 
-BASE_OUTPUT_PATH="${BASE_OUTPUT_PATH:-evaluation/RoboTwin/output_randomized_50}"
-CKPT_TAG="${CKPT_TAG:-tbot_sa1-delta}"
-RUN_NAME="${RUN_NAME:-}"
+BASE_OUTPUT_PATH="${BASE_OUTPUT_PATH:-${PROJ_ROOT}/evaluation/RoboTwin/output_randomized_50}"
 TASK_CONFIG="${TASK_CONFIG:-demo_randomized}"
 START_TASK_IDX="${START_TASK_IDX:-0}"
 TASK_COUNT="${TASK_COUNT:-50}"
@@ -217,33 +79,36 @@ ACTION_HORIZON_SIZE="${ACTION_HORIZON_SIZE:-50}"
 INSTRUCTION_TYPE="${INSTRUCTION_TYPE:-unseen}"
 LOG_LEVEL="${LOG_LEVEL:-WARNING}"
 DECODE_IMAGE_FLAG="${DECODE_IMAGE_FLAG:-false}"
-ROBOTWIN_EVAL_CONFIG="${ROBOTWIN_EVAL_CONFIG:-configs/robotwin_eval_config.yaml}"
+ROBOTWIN_EVAL_CONFIG="${ROBOTWIN_EVAL_CONFIG-${PROJ_ROOT}/configs/robotwin_eval_config.yaml}"
 
-PRESET_ENV_CSV="$(IFS=,; echo "${PRESET_ENV_KEYS[*]}")"
-apply_jsonc_config "${CONFIG_FILE}" "${PRESET_ENV_CSV}"
+export BINARIZE_GRIPPER
 
-if [[ -n "${CLI_PRETRAINED_CKPT}" ]]; then
-    PRETRAINED_CKPT="${CLI_PRETRAINED_CKPT}"
+if (( $# > 1 )); then
+    echo "Usage:"
+    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME} [ckpt_dir_or_hf_repo_id]"
+    echo "  PRETRAINED_CKPT=zaleni/TBot-SA1-RoboTwin bash evaluation/RoboTwin/${SCRIPT_NAME}"
+    exit 1
+fi
+
+if (( $# == 1 )); then
+    PRETRAINED_CKPT="$1"
 fi
 
 if [[ -z "${PRETRAINED_CKPT}" ]]; then
     echo "PRETRAINED_CKPT is empty."
-    show_usage
+    echo "Usage:"
+    echo "  PRETRAINED_CKPT=/path/to/pretrained_model bash evaluation/RoboTwin/${SCRIPT_NAME}"
+    echo "  PRETRAINED_CKPT=zaleni/TBot-SA1-RoboTwin bash evaluation/RoboTwin/${SCRIPT_NAME}"
+    echo "  bash evaluation/RoboTwin/${SCRIPT_NAME} /path/to/pretrained_model"
     exit 1
 fi
 
-if [[ "${BASE_OUTPUT_PATH}" != /* ]]; then
-    BASE_OUTPUT_PATH="${PROJ_ROOT}/${BASE_OUTPUT_PATH}"
-fi
-
-if [[ -z "${RUN_NAME}" ]]; then
-    RUN_NAME="${CKPT_TAG}-robotwin-$(date +%Y_%m_%d_%H_%M_%S)"
-fi
+CKPT_TAG="tbot_sa1-delta"
+DEFAULT_RUN_NAME="${CKPT_TAG}-robotwin-$(date +%Y_%m_%d_%H_%M_%S)"
+RUN_NAME="${DEFAULT_RUN_NAME}"
+# RUN_NAME="tbot_sa1-3d-delta-multidata_pretrained300k-finetune-200k-s42h32-robotwin-2026_04_16_09_56_34"
 RUN_OUTPUT_PATH="${BASE_OUTPUT_PATH}/${RUN_NAME}"
 
-export BINARIZE_GRIPPER
-
-# ---------- 参数合法性校验 ----------
 if [[ -e "${PRETRAINED_CKPT}" && ! -d "${PRETRAINED_CKPT}" ]]; then
     echo "PRETRAINED_CKPT exists but is not a directory: ${PRETRAINED_CKPT}"
     exit 1
@@ -265,7 +130,6 @@ if (( START_TASK_IDX + TASK_COUNT > MAX_TASKS )); then
     exit 1
 fi
 
-# 解析可用 GPU 列表：优先 GPU_IDS，其次 CUDA_VISIBLE_DEVICES，最后 nvidia-smi 自动探测
 parse_gpu_ids() {
     local source_string=""
     if [[ -n "${GPU_IDS}" ]]; then
@@ -309,7 +173,6 @@ if [[ -n "${ROBOTWIN_EVAL_CONFIG}" && ! -f "${ROBOTWIN_EVAL_CONFIG}" ]]; then
     exit 1
 fi
 
-# 从 robotwin_eval_config.yaml 加载每个任务的名称、infer_horizon、binarize_gripper 等
 declare -a TASK_NAMES_BY_IDX=()
 declare -a TASK_INFER_HORIZONS=()
 declare -a TASK_BINARIZE_GRIPPERS=()
@@ -337,7 +200,6 @@ if (( ${#TASK_NAMES_BY_IDX[@]} < MAX_TASKS )); then
     exit 1
 fi
 
-# 构建并行 slot 池：每块 GPU 分配 MAX_JOBS_PER_GPU 个 slot
 declare -a SLOT_GPU_IDS=()
 for gpu_id in "${GPU_ID_ARRAY[@]}"; do
     for ((slot_repeat = 0; slot_repeat < MAX_JOBS_PER_GPU; slot_repeat++)); do
@@ -347,7 +209,6 @@ done
 
 TOTAL_SLOTS=${#SLOT_GPU_IDS[@]}
 
-# slot 状态追踪：PID、当前任务索引、输出目录、失败任务列表
 declare -a SLOT_PIDS
 declare -a SLOT_TASKS
 declare -a SLOT_OUTPUT_DIRS
@@ -359,10 +220,8 @@ for ((slot_idx = 0; slot_idx < TOTAL_SLOTS; slot_idx++)); do
     SLOT_OUTPUT_DIRS[slot_idx]=""
 done
 
-# 写入本次运行的配置快照与可复现命令，便于事后追溯
 {
     echo "script: ${SCRIPT_DIR}/${SCRIPT_NAME}"
-    echo "config_file: ${CONFIG_FILE}"
     echo "pretrained_ckpt: ${PRETRAINED_CKPT}"
     if [[ -d "${PRETRAINED_CKPT}" ]]; then
         echo "checkpoint_source: local_dir"
@@ -397,7 +256,6 @@ done
 } > "${RUN_OUTPUT_PATH}/launch_info.txt"
 
 {
-    printf 'EVAL_CONFIG=%q ' "${CONFIG_FILE}"
     printf 'PRETRAINED_CKPT=%q ' "${PRETRAINED_CKPT}"
     printf 'BASE_OUTPUT_PATH=%q ' "${BASE_OUTPUT_PATH}"
     printf 'RUN_NAME=%q ' "${RUN_NAME}"
@@ -424,7 +282,6 @@ done
 
 printf "task_idx\tgpu_id\texit_code\toutput_dir\n" > "${RUN_OUTPUT_PATH}/job_status.tsv"
 
-# Ctrl+C / SIGTERM 时清理所有子进程
 cleanup() {
     for pid in "${SLOT_PIDS[@]}"; do
         if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
@@ -435,7 +292,6 @@ cleanup() {
 
 trap cleanup INT TERM
 
-# 将单任务的完整启动命令写入 command.txt，便于复现与调试
 write_task_command_file() {
     local gpu_id="$1"
     local task_idx="$2"
@@ -502,7 +358,6 @@ write_task_command_file() {
     } > "${task_output_dir}/command.txt"
 }
 
-# 在指定 slot 上后台启动单个任务的 inference.py
 launch_task() {
     local slot_idx="$1"
     local task_idx="$2"
@@ -585,7 +440,6 @@ launch_task() {
     echo "[launch] slot=${slot_idx} gpu=${gpu_id} task_idx=${task_idx} task=${task_name} pid=${pid}"
 }
 
-# 回收已结束的 slot：记录退出码、更新 job_status.tsv、刷新汇总
 reap_finished_slots() {
     local updated=0
 
@@ -636,7 +490,6 @@ reap_finished_slots() {
     fi
 }
 
-# 阻塞等待直到有一个空闲 slot 可用
 find_free_slot() {
     while true; do
         reap_finished_slots || true
@@ -650,7 +503,6 @@ find_free_slot() {
     done
 }
 
-# 等待所有 slot 上的任务执行完毕
 wait_for_all_slots() {
     while true; do
         local has_running=0
@@ -671,7 +523,6 @@ wait_for_all_slots() {
     done
 }
 
-# 检查任务是否已有 summary.json（用于断点续跑时跳过已完成任务）
 task_is_completed() {
     local task_idx="$1"
     local task_output_dir="${RUN_OUTPUT_PATH}/tasks/task_$(printf '%02d' "${task_idx}")"
@@ -684,8 +535,6 @@ task_is_completed() {
     return 0
 }
 
-# 聚合所有任务的成功率，写入 summary.json / summary.txt
-# strict_mode=progress：运行中刷新；strict_mode=strict：最终校验，有失败则 exit 1
 refresh_run_summary() {
     local strict_mode="${1:-progress}"
 
@@ -932,7 +781,6 @@ PY
 
 refresh_run_summary "progress"
 
-# ---------- 主调度循环：按任务索引依次分配空闲 slot 并启动 ----------
 echo "Launching RoboTwin randomized evaluation:"
 echo "  tasks         : ${START_TASK_IDX}-${TASK_END_IDX}"
 echo "  output        : ${RUN_OUTPUT_PATH}"
@@ -942,7 +790,6 @@ echo "  jobs per gpu  : ${MAX_JOBS_PER_GPU}"
 echo "  parallel jobs : ${TOTAL_SLOTS}"
 
 for ((task_idx = START_TASK_IDX; task_idx <= TASK_END_IDX; task_idx++)); do
-    # 断点续跑：若该任务已有 summary.json 则跳过
     if task_is_completed "${task_idx}"; then
         echo "[skip] task_idx=${task_idx} already completed at ${RUN_OUTPUT_PATH}/tasks/task_$(printf '%02d' "${task_idx}")"
         continue
@@ -954,7 +801,6 @@ done
 
 wait_for_all_slots
 
-# 严格模式汇总：检查是否有 pending / missing_summary / 非零退出码的任务
 aggregate_exit_code=0
 refresh_run_summary "strict" || aggregate_exit_code=$?
 
@@ -970,7 +816,6 @@ if (( ${#FAILED_TASKS[@]} > 0 )); then
     exit 1
 fi
 
-# 全部任务成功完成
 echo "Finished all ${TASK_COUNT} randomized tasks."
 echo "Summary:"
 echo "  ${RUN_OUTPUT_PATH}/summary.txt"

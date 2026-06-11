@@ -1,0 +1,36 @@
+// RoboTwin 环境 + my_vla PI05 WebSocket server 评测配置
+//
+// 用法：
+//   cd /vla/my_tbot/evaluation/RoboTwin
+//   python scripts/inference_pi05_server.py
+//   python scripts/inference_pi05_server.py pi05_server_eval.jsonc
+//
+// 先启动 server（myvla 环境）：
+//   python /vla/my_vla/scripts/serve_pi05_policy.py \
+//     --ckpt_path .../pretrained_model --host 0.0.0.0 --port 8000 --infer_horizon 16
+//
+// 相对路径均相对于 evaluation/RoboTwin/
+
+{
+    "ws_host": "127.0.0.1",
+    "ws_port": 8000,
+    "ws_uri": null,
+
+    // task_idx 对应 inference.py 的 TASK_NAMES（0 = adjust_bottle）
+    "task_idx": 0,
+    "task_config": "demo_randomized",
+    "instruction_type": "unseen",
+    "seed": 42,
+    "test_num": 2, //测试次数
+
+    "infer_horizon": null,
+    "action_horizon_size": 50,
+    "action_mode": "abs",
+    "binarize_gripper": true,
+    "robot_type": [6, 1, 6, 1],
+
+    "video_dir": "output_pi05_server/tasks/task_00", //视频存储路径
+    "fps": 30,
+    "log_level": "WARNING",
+    "debug": false
+}
