@@ -1,0 +1,12 @@
+run_output_path: /vla/my_tbot/evaluation/RoboTwin/output_randomized_50/tbot_sa1-delta-robotwin-2026_06_10_09_59_05
+completed_tasks: 0/1
+avg_task_success_rate: 0.00%
+overall_episode_success_rate: 0.00%
+total_success: 0
+total_tests: 0
+pending_tasks: none
+missing_summary_tasks: none
+nonzero_exit_tasks: [0]
+
+per_task:
+00 adjust_bottle: FAILED (exit_code=1)

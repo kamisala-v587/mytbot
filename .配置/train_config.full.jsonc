@@ -1,0 +1,182 @@
+// =============================================================================
+// TBot_SA1 完整训练配置（带注解版）
+// -----------------------------------------------------------------------------
+// 用法：
+//   1. 本文件为 JSONC（含 // 注释），供阅读与修改参考；
+//   2. 直接用于训练时，请复制为 train_config.json 并删除所有注释行，
+//      或使用支持 JSONC 的工具导出纯 JSON；
+//   3. 基于 .配置/train_config.json 最小配置扩展，数值与当前微调场景一致。
+//
+// 未写入的极少数参数（使用代码默认值即可）：
+//   - dataset: repo_id_file, root, episodes, revision, streaming, dist_loading,
+//              buffer_size, weight_rules_path, repack_transforms, model_transforms
+//   - policy:  lora_* 全套, da3_model_name, compile_model, compile_mode,
+//              mask_action_dim_padding_loss, action_loss_valid_dim,
+//              da3_query_resampler_layers, da3_query_resampler_ff_mult
+//   - train:   gradient_accumulation_steps, optimizer/scheduler 独立块（用 preset 时）
+//   - wandb:   entity, notes, run_id, disable_artifact
+// =============================================================================
+
+{
+    // =========================================================================
+    // 一、数据集（TBotSA1DatasetConfig）
+    //    负责：LeRobot 3.0 数据读取 + data_transforms 流水线（含 Qwen3-VL processor）
+    // =========================================================================
+    "dataset": {
+        "type": "TBot_SA1",  // 数据集配置类型，必须与 policy.type 一致，选中 TBotSA1DatasetConfig
+        "repo_id": "/vla/.data/adjust_bottle",  // LeRobot 3.0 数据集路径（本地目录或 HF repo_id）
+        "action_mode": "delta",  // action 表示：delta=相对当前 state 的增量；abs=绝对关节角/位姿
+        "use_external_stats": true,  // 是否使用外部归一化统计（norm_stats），而非数据集内置 stats
+        "external_stats_path": "norm_stats/delta/adjust_bottle/stats.json",  // 外部 stats 文件路径（相对 my_tbot 根目录或绝对路径）
+        "use_imagenet_stats": false,  // 是否用 ImageNet 均值方差覆盖图像 stats（TBot 微调通常 false）
+        "video_backend": "pyav",  // 视频解码后端：pyav / torchcodec 等
+
+        // ---- 图像与 Qwen3-VL 数据预处理 ----
+        "height": 224,  // ResizeImagesWithPadFn 目标高度（与 policy.image_resolution 一致）
+        "width": 224,  // ResizeImagesWithPadFn 目标宽度
+        "max_state_dim": 32,  // state padding 上限，须与 policy.max_state_dim 一致
+        "max_action_dim": 32,  // action padding 上限，须与 policy.max_action_dim 一致
+        "qwen3_vl_processor_path": "/vla/.models/Qwen3-VL-2B-Instruct",  // Qwen3VLProcessor 路径：tokenize 图像+指令，产出 pixel_values/input_ids
+
+        // ---- 训练时图像增强（可选）----
+        "image_transforms": {
+            "enable": false,  // 是否启用通用图像增强；false=不做随机 ColorJitter 等
+            "preset": null,  // 设为 pi05/pi05_style 时会在 data_transforms 中插入 Pi05ImageAugmentFn
+            "max_num_transforms": 3,  // 每帧最多叠加几种增强
+            "random_order": false  // 是否随机顺序应用增强
+        }
+    },
+
+    // =========================================================================
+    // 二、仿真环境（离线模仿学习保持 null）
+    // =========================================================================
+    "env": null,  // 离线训练不连仿真器；在线 RL 时才配置 env
+
+    // =========================================================================
+    // 三、策略模型（TBotSA1Config）
+    //    负责：网络结构、loss 权重、微调策略、优化器/调度器预设
+    // =========================================================================
+    "policy": {
+        "type": "TBot_SA1",  // 策略类型，注册名固定为 TBot_SA1
+        "pretrained_path": "/vla/.models/tbot_base",  // TBot 基座权重目录（加载 model.safetensors + 覆盖 config 中可训练部分）
+        "push_to_hub": false,  // 是否训练后推送到 HuggingFace Hub（本地实验保持 false）
+        "device": null,  // 运行设备；null=自动选择 cuda
+
+        // ---- 模型骨干（须与 tbot_base checkpoint 架构一致）----
+        "dtype": "bfloat16",  // 主计算精度：bfloat16 或 float32
+        "qwen3_vl_variant": "qwen3_vl_28l",  // und expert（Qwen3-VL 理解分支）层数规模，后缀 28l = 28 层
+        "action_expert_variant": "qwen3_28l",  // gen/act expert 层数规模
+        "qwen3_vl_pretrained_path": "/vla/.models/Qwen3-VL-2B-Instruct",  // 构建 und expert 时的 Qwen3-VL 初始权重（随后被 pretrained_path 覆盖）
+
+        // ---- Action Chunking ----
+        "n_obs_steps": 1,  // 观测历史步数（TBot 默认单帧）
+        "chunk_size": 50,  // 一次预测的 action 序列长度（训练与推理上限）
+        "n_action_steps": 50,  // 推理实际执行步数，须 ≤ chunk_size
+        "max_state_dim": 32,  // 与 dataset.max_state_dim 一致
+        "max_action_dim": 32,  // 与 dataset.max_action_dim 一致
+
+        // ---- Flow Matching（训练/推理去噪）----
+        "num_inference_steps": 10,  // 推理时去噪迭代步数
+        "time_sampling_beta_alpha": 1.5,  // 训练时噪声时间步 t 的 Beta 分布 α
+        "time_sampling_beta_beta": 1.0,  // 训练时噪声时间步 t 的 Beta 分布 β
+        "time_sampling_scale": 0.999,  // 时间步缩放上界
+        "time_sampling_offset": 0.001,  // 时间步边界偏移
+        "min_period": 0.004,  // action 时间正弦编码周期下界
+        "max_period": 4.0,  // action 时间正弦编码周期上界
+
+        // ---- 注意力与多帧图像 ----
+        "attention_mask_mode": "causal",  // default=按视角约束；causal=3D 因果消融（需 enable_3d_queries=true）
+        "image_resolution": [224, 224],  // 模型期望图像分辨率 [H, W]
+        "image_delta_indices": [-15, 0, 15],  // 3 路相机相对当前帧的时间偏移（帧索引），用于取 past/current/future 图像
+        "empty_cameras": 0,  // 占位空相机数（多机体对齐时用）
+        "tokenizer_max_length": 48,  // 语言指令最大 token 长度（与 Qwen3_VLProcessorTransformFn 一致）
+
+        // ---- 归一化映射（TBot 在 dataset 侧做 Normalize，此处多为 IDENTITY）----
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",  // 视觉：恒等（实际归一化在 dataset NormalizeTransformFn）
+            "STATE": "IDENTITY",  // 状态：恒等
+            "ACTION": "IDENTITY"  // 动作：恒等
+        },
+
+        // ---- 运行与显存 ----
+        "gradient_checkpointing": false,  // 梯度检查点：true 省显存、略慢
+
+        // ---- 微调：冻结哪些模块 ----
+        "freeze_vision_encoder": false,  // 是否冻结 Qwen3-VL 视觉编码器
+        "train_expert_only": false,  // true=只训 gen+act，冻结 und（VLM）
+        "train_vlm_only": false,  // true=只训 und，冻结 gen+act
+
+        // ---- 优化器与学习率（use_policy_training_preset=true 时由下列字段生成 optimizer/scheduler）----
+        "optimizer_lr": 5e-5,  // AdamW 峰值学习率
+        "optimizer_betas": [0.9, 0.95],  // AdamW β1、β2
+        "optimizer_eps": 1e-8,  // AdamW ε
+        "optimizer_weight_decay": 0.01,  // 权重衰减
+        "optimizer_grad_clip_norm": 1.0,  // 梯度裁剪最大范数
+        "scheduler_warmup_steps": 20,  // 学习率 warmup 步数
+        "scheduler_decay_steps": 200,  // 余弦衰减总步数（建议与 steps 同量级）
+        "scheduler_decay_lr": 5e-6,  // 衰减后的最低学习率
+
+        // ---- 2D 视觉规划辅助 loss（loss_gen）----
+        "scale_factor": 8,  // Cosmos latent 下采样倍率
+        "lambda_gen": 0.01,  // 图像重建辅助 loss 权重；0=关闭 loss_gen
+        "cosmos_tokenizer_path_or_name": "/vla/.models/Cosmos-Tokenizer-CI8x8",  // Cosmos 编解码器（冻结，不进 checkpoint）
+
+        // ---- 3D 世界建模（loss_3d，DA3 教师蒸馏）----
+        "enable_3d_queries": true,  // 是否启用 future 3D query 分支（须与 tbot_base 一致）
+        "num_3d_query_tokens": 432,  // 3D messenger token 总数（须能被 da3_num_views 整除，与 checkpoint 一致）
+        "da3_alignment_mode": "query_decoder",  // 3D 对齐方式：query_decoder 或 upsample
+        "query_layer_indices": [13, 19, 23, 27],  // 从 gen expert 哪些层抽特征做 3D 对齐
+        "da3_variant": "auto",  // DA3 变体，auto 按权重路径推断
+        "da3_teacher_layers": [11, 15, 19, 23],  // DA3 教师抽取层；null 则用模型默认
+        "da3_query_dim": 2048,  // 3D query 投影维；null 则与 DA3 特征维自动对齐
+        "da3_tokens_per_view": 1296,  // 每视角 DA3 对齐 token 数
+        "da3_num_views": 3,  // 3D 对齐视角数（与相机路数一致）
+        "lambda_3d": 0.01,  // 3D 蒸馏 loss 权重
+        "da3_model_path_or_name": "/vla/.models/DA3-LARGE-1.1",  // DA3 教师权重（冻结，训练时用）
+        "da3_code_root": "/vla/my_tbot/third_party/Depth-Anything-3",  // DA3 Python 源码根目录（import 用）
+        "da3_teacher_process_res": 504,  // DA3 教师推理时图像短边分辨率
+        "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],  // 各 DA3 教师层 loss 权重
+        "future_query_init_std": 0.02,  // future_3d_queries 初始化标准差
+        "log_da3_teacher_timing": false  // 是否打印 DA3 前向耗时（调试时可改 true）
+    },
+
+    // =========================================================================
+    // 四、训练流水线（TrainPipelineConfig）
+    // =========================================================================
+    "output_dir": "outputs/TBot_SA1/finetune_test",  // 输出根目录（实际运行会追加 日期/时间 子目录）
+    "job_name": "TBot_SA1-finetune",  // 任务名，用于日志与输出子目录命名
+    "resume": false,  // 是否从 output_dir 下已有 checkpoint 断点续训
+    "seed": 42,  // 随机种子（模型初始化、数据打乱）
+    "num_workers": 12,  // DataLoader worker 数
+    "batch_size": 8,  // 每 GPU  batch 大小
+    "steps": 200,  // 总训练步数（optimizer step 次数）
+    "eval_freq": 1000,  // 每多少步做一次验证（TBot_SA1 标准路径 eval 较有限，可设大或 0 关闭）
+    "eval_max_batches": 2,  // 每次 eval 最多跑几个 batch
+    "log_freq": 50,  // 每多少步打印一次 loss 等指标
+    "save_checkpoint": true,  // 是否保存 checkpoint
+    "save_freq": 100,  // 每多少步存一次盘（最后一步也会存）
+    "use_policy_training_preset": true,  // true=用 policy 内 optimizer_lr/scheduler_* 生成优化器与调度器
+
+    // =========================================================================
+    // 五、评估子配置（仿真 eval 时用；纯离线微调可保持默认）
+    // =========================================================================
+    "eval": {
+        "n_episodes": 50,  // eval 回合数
+        "batch_size": 50,  // 并行环境数
+        "use_async_envs": false  // 是否多进程异步环境
+    },
+
+    // =========================================================================
+    // 六、WandB 日志
+    // =========================================================================
+    "wandb": {
+        "enable": true,  // 是否启用 Weights & Biases
+        "project": "lerobot_lab_TBot_SA1",  // WandB 项目名
+        "mode": "offline"  // online / offline / disabled
+    },
+
+    // =========================================================================
+    // 七、观测字段重命名（数据集 key 与模型期望不一致时映射，通常为空）
+    // =========================================================================
+    "rename_map": {}  // 例：{"observation.images.cam_high": "observation.images.image0"}
+}
