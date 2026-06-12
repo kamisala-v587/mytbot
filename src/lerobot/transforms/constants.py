@@ -33,6 +33,8 @@ MASK_MAPPING = {
     # custom real robot
     "real_lift2": make_bool_mask(6, -1, 6, -1),
     "real_piper": make_bool_mask(6, -1),
+    # G2 + OmniPicker: left 14 joints + 2 grippers, 16-dim padding, right 12 joints + 2 grippers
+    "G2_omnipicker_fixed": make_bool_mask(14, -2, -16, 12, -2),
 }
 
 LIBERO_FRANKA_MASK = make_bool_mask(7, -1)
@@ -273,6 +275,14 @@ FEATURE_MAPPING["DOS-W1"] = {
     ],
 }
 FEATURE_MAPPING["ALOHA_STARVLA"] = FEATURE_MAPPING["ALOHA"]
+FEATURE_MAPPING["G2_omnipicker_fixed"] = {
+    OBS_STATE: [
+        "observation.state",
+    ],
+    ACTION: [
+        "action",
+    ],
+}
 
 
 IMAGE_MAPPING = dict(
@@ -391,6 +401,11 @@ IMAGE_MAPPING["real_lift2"] = {
 IMAGE_MAPPING["real_piper"] = {
     "observation.images.head": f"{OBS_IMAGES}.image0",
     "observation.images.left": f"{OBS_IMAGES}.image1",
+}
+IMAGE_MAPPING["G2_omnipicker_fixed"] = {
+    "observation.images.head": f"{OBS_IMAGES}.image0",
+    "observation.images.hand_left": f"{OBS_IMAGES}.image1",
+    "observation.images.hand_right": f"{OBS_IMAGES}.image2",
 }
 
 

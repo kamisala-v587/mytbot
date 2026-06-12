@@ -1,0 +1,14 @@
+{
+  "task_idx": 0,
+  "task_name": "adjust_bottle",
+  "task_config": "demo_randomized",
+  "success_count": 2,
+  "test_num": 10,
+  "success_rate": 20.0,
+  "deployment": "pi05_websocket_server",
+  "ws_uri": "ws://127.0.0.1:8000",
+  "server_checkpoint_dir": "/vla/my_vla/policy/checkpoints/2026-06-09/14-22-08_pi05_adjust_bottle_expert_only/checkpoints/006000/pretrained_model",
+  "instruction_type": "unseen",
+  "action_mode": "abs",
+  "infer_horizon": 50
+}

@@ -2,12 +2,13 @@
 //
 // 用法：
 //   cd /vla/my_tbot/evaluation/RoboTwin
+//   conda activate tbot_sa1
 //   python scripts/inference_pi05_server.py
-//   python scripts/inference_pi05_server.py pi05_server_eval.jsonc
+//   python scripts/inference_pi05_server.py /path/demo.jsonc
 //
 // 先启动 server（myvla 环境）：
 //   python /vla/my_vla/scripts/serve_pi05_policy.py \
-//     --ckpt_path .../pretrained_model --host 0.0.0.0 --port 8000 --infer_horizon 16
+//     --ckpt_path .../pretrained_model --host 0.0.0.0 --port 8000 --infer_horizon 50
 //
 // 相对路径均相对于 evaluation/RoboTwin/
 
@@ -21,7 +22,7 @@
     "task_config": "demo_randomized",
     "instruction_type": "unseen",
     "seed": 42,
-    "test_num": 2, //测试次数
+    "test_num": 1, //测试次数
 
     "infer_horizon": null,
     "action_horizon_size": 50,
@@ -29,7 +30,7 @@
     "binarize_gripper": true,
     "robot_type": [6, 1, 6, 1],
 
-    "video_dir": "output_pi05_server/tasks/task_00", //视频存储路径
+    "video_dir": "output_pi05_server/tasks/task_01", //视频存储路径
     "fps": 5,
     "log_level": "WARNING",
     "debug": false

@@ -171,6 +171,11 @@ data
 !src/lerobot/policies/TBot_SA1_Wan/core/data/**
 outputs
 
+# RoboTwin 评测视频不入库（summary.json/txt 可保留）
+evaluation/RoboTwin/**/*.mp4
+*.mp4
+!third_party/**
+
 # Translations
 *.mo
 *.pot
