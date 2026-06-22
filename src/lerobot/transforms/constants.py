@@ -5,6 +5,8 @@ from .utils import make_bool_mask
 
 
 MASK_MAPPING = {
+    # robocasa 混合测试
+    "franka_panda_robocasa_test": make_bool_mask(7, -2),
     # a1 old
     "piper": make_bool_mask(6, -1, 6, -1),  # split_aloha
     "arx_lift2": make_bool_mask(6, -1, 6, -1), 
@@ -386,6 +388,19 @@ IMAGE_MAPPING["FRANKA"] = {
     "observation.images.left": f"{OBS_IMAGES}.image1",
     "observation.images.right": f"{OBS_IMAGES}.image2",
 }
+
+# franka_panda robocasa数据集 混合测试
+FEATURE_MAPPING["franka_panda_robocasa_test"] = {
+    OBS_STATE: ["observation.state"],
+    ACTION: ["action"],
+}
+IMAGE_MAPPING["franka_panda_robocasa_test"] = {
+    "observation.images.robot0_agentview_left_rgb": f"{OBS_IMAGES}.image0",
+    "observation.images.robot0_agentview_right_rgb": f"{OBS_IMAGES}.image1",
+    "observation.images.robot0_eye_in_hand_rgb": f"{OBS_IMAGES}.image2",
+}
+
+
 IMAGE_MAPPING["egodex_v"] = {
     "observation.image": f"{OBS_IMAGES}.image0",
 }

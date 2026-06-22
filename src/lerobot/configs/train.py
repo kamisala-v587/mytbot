@@ -30,6 +30,7 @@ from lerobot.configs.policies import PreTrainedConfig
 from lerobot.optim import OptimizerConfig
 from lerobot.optim.schedulers import LRSchedulerConfig
 from lerobot.utils.hub import HubMixin
+from lerobot.utils.jsonc import is_jsonc_path, load_jsonc, materialize_config_file
 
 TRAIN_CONFIG_NAME = "train_config.json"
 logger = getLogger(__name__)
@@ -190,8 +191,11 @@ class TrainPipelineConfig(HubMixin):
         cli_args = kwargs.pop("cli_args", [])
         if config_file is not None:
             try:
-                with open(config_file) as f:
-                    raw_config = json.load(f)
+                if is_jsonc_path(config_file):
+                    raw_config = load_jsonc(config_file)
+                else:
+                    with open(config_file) as f:
+                        raw_config = json.load(f)
                 policy_config = raw_config.get("policy")
                 if isinstance(policy_config, dict):
                     from lerobot.policies.names import log_legacy_policy_name
@@ -200,8 +204,9 @@ class TrainPipelineConfig(HubMixin):
             except Exception as exc:
                 logger.debug("Failed to inspect policy.type in %s: %s", config_file, exc)
 
+        draccus_config_file = materialize_config_file(config_file)
         with draccus.config_type("json"):
-            return draccus.parse(cls, config_file, args=cli_args)
+            return draccus.parse(cls, draccus_config_file, args=cli_args)
 
 
 @dataclass(kw_only=True)

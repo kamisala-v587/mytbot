@@ -14,7 +14,7 @@ set -euo pipefail
 #   export PYTHONPATH=/vla/my_tbot/src:$PYTHONPATH   # 若未 pip install -e . 则需要
 #   CUDA_VISIBLE_DEVICES=0,1 \
 #   accelerate launch -m lerobot.scripts.lerobot_train \
-#     --config_path=/vla/my_tbot/.配置/train_config.json
+#     --config_path=/vla/my_tbot/.配置/train_config.jsonc
 #
 # 上面才是「真正启动训练」的核心；本脚本只是把最后一行包一层，方便传 JSON 路径。
 #
