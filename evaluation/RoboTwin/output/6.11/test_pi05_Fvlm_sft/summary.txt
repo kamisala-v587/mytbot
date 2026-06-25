@@ -1,0 +1,5 @@
+task_idx: 0
+task_name: adjust_bottle
+success_count: 2/10
+success_rate: 20.00%
+server_ckpt: /vla/my_vla/policy/checkpoints/2026-06-09/14-22-08_pi05_adjust_bottle_expert_only/checkpoints/006000/pretrained_model

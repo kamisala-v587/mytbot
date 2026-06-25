@@ -1,0 +1,63 @@
+{
+    "dataset": {
+        "type": "TBot_SA1",
+        "repo_id": "/vla/.data/adjust_bottle",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_path": "norm_stats/delta/adjust_bottle/stats.json",
+        "qwen3_vl_processor_path": "/vla/.models/Qwen3-VL-2B-Instruct",
+        "image_transforms": {
+            "enable": false
+        },
+        "video_backend": "pyav"
+    },
+    "env": null,
+    "policy": {
+        "type": "TBot_SA1",
+        "repo_id": "lerobot_lab/TBot_SA1",
+        "pretrained_path": "/vla/.models/tbot_base",
+        "push_to_hub": false,
+        "dtype": "bfloat16",
+        "gradient_checkpointing": false,
+        "qwen3_vl_variant": "qwen3_vl_28l",
+        "action_expert_variant": "qwen3_28l",
+        "qwen3_vl_pretrained_path": "/vla/.models/Qwen3-VL-2B-Instruct",
+        "cosmos_tokenizer_path_or_name": "/vla/.models/Cosmos-Tokenizer-CI8x8",
+        "freeze_vision_encoder": false,
+        "train_expert_only": false,
+        "train_vlm_only": false,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "attention_mask_mode": "causal",
+        "enable_3d_queries": true,
+        "num_3d_query_tokens": 432,
+        "lambda_3d": 0.01,
+        "da3_model_path_or_name": "/vla/.models/DA3-LARGE-1.1",
+        "da3_variant": "auto",
+        "da3_alignment_mode": "query_decoder",
+        "da3_code_root": "/vla/my_tbot/third_party/Depth-Anything-3",
+        "log_da3_teacher_timing": true,
+        "optimizer_lr": 5e-5,
+        "scheduler_warmup_steps": 20,
+        "scheduler_decay_steps": 30000,
+        "scheduler_decay_lr": 5e-6
+    },
+    "output_dir": "outputs/TBot_SA1/finetune",
+    "job_name": "TBot_SA1-finetune",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 12,
+    "batch_size": 8,
+    "steps": 30000,
+    "eval_freq": 20000,
+    "log_freq": 50,
+    "save_checkpoint": true,
+    "save_freq": 30000,
+    "use_policy_training_preset": true,
+    "wandb": {
+        "enable": true,
+        "project": "lerobot_lab_TBot_SA1",
+        "mode": "offline"
+    },
+    "rename_map": {}
+}
