@@ -1,0 +1,78 @@
+# ============================================================
+# Dataset sampling weight rules
+#
+# Proportions aligned with configs/weight_rules_template.yaml.
+# Match patterns adapted for absolute paths in
+# `.config/ds_ids/pretrain_data.txt` (case-insensitive regex search).
+#
+# Two-level logic:
+#   1) Assign each repo_id to exactly one group by `match` (regex).
+#      - first match wins
+#      - if no group matches => goes to `default`
+#   2) Allocate sampling probability:
+#      - Each group gets `total_weight` (a global budget)
+#      - Inside the group, distribute that budget across repos
+#        using `inside` (+ optional `gamma`)
+#
+# Note: EgoDex + RoboChallenge (no explicit group in template) fall
+# into `default` and share its 10% budget.
+#
+# Final output:
+#   repo_weight[rid] >= 0 and sum(repo_weight) == 1.
+# ============================================================
+
+groups:
+  # ----------------------------------------------------------
+  # Group: agibotworld  (template: 1%)
+  #
+  # Paths like:
+  #   .../lerobot_out/agibotworld/task_327
+  # ----------------------------------------------------------
+  - name: agibotworld
+    match: "(?i)/lerobot_out/agibotworld/"
+    total_weight: 0.01
+    inside: frames_pow
+    gamma: 0.5
+
+  # ----------------------------------------------------------
+  # Group: interndata_a1  (template: 80%)
+  #
+  # Paths like:
+  #   .../full-InternData-A1-v3.0/articulation_tasks/...
+  # ----------------------------------------------------------
+  - name: interndata_a1
+    match: "(?i)InternData-A1"
+    total_weight: 0.8
+    inside: frames_pow
+    gamma: 1.0
+
+  # ----------------------------------------------------------
+  # Group: robotwin  (template: 15%)
+  #
+  # Paths like:
+  #   .../RoboTwin-LeRobot-v3.0/adjust_bottle/aloha-agilex_clean_50
+  # ----------------------------------------------------------
+  - name: robotwin
+    match: "(?i)RoboTwin"
+    total_weight: 0.15
+    inside: uniform
+
+  # ----------------------------------------------------------
+  # Group: robomind  (template: 4%, reserved — none in pretrain_data.txt)
+  # ----------------------------------------------------------
+  - name: robomind
+    match: "(?i)robomind"
+    total_weight: 0.04
+    inside: episodes_pow
+    gamma: 0.5
+
+# ------------------------------------------------------------
+# Default group  (template: 10%)
+#
+# Catch-all: EgoDex (240 repos) + RoboChallenge (26 repos) + any
+# future datasets not covered above.
+# ------------------------------------------------------------
+default:
+  total_weight: 0.1
+  inside: frames_pow
+  gamma: 1.0

@@ -2,14 +2,14 @@
     "dataset": {
         "type": "TBot_SA1",
         "repo_id": "test_repos",
-        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.配置/robotwin_repo_ids.txt",
+        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.config/ds_ids/pretrain_data.txt",
         "action_mode": "delta",
-        "use_external_stats": false,
+        "use_external_stats": true,
+        "external_stats_root": "/home/jovyan/vla/workspace/mytbot/norm_stats",
         "use_imagenet_stats": true,
-        "video_backend": "pyav",  // pyav
+        "video_backend": "pyav",  
         "dist_loading": true,
-        // "norm_stats_root": "/home/jovyan/vla/workspace/mytbot/norm_stats",
-        "weight_rules_path": "/home/jovyan/vla/workspace/mytbot/configs/tbot_sa1_pretrain_data_config.yaml",
+        "weight_rules_path": "/home/jovyan/vla/workspace/mytbot/.config/weight_rules.yaml",
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
@@ -25,7 +25,7 @@
     "env": null,
     "policy": {
         "type": "TBot_SA1",
-        "pretrained_path": "/home/jovyan/vla/workspace/models/TBot_SA1_base",
+        // "pretrained_path": "/home/jovyan/vla/workspace/models/TBot_SA1_base",
         "push_to_hub": false,
         "device": null,
 
@@ -87,18 +87,18 @@
         "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
         "log_da3_teacher_timing": true
     },
-    "output_dir": "outputs/TBot_SA1/pretrained",
-    "job_name": "TBot_SA1-singledata-official-pretrain",
+    "output_dir": "outputs/TBot_SA1/pretrain_v1",
+    "job_name": " ",
     "resume": false,
     "seed": 42,
-    "num_workers": 8,
+    "num_workers": 16,
     "batch_size": 16,
     "gradient_accumulation_steps": 1,
     "steps": 300000,
     "eval_freq": 1000,
-    "log_freq": 25,
+    "log_freq": 50,
     "save_checkpoint": true,
-    "save_freq": 10000,
+    "save_freq": 2000,
     "use_policy_training_preset": true,
 
     "eval": {

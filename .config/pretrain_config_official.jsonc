@@ -2,7 +2,7 @@
     "dataset": {
         "type": "TBot_SA1",
         "repo_id": "test_repos",
-        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.配置/robotwin_repo_ids.txt",
+        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.config/robotwin_repo_ids.txt",
         "action_mode": "delta",
         "use_external_stats": false,
         "use_imagenet_stats": true,

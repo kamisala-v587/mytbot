@@ -9,15 +9,15 @@ set -euo pipefail
 # 用法：
 #   cd /home/jovyan/vla/workspace/mytbot
 #   bash launch/tbot_sa1_finetune_robotwin_json.sh
-#   bash launch/tbot_sa1_finetune_robotwin_json.sh .配置/finetune_robotwin_config_official.jsonc
+#   bash launch/tbot_sa1_finetune_robotwin_json.sh .config/finetune_robotwin_config_official.jsonc
 #
 # 或直接 accelerate（支持 .json 与 .jsonc）：
 #   accelerate launch --multi_gpu --num_processes=8 \
 #     -m lerobot.scripts.lerobot_train \
-#     --config_path=/home/jovyan/vla/workspace/mytbot/.配置/finetune_robotwin_config_official.jsonc
+#     --config_path=/home/jovyan/vla/workspace/mytbot/.config/finetune_robotwin_config_official.jsonc
 ###############################################################################
 
-CONFIG_PATH="${1:-.配置/finetune_robotwin_config_official.jsonc}"
+CONFIG_PATH="${1:-.config/finetune_robotwin_config_official.jsonc}"
 
 export MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
 export MASTER_PORT="${MASTER_PORT:-6379}"

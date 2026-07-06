@@ -7,15 +7,15 @@ set -euo pipefail
 # 用法：
 #   cd /vla/my_tbot
 #   export PYTHONPATH=/vla/my_tbot/src:${PYTHONPATH:-}
-#   bash launch/tbot_sa1_pretrain_json.sh .配置/pretrain_config.jsonc
+#   bash launch/tbot_sa1_pretrain_json.sh .config/pretrain_config.jsonc
 #
 # 或直接 accelerate（支持 .json 与 .jsonc）：
 #   accelerate launch --multi_gpu --num_processes=2 \
 #     -m lerobot.scripts.lerobot_train \
-#     --config_path=/vla/my_tbot/.配置/pretrain_config.jsonc
+#     --config_path=/vla/my_tbot/.config/pretrain_config.jsonc
 ###############################################################################
 
-CONFIG_PATH="${1:-.配置/pretrain_config.jsonc}"
+CONFIG_PATH="${1:-.config/pretrain_config.jsonc}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"

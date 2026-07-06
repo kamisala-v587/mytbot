@@ -212,3 +212,4 @@ def append_loss_log(log_file: Path, tracker: MetricsTracker) -> None:
         row_values.append(f"{stats[key]:.6f}")
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(",".join(row_values) + "\n")
+        f.flush()

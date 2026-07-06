@@ -7,7 +7,7 @@
     "dataset": {
         "type": "TBot_SA1",
         "repo_id": "multidata_from_file",
-        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.配置/robotwin_repo_ids.txt",
+        "repo_id_file": "/home/jovyan/vla/workspace/mytbot/.config/robotwin_repo_ids.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         // "external_stats_root": "/home/jovyan/vla/workspace/mytbot/norm_stats",
@@ -96,7 +96,7 @@
     "resume": false,
     "seed": 42,
     "num_workers": 8,
-    "batch_size": 32,
+    "batch_size": 16,
     "gradient_accumulation_steps": 1,
     "steps": 200000,
     "log_freq": 100,

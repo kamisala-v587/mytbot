@@ -15,6 +15,7 @@
 # limitations under the License.
 import logging
 import os
+import subprocess
 import time
 import inspect
 from importlib import import_module
@@ -69,6 +70,20 @@ from lerobot.utils.utils import (
 
 FASTWAM_TRAINER_STATE_FILE = "fastwam_trainer_state.json"
 FASTWAM_POLICY_TYPES = {"fastwam", *TBOT_SA1_WAN_ALIASES}
+
+is_main_process = False
+
+
+def _is_local_main_process() -> bool:
+    """True on rank 0 for both single-process and accelerate/torchrun launches."""
+    for key in ("LOCAL_RANK", "RANK"):
+        value = os.environ.get(key)
+        if value is not None:
+            try:
+                return int(value) == 0
+            except ValueError:
+                pass
+    return True
 
 
 def _metric_to_float(value: Any) -> float:
@@ -418,6 +433,74 @@ def _meter_avg_or_val(meter: AverageMeter) -> float:
     return meter.avg if meter.count > 0 else meter.val
 
 
+GPU_METRIC_KEYS = (
+    "gpu_mem_allocated_gb",
+    "gpu_mem_reserved_gb",
+    "gpu_mem_peak_gb",
+    "gpu_util_pct",
+    "gpu_mem_used_gb",
+)
+
+
+def _maybe_add_gpu_metrics(train_metrics: dict[str, AverageMeter]) -> None:
+    if not torch.cuda.is_available():
+        return
+    train_metrics["gpu_mem_allocated_gb"] = AverageMeter("gpu_alloc_gb", ":.2f")
+    train_metrics["gpu_mem_reserved_gb"] = AverageMeter("gpu_res_gb", ":.2f")
+    train_metrics["gpu_mem_peak_gb"] = AverageMeter("gpu_peak_gb", ":.2f")
+    train_metrics["gpu_util_pct"] = AverageMeter("gpu_util", ":.0f")
+    train_metrics["gpu_mem_used_gb"] = AverageMeter("gpu_used_gb", ":.2f")
+
+
+def _collect_gpu_stats(device: torch.device, local_rank: int) -> dict[str, float]:
+    """Snapshot GPU memory (PyTorch) and utilization (nvidia-smi) for logging."""
+    if not torch.cuda.is_available():
+        return {}
+
+    cuda_device = device if device.type == "cuda" else torch.device(f"cuda:{local_rank}")
+    gpu_index = cuda_device.index if cuda_device.index is not None else local_rank
+    stats: dict[str, float] = {}
+
+    try:
+        torch.cuda.synchronize(cuda_device)
+        stats["gpu_mem_allocated_gb"] = torch.cuda.memory_allocated(cuda_device) / (1024 ** 3)
+        stats["gpu_mem_reserved_gb"] = torch.cuda.memory_reserved(cuda_device) / (1024 ** 3)
+        stats["gpu_mem_peak_gb"] = torch.cuda.max_memory_allocated(cuda_device) / (1024 ** 3)
+    except Exception:
+        pass
+
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu,memory.used",
+                "--format=csv,noheader,nounits",
+                "-i",
+                str(gpu_index),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            parts = [part.strip() for part in result.stdout.strip().split(",")]
+            if len(parts) >= 1 and parts[0]:
+                stats["gpu_util_pct"] = float(parts[0])
+            if len(parts) >= 2 and parts[1]:
+                stats["gpu_mem_used_gb"] = float(parts[1]) / 1024
+    except Exception:
+        pass
+
+    return stats
+
+
+def _update_gpu_metrics(train_tracker: MetricsTracker, device: torch.device, local_rank: int) -> None:
+    for key, value in _collect_gpu_stats(device, local_rank).items():
+        if key in train_tracker.metrics:
+            setattr(train_tracker, key, value)
+
+
 def _format_train_status_line(
     train_tracker: MetricsTracker,
     cfg: TrainPipelineConfig,
@@ -475,6 +558,16 @@ def _format_train_status_line(
     if "time_3d_teacher_forward_s" in train_tracker.metrics:
         time_parts.append(f"da3:{_meter_avg_or_val(train_tracker.time_3d_teacher_forward_s):.3f}s")
 
+    gpu_parts = []
+    if "gpu_util_pct" in train_tracker.metrics:
+        gpu_parts.append(f"util:{_meter_avg_or_val(train_tracker.gpu_util_pct):.0f}%")
+    if "gpu_mem_allocated_gb" in train_tracker.metrics:
+        gpu_parts.append(f"alloc:{_meter_avg_or_val(train_tracker.gpu_mem_allocated_gb):.2f}G")
+    if "gpu_mem_peak_gb" in train_tracker.metrics:
+        gpu_parts.append(f"peak:{_meter_avg_or_val(train_tracker.gpu_mem_peak_gb):.2f}G")
+    if "gpu_mem_used_gb" in train_tracker.metrics:
+        gpu_parts.append(f"used:{_meter_avg_or_val(train_tracker.gpu_mem_used_gb):.2f}G")
+
     sections = [
         f"\033[92m\033[1m{elapsed_str} << {remaining_str}\033[0m",
         f"\033[96m\033[1m{steps_per_second:.2f} iters/s\033[0m",
@@ -486,6 +579,8 @@ def _format_train_status_line(
         sections.append(f"optim[{' | '.join(optim_parts)}]")
     if time_parts:
         sections.append(f"time[{' | '.join(time_parts)}]")
+    if gpu_parts:
+        sections.append(f"gpu[{' | '.join(gpu_parts)}]")
     return " | ".join(sections)
 
 
@@ -506,6 +601,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         cfg: A `TrainPipelineConfig` object containing all training configurations.
         accelerator: Optional Accelerator instance. If None, one will be created automatically.
     """
+    global is_main_process
     # mp.set_start_method("spawn", force=True)
     cfg.validate()
 
@@ -884,7 +980,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             "update_s": AverageMeter("updt_s", ":.3f"),
             "dataloading_s": AverageMeter("data_s", ":.3f"),
         }
-        
+
+    _maybe_add_gpu_metrics(train_metrics)
 
     # Use effective batch size for proper epoch calculation in distributed training
     effective_batch_size = cfg.batch_size * accelerator.num_processes * cfg.gradient_accumulation_steps
@@ -1010,6 +1107,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             )
 
         if should_log:
+            if is_main_process and torch.cuda.is_available():
+                _update_gpu_metrics(train_tracker, accelerator.device, accelerator.local_process_index)
             dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             avg_update_time = train_tracker.update_s.avg if hasattr(train_tracker.update_s, "avg") else train_tracker.update_s.val
             steps_per_second = 1.0 / avg_update_time if avg_update_time > 0 else 0
@@ -1028,6 +1127,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             )
             with open(train_log_file, "a", encoding="utf-8") as log_f:
                 log_f.write(f"INFO {dt} lerobot_train.py:step {status_line}\n")
+                log_f.flush()
             append_loss_log(loss_log_file, train_tracker)
             if wandb_logger:
                 wandb_log_dict = train_tracker.to_dict()
@@ -1111,10 +1211,22 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     accelerator.wait_for_everyone()
     accelerator.end_training()
 
+import traceback
+
+from lerobot.scripts.send_error_to_dingtalk import send_error_to_dingtalk
 
 def main():
-    register_third_party_plugins()
-    train()
+    try:
+        register_third_party_plugins()
+        train()
+    except Exception as e:
+        if _is_local_main_process():
+            error_info = traceback.format_exc()
+            error_info = "代码累了，它想歇会：\n" + error_info
+            send_error_to_dingtalk(error_info)
+        else:
+            logging.error("非主进程，不发送错误信息 + 1")
+        raise e
 
 
 if __name__ == "__main__":

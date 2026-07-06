@@ -47,25 +47,48 @@ class TBotSA1DatasetConfig(DatasetConfig):
     max_action_dim: int = 32
     qwen3_vl_processor_path: str = "Qwen/Qwen3-VL-2B-Instruct"
 
+    # TBot-SA1 训练数据变换链（按顺序执行，在 TransformedLeRobotDataset.__getitem__ 中逐 sample 调用）。
+    #
+    # 流程概览：
+    #   LeRobot 原始键名（因 robot_type 而异）
+    #     → 统一 state/action/图像键名 → 归一化 → padding
+    #     → Qwen3-VL tokenize → 固定 batch dict（供 TBotSA1Policy.forward 消费）
+    #
+    # 注意：RemapImageKey / ComposeFields / Normalize / DeltaAction 在实例化 Dataset 时
+    # 会经 hydrate_* 从 transforms/constants.py 按 robot_type 注入 mapping（见 transformed_dataset.py）。
     data_transforms: TransformGroup = field(
         default_factory=lambda: TransformGroup(
             inputs=[
+                # ⓪ EgoDex 等无 action 数据集：注入零宽 state/action 占位，后续 pad + action_loss_mask=0。
+                InjectMissingStateActionTransformFn(),
+                # ① 可选（action_mode=delta 时保留）：绝对 action → 相对当前 state 的增量。
                 DeltaActionTransformFn(),
+                # ② 将各相机图像 resize 到 224×224（保持宽高比 + pad），供后续 VLM 与 Cosmos 使用。
                 ResizeImagesWithPadFn(
                     height=TBotSA1DatasetConfig.height,
                     width=TBotSA1DatasetConfig.width,
                 ),
+                # ③ 相机键名统一：如 cam_high → observation.images.image0（共 3 路，不足则 pad + mask=False）。
+                #    mapping 由 hydrate_remap_image_key_transform 从 IMAGE_MAPPING 注入。
                 RemapImageKeyTransformFn(),
+                # ④ 对 state/action 做 mean_std 或 min_max 归一化（stats 来自 dataset.meta.stats）。
+                #    selected_keys 由 hydrate_normalize_transform 从 FEATURE_MAPPING 注入。
                 NormalizeTransformFn(),
+                # ⑤ 多字段拼接：如 left_arm + right_arm + gripper → 单一 observation.state / action。
+                #    mapping 由 hydrate_compose_field_transform 从 FEATURE_MAPPING 注入。
                 ComposeFieldsTransform(),
+                # ⑥ 将 state/action 向量 pad 到 max_state_dim / max_action_dim（默认 32），对齐模型输入宽度。
                 PadStateAndActionTransformFn(
                     max_state_dim=TBotSA1DatasetConfig.max_state_dim,
                     max_action_dim=TBotSA1DatasetConfig.max_action_dim,
                 ),
+                # ⑦ Qwen3-VL 预处理：3 路图像 → pixel_values / image_grid_thw；task 文本 → input_ids / attention_mask。
+                #    processor 路径在 __post_init__ 中由 qwen3_vl_processor_path 覆盖。
                 Qwen3_VLProcessorTransformFn(),
+                # ⑧ 输出整理：只保留 forward 需要的键，丢弃中间字段，统一 batch schema。
                 UnifyTBotSA1InputsTransformFn(),
             ],
-            outputs=[],
+            outputs=[],  # 训练阶段不使用 output transforms；推理反归一化在 policy 侧处理
         )
     )
 

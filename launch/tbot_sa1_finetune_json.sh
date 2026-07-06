@@ -14,14 +14,14 @@ set -euo pipefail
 #   export PYTHONPATH=/vla/my_tbot/src:$PYTHONPATH   # 若未 pip install -e . 则需要
 #   CUDA_VISIBLE_DEVICES=0,1 \
 #   accelerate launch -m lerobot.scripts.lerobot_train \
-#     --config_path=/vla/my_tbot/.配置/train_config.jsonc
+#     --config_path=/vla/my_tbot/.config/train_config.jsonc
 #
 # 上面才是「真正启动训练」的核心；本脚本只是把最后一行包一层，方便传 JSON 路径。
 #
 # 【本脚本用法】
 #   cd /vla/my_tbot          # 需自行 cd，脚本内不再 cd
 #   ...（环境变量同上）...
-#   bash launch/tbot_sa1_finetune_json.sh .配置/train_config.json
+#   bash launch/tbot_sa1_finetune_json.sh .config/train_config.json
 #
 # 【cd / PYTHONPATH 是否有必要】
 #   - cd：若你已在 my_tbot 下运行，且 JSON 里相对路径（如 norm_stats/...）相对 cwd，则必须 cd；

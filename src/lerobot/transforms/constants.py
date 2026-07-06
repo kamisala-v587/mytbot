@@ -358,6 +358,10 @@ IMAGE_MAPPING["ALOHA"] = {
     "observation.images.head": f"{OBS_IMAGES}.image0",
     "observation.images.left": f"{OBS_IMAGES}.image1",
     "observation.images.right": f"{OBS_IMAGES}.image2",
+    # RoboChallenge-lerobotv3.0 flat camera keys
+    "observation.global_image": f"{OBS_IMAGES}.image0",
+    "observation.left_wrist_image": f"{OBS_IMAGES}.image1",
+    "observation.right_wrist_image": f"{OBS_IMAGES}.image2",
 }
 IMAGE_MAPPING["ALOHA_STARVLA"] = {
     "observation.images.cam_high": f"{OBS_IMAGES}.image0",
@@ -367,11 +371,18 @@ IMAGE_MAPPING["ALOHA_STARVLA"] = {
 IMAGE_MAPPING["UR5"] = {
     "observation.images.head": f"{OBS_IMAGES}.image0",
     "observation.images.left": f"{OBS_IMAGES}.image1",
+    # RoboChallenge-lerobotv3.0 flat camera keys
+    "observation.global_image": f"{OBS_IMAGES}.image0",
+    "observation.wrist_image": f"{OBS_IMAGES}.image1",
 }
 IMAGE_MAPPING["ARX5"] = {
     "observation.images.head": f"{OBS_IMAGES}.image0",
     "observation.images.left": f"{OBS_IMAGES}.image1",
     "observation.images.right": f"{OBS_IMAGES}.image2",
+    # RoboChallenge-lerobotv3.0 flat camera keys
+    "observation.global_image": f"{OBS_IMAGES}.image0",
+    "observation.wrist_image": f"{OBS_IMAGES}.image1",
+    "observation.right_image": f"{OBS_IMAGES}.image2",
 }
 ARX5_GLOBAL_ARM_SIDE_IMAGE_MAPPING = {
     "observation.images.cam_global": f"{OBS_IMAGES}.image0",
@@ -387,6 +398,10 @@ IMAGE_MAPPING["FRANKA"] = {
     "observation.images.head": f"{OBS_IMAGES}.image0",
     "observation.images.left": f"{OBS_IMAGES}.image1",
     "observation.images.right": f"{OBS_IMAGES}.image2",
+    # RoboChallenge-lerobotv3.0 flat camera keys
+    "observation.global_image": f"{OBS_IMAGES}.image0",
+    "observation.side_image": f"{OBS_IMAGES}.image1",
+    "observation.wrist_image": f"{OBS_IMAGES}.image2",
 }
 
 # franka_panda robocasa数据集 混合测试
@@ -402,7 +417,7 @@ IMAGE_MAPPING["franka_panda_robocasa_test"] = {
 
 
 IMAGE_MAPPING["egodex_v"] = {
-    "observation.image": f"{OBS_IMAGES}.image0",
+    "observation.images.camera": f"{OBS_IMAGES}.image0",
 }
 IMAGE_MAPPING["libero_franka"] = {
     "observation.images.image": f"{OBS_IMAGES}.image0",
@@ -448,7 +463,14 @@ def infer_embodiment_variant(robot_type, feature_keys=None):
             "observation.images.left",
             "observation.images.right",
         }
-        if robochallenge_aloha_keys.issubset(keys):
+        robochallenge_v3_aloha_keys = {
+            "observation.state",
+            "action",
+            "observation.global_image",
+            "observation.left_wrist_image",
+            "observation.right_wrist_image",
+        }
+        if robochallenge_aloha_keys.issubset(keys) or robochallenge_v3_aloha_keys.issubset(keys):
             resolved_robot_type = "ALOHA"
 
     if robot_type == "ALOHA" and keys is not None:
@@ -469,7 +491,13 @@ def infer_embodiment_variant(robot_type, feature_keys=None):
             "observation.images.head",
             "observation.images.left",
         }
-        if robochallenge_ur5_keys.issubset(keys):
+        robochallenge_v3_ur5_keys = {
+            "observation.state",
+            "action",
+            "observation.global_image",
+            "observation.wrist_image",
+        }
+        if robochallenge_ur5_keys.issubset(keys) or robochallenge_v3_ur5_keys.issubset(keys):
             resolved_robot_type = "UR5"
 
     if robot_type == "arx5" and keys is not None:
@@ -480,7 +508,14 @@ def infer_embodiment_variant(robot_type, feature_keys=None):
             "observation.images.left",
             "observation.images.right",
         }
-        if robochallenge_arx5_keys.issubset(keys):
+        robochallenge_v3_arx5_keys = {
+            "observation.state",
+            "action",
+            "observation.global_image",
+            "observation.wrist_image",
+            "observation.right_image",
+        }
+        if robochallenge_arx5_keys.issubset(keys) or robochallenge_v3_arx5_keys.issubset(keys):
             resolved_robot_type = "ARX5"
 
     if robot_type in {"dos_w1", "dos-w1", "DOS-W1"} and keys is not None:
@@ -503,10 +538,24 @@ def infer_embodiment_variant(robot_type, feature_keys=None):
             "observation.images.image",
             "observation.images.wrist_image",
         }
+        robochallenge_v3_franka_keys = {
+            "observation.state",
+            "action",
+            "observation.global_image",
+            "observation.side_image",
+            "observation.wrist_image",
+        }
         if libero_keys.issubset(keys):
             resolved_robot_type = "libero_franka"
+        elif robochallenge_v3_franka_keys.issubset(keys):
+            resolved_robot_type = "FRANKA"
 
     return resolved_robot_type
+
+
+def _is_robochallenge_v3_schema(feature_keys) -> bool:
+    keys = _feature_key_set(feature_keys)
+    return keys is not None and "observation.global_image" in keys
 
 
 def _get_required_mapping(mapping_name, mapping, robot_type, feature_keys=None):
@@ -527,7 +576,23 @@ def _get_required_mapping(mapping_name, mapping, robot_type, feature_keys=None):
     )
 
 
+def _filter_mapping_by_features(mapping: dict[str, str], feature_keys) -> dict[str, str]:
+    keys = _feature_key_set(feature_keys)
+    if keys is None:
+        return mapping
+    return {source_key: target_key for source_key, target_key in mapping.items() if source_key in keys}
+
+
 def get_mask_mapping(robot_type, feature_keys=None):
+    resolved_robot_type = infer_embodiment_variant(robot_type, feature_keys)
+    if _is_robochallenge_v3_schema(feature_keys):
+        # RoboChallenge-lerobotv3.0 uses flat camera keys and different action dims.
+        if resolved_robot_type == "UR5":
+            return make_bool_mask(7, -1)
+        if resolved_robot_type == "ALOHA":
+            return make_bool_mask(7, -1, 7, -1)
+        if resolved_robot_type == "FRANKA":
+            return make_bool_mask(7, -1)
     return _get_required_mapping("MASK_MAPPING", MASK_MAPPING, robot_type, feature_keys)
 
 

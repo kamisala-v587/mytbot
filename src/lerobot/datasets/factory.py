@@ -22,6 +22,7 @@ from collections import defaultdict
 from omegaconf import OmegaConf, DictConfig
 
 import math
+import numpy as np
 import torch
 import torch.distributed as dist
 
@@ -44,7 +45,7 @@ from lerobot.policies.fastwam.configuration_fastwam import FastWAMDatasetConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanDatasetConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfig, RoboChallengeRawW1DatasetConfig
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
-from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, infer_embodiment_variant
+from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
 from lerobot.utils.constants import HF_LEROBOT_HOME
 
@@ -53,6 +54,44 @@ IMAGENET_STATS = {
     "std": [[[0.229]], [[0.224]], [[0.225]]],  # (c,1,1)
 }
 
+
+def _identity_norm_stats(dim: int = 1) -> dict[str, np.ndarray]:
+    return {
+        "mean": np.zeros(dim, dtype=np.float64),
+        "std": np.ones(dim, dtype=np.float64),
+        "min": np.zeros(dim, dtype=np.float64),
+        "max": np.ones(dim, dtype=np.float64),
+    }
+
+
+def _configure_vision_only_dataset(base_ds, policy_cfg: PreTrainedConfig) -> None:
+    """Prepare EgoDex-style datasets that only provide vision + language."""
+    robot_type = base_ds.meta.robot_type
+    if robot_type != "egodex_v":
+        return
+
+    feature_mapping = get_feature_mapping(robot_type, base_ds.meta.features)
+    action_keys = feature_mapping.get(ACTION, [ACTION])
+    state_keys = feature_mapping.get(OBS_STATE, [OBS_STATE])
+    mask = get_mask_mapping(robot_type, base_ds.meta.features)
+    placeholder_dim = int(len(mask)) if len(mask) > 0 else 1
+    if policy_cfg.action_delta_indices is not None:
+        action_seq_len = len(policy_cfg.action_delta_indices)
+    else:
+        action_seq_len = int(policy_cfg.chunk_size)
+    if policy_cfg.observation_delta_indices is not None:
+        state_seq_len = len(policy_cfg.observation_delta_indices)
+    else:
+        state_seq_len = int(policy_cfg.n_obs_steps)
+
+    base_ds._missing_state_action_seq_lens = {
+        "action": action_seq_len,
+        "state": state_seq_len,
+    }
+    base_ds._missing_state_action_placeholder_dim = placeholder_dim
+    for key in state_keys + action_keys:
+        if key not in base_ds.meta.stats:
+            base_ds.meta.stats[key] = _identity_norm_stats(placeholder_dim)
 
 def get_rank_and_world_size() -> tuple[int, int]:
     """Get the global rank and world_size.
@@ -642,6 +681,7 @@ def _build_single_dataset(
             rng=None,
             shuffle=True,
         )
+        _configure_vision_only_dataset(base_ds, cfg.policy)
         transformed_ds = TransformedStreamingLeRobotDataset.from_base(
             base_ds,
             cfg.dataset.data_transforms.inputs,
@@ -659,6 +699,7 @@ def _build_single_dataset(
             revision=cfg.dataset.revision,
             video_backend=cfg.dataset.video_backend,
         )
+        _configure_vision_only_dataset(base_ds, cfg.policy)
         transformed_ds = TransformedLeRobotDataset.from_base(
             base_ds,
             cfg.dataset.data_transforms.inputs,
@@ -958,6 +999,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         data_stats = {dataset.meta.robot_type: dataset.meta.stats}
         return dataset, data_stats
 
+    # TbotPre-training 真实分支流
     all_data_stats = {}
     all_repo_ids = resolve_repo_ids(cfg)
     logging.info(

@@ -15,12 +15,13 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.datasets.streaming_dataset import StreamingLeRobotDataset
 from lerobot.datasets.transforms import Pi05StyleAugment
 from lerobot.transforms.utils import resize_with_pad, resize_center_crop
-from lerobot.utils.constants import OBS_IMAGE, OBS_IMAGES, OBS_STATE, ACTION
+from lerobot.utils.constants import OBS_IMAGE, OBS_IMAGES, OBS_STATE, ACTION, SAMPLE_ACTION_LOSS_MASK
 from .constants import (
     get_feature_mapping,
     get_image_mapping,
     get_mask_mapping,
     infer_embodiment_variant,
+    _filter_mapping_by_features,
 )
 
 
@@ -228,14 +229,25 @@ class RemapImageKeyTransformFn(DataTransformFn):
     mapping: dict[str, str] = field(default_factory=dict)
 
     def __call__(self, data: DataDict) -> DataDict: 
+        remapped = 0
         for old_key, new_key in self.mapping.items():
+            if old_key not in data:
+                continue
             data[new_key] = data.pop(old_key)
             data[f"{new_key}_mask"] = torch.tensor(True)
+            remapped += 1
+        if remapped == 0:
+            available = ", ".join(sorted(k for k in data.keys() if "image" in k))
+            expected = ", ".join(sorted(self.mapping.keys()))
+            raise KeyError(
+                f"[RemapImageKeyTransformFn] No source image keys found. "
+                f"Expected one of [{expected}], got image-like keys [{available}]"
+            )
         # create missing keys if necessary
-        if len(self.mapping) < 3:
+        if remapped < 3:
             data[f"{OBS_IMAGES}.image2"] = torch.ones_like(data[f"{OBS_IMAGES}.image0"])
             data[f"{OBS_IMAGES}.image2_mask"] = torch.tensor(False)
-        if len(self.mapping) < 2:
+        if remapped < 2:
             data[f"{OBS_IMAGES}.image1"] = torch.ones_like(data[f"{OBS_IMAGES}.image0"])
             data[f"{OBS_IMAGES}.image1_mask"] = torch.tensor(False)
         return data
@@ -358,6 +370,66 @@ class UnNormalizeTransformFn(DataTransformFn):
         return data
 
 
+@DataTransformFn.register_subclass("inject_missing_state_action")
+@dataclass
+class InjectMissingStateActionTransformFn(DataTransformFn):
+    """Insert zero-width state/action placeholders for datasets without robot actions (e.g. EgoDex)."""
+
+    mapping: dict[str, list[str]] = field(default_factory=dict)
+    robot_types_without_action: tuple[str, ...] = ("egodex_v",)
+    action_seq_len: int = 1
+    state_seq_len: int = 1
+    placeholder_dim: int = 1
+
+    def __call__(self, data: DataDict) -> DataDict:
+        robot_type = data.get("robot_type")
+        if robot_type not in self.robot_types_without_action:
+            return data
+
+        state_keys = self.mapping.get(OBS_STATE, [OBS_STATE])
+        action_keys = self.mapping.get(ACTION, [ACTION])
+        action_seq_len = self._infer_seq_len(data, action_keys, self.action_seq_len)
+        state_seq_len = self._infer_seq_len(data, state_keys, self.state_seq_len)
+        dim = self.placeholder_dim
+
+        for key in state_keys:
+            if key not in data:
+                data[key] = self._make_state_placeholder(state_seq_len, dim)
+        for key in action_keys:
+            if key not in data:
+                data[key] = torch.zeros(action_seq_len, dim, dtype=torch.float32)
+                data[f"{key}_is_pad"] = torch.ones(action_seq_len, dtype=torch.bool)
+
+        data[SAMPLE_ACTION_LOSS_MASK] = torch.tensor([0.0], dtype=torch.float32)
+        return data
+
+    @staticmethod
+    def _make_state_placeholder(state_seq_len: int, placeholder_dim: int) -> torch.Tensor:
+        # 1D (dim,) for n_obs_steps=1 — matches TBot_SA1 embed_suffix input (B, max_state_dim).
+        if state_seq_len == 1:
+            return torch.zeros(placeholder_dim, dtype=torch.float32)
+        return torch.zeros(state_seq_len, placeholder_dim, dtype=torch.float32)
+
+    def _infer_seq_len(self, data: DataDict, keys: list[str], default: int) -> int:
+        for key in keys:
+            if key not in data:
+                continue
+            value = data[key]
+            if isinstance(value, torch.Tensor) and value.ndim >= 1:
+                return int(value.shape[0])
+            if isinstance(value, np.ndarray) and value.ndim >= 1:
+                return int(value.shape[0])
+        for key in keys:
+            pad_key = f"{key}_is_pad"
+            if pad_key in data:
+                pad = data[pad_key]
+                if isinstance(pad, torch.Tensor):
+                    return int(pad.shape[0])
+                if isinstance(pad, np.ndarray):
+                    return int(pad.shape[0])
+        return default
+
+
 @DataTransformFn.register_subclass("delta_action")
 @dataclass
 class DeltaActionTransformFn(DataTransformFn):
@@ -368,11 +440,15 @@ class DeltaActionTransformFn(DataTransformFn):
     def __call__(self, data: DataDict) -> DataDict:
         # only extrat OBS_STATE and ACTION
         state_keys = self.mapping[OBS_STATE]
+        action_keys = self.mapping[ACTION]
+        if not all(key in data for key in state_keys + action_keys):
+            return data
         state_list, _ = self._align_for_cat([data[k] for k in state_keys])
         state = torch.cat(state_list, dim=-1)
-        action_keys = self.mapping[ACTION]
         action_list, size = self._align_for_cat([data[k] for k in action_keys])
         action = torch.cat(action_list, dim=-1)
+        if state.shape[-1] == 0 or action.shape[-1] == 0:
+            return data
         mask = self.mask if self.mask is not None else torch.tensor([True] * state.shape[-1])
         action -= torch.where(mask, state, 0)[None]
         sid, eid = 0, 0
@@ -390,6 +466,38 @@ class DeltaActionTransformFn(DataTransformFn):
             out.append(t)
             size.append(t.shape[-1])
         return out, size
+
+
+def hydrate_inject_missing_state_action_transform(
+    transforms: list[DataTransformFn],
+    dataset: LeRobotDataset | StreamingLeRobotDataset,
+) -> list[DataTransformFn]:
+    hydrated: list[DataTransformFn] = []
+    seq_lens = getattr(dataset, "_missing_state_action_seq_lens", None) or {}
+    placeholder_dim = int(getattr(dataset, "_missing_state_action_placeholder_dim", 0) or 0)
+    for t in transforms:
+        if isinstance(t, InjectMissingStateActionTransformFn):
+            robot_type = dataset.meta.robot_type
+            resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
+            if placeholder_dim <= 0:
+                mask = get_mask_mapping(robot_type, dataset.meta.features)
+                placeholder_dim = int(len(mask)) if len(mask) > 0 else 1
+            print(
+                f"Hydrating transform {t.__class__.__name__} "
+                f"(robot_type={robot_type}, resolved={resolved_robot_type}, "
+                f"action_seq_len={seq_lens.get('action', t.action_seq_len)}, "
+                f"state_seq_len={seq_lens.get('state', t.state_seq_len)}, "
+                f"placeholder_dim={placeholder_dim})"
+            )
+            t = replace(
+                t,
+                mapping=get_feature_mapping(robot_type, dataset.meta.features),
+                action_seq_len=int(seq_lens.get("action", t.action_seq_len)),
+                state_seq_len=int(seq_lens.get("state", t.state_seq_len)),
+                placeholder_dim=placeholder_dim,
+            )
+        hydrated.append(t)
+    return hydrated
 
 
 def hydrate_normalize_transform(
@@ -469,7 +577,13 @@ def hydrate_remap_image_key_transform(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"with mapping (robot_type={robot_type}, resolved={resolved_robot_type})"
             )
-            t = replace(t, mapping=get_image_mapping(robot_type, dataset.meta.features))
+            t = replace(
+                t,
+                mapping=_filter_mapping_by_features(
+                    get_image_mapping(robot_type, dataset.meta.features),
+                    dataset.meta.features,
+                ),
+            )
         hydrated.append(t)
     return hydrated
 

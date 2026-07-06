@@ -5,7 +5,7 @@
 //   1. 本文件为 JSONC（含 // 注释），供阅读与修改参考；
 //   2. 直接用于训练时，请复制为 train_config.json 并删除所有注释行，
 //      或使用支持 JSONC 的工具导出纯 JSON；
-//   3. 基于 .配置/train_config.json 最小配置扩展，数值与当前微调场景一致。
+//   3. 基于 .config/train_config.json 最小配置扩展，数值与当前微调场景一致。
 //
 // 未写入的极少数参数（使用代码默认值即可）：
 //   - dataset: repo_id_file, root, episodes, revision, streaming, dist_loading,

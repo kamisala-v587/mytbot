@@ -13,6 +13,7 @@ from lerobot.transforms.core import (
     DataTransformFn, 
     DataDict, 
     compose, 
+    hydrate_inject_missing_state_action_transform,
     hydrate_normalize_transform, 
     hydrate_compose_field_transform, 
     hydrate_delta_action_transform, 
@@ -37,6 +38,7 @@ class TransformedLeRobotDataset(LeRobotDataset):
         obj = cls.__new__(cls)  
         obj.__dict__ = (base.__dict__ if share_dict else base.__dict__.copy())
 
+        transforms = hydrate_inject_missing_state_action_transform(transforms, obj)
         transforms = hydrate_normalize_transform(transforms, obj)
         transforms = hydrate_compose_field_transform(transforms, obj)
         transforms = hydrate_delta_action_transform(transforms, obj)
@@ -272,6 +274,7 @@ class TransformedStreamingLeRobotDataset(IterableDataset):
         obj.stats = base.meta.stats
         obj.robot_type = base.meta.robot_type
 
+        transforms = hydrate_inject_missing_state_action_transform(transforms, obj)
         transforms = hydrate_normalize_transform(transforms, obj)
         transforms = hydrate_compose_field_transform(transforms, obj)
         transforms = hydrate_delta_action_transform(transforms, obj)

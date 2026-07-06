@@ -14,8 +14,10 @@
 
 ### Environments & Dependencies ###
 .env
+.bak
 .venv
 .test/
+.rag
 env/
 venv/
 env.bak/
@@ -23,7 +25,7 @@ venv.bak/
 .python-version
 __pypackages__/
 node_modules/
-
+norm_stats*
 # Lock files
 poetry.lock
 uv.lock
