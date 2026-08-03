@@ -25,14 +25,17 @@ from lerobot.policies.InternVLA_A1_3B.configuration_internvla_a1 import QwenA1Co
 from lerobot.policies.InternVLA_A1_2B.configuration_internvla_a1 import InternA1Config
 from lerobot.policies.qwenaction.configuration_qwenaction import QwenActionConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1Config
+from lerobot.policies.BP_TBot.configuration_bp_tbot import BPTBotConfig
 from lerobot.policies.fastwam.configuration_fastwam import FastWAMConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanConfig
 from lerobot.policies.names import (
     TBOT_SA1,
     TBOT_SA1_WAN,
+    BP_TBOT,
     canonical_policy_type,
     is_tbot_sa1,
     is_tbot_sa1_wan,
+    is_bp_tbot,
 )
 from lerobot.policies.pi0.configuration_pi0 import PI0Config
 from lerobot.policies.pi05.configuration_pi05 import PI05Config
@@ -77,6 +80,10 @@ def get_policy_class(name: str) -> type[PreTrainedPolicy]:
         from lerobot.policies.TBot_SA1_Wan.modeling_tbot_sa1_wan import TBotSA1WanPolicy
 
         return TBotSA1WanPolicy
+    elif is_bp_tbot(name):
+        from lerobot.policies.BP_TBot.modeling_bp_tbot import BPTBotPolicy
+
+        return BPTBotPolicy
     
     elif name == "interna1" or name == "internvla_a1_2b":
         from lerobot.policies.InternVLA_A1_2B.modeling_internvla_a1 import InternA1Policy
@@ -130,6 +137,8 @@ def make_policy_config(policy_type: str, **kwargs) -> PreTrainedConfig:
         return FastWAMConfig(**kwargs)
     elif policy_type == TBOT_SA1_WAN:
         return TBotSA1WanConfig(**kwargs)
+    elif policy_type == BP_TBOT:
+        return BPTBotConfig(**kwargs)
     elif policy_type == "internvla_a1":
         return InternA1Config(**kwargs)
     elif policy_type == "pi0":

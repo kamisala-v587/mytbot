@@ -44,6 +44,7 @@ from lerobot.datasets.transformed_dataset import (
 from lerobot.policies.fastwam.configuration_fastwam import FastWAMDatasetConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanDatasetConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfig, RoboChallengeRawW1DatasetConfig
+from lerobot.policies.BP_TBot.configuration_bp_tbot import BPTBotDatasetConfig
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
@@ -934,6 +935,56 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         image_transforms = ImageTransforms(cfg.dataset.image_transforms)
     else:
         image_transforms = None
+
+
+    if isinstance(cfg.dataset, BPTBotDatasetConfig):
+        if cfg.dataset.streaming:
+            raise ValueError("BP_TBot dataset currently supports non-streaming LeRobot datasets only.")
+        repo_ids = resolve_repo_ids(cfg)
+        from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
+
+        bp_datasets = []
+        data_stats = {}
+        for repo_id in repo_ids:
+            ds_meta = LeRobotDatasetMetadata(repo_id, root=cfg.dataset.root, revision=cfg.dataset.revision)
+            delta_timestamps = resolve_delta_timestamps(cfg.policy, ds_meta)
+            current_ds = LeRobotDataset(
+                repo_id,
+                root=cfg.dataset.root,
+                episodes=cfg.dataset.episodes,
+                delta_timestamps=delta_timestamps,
+                image_transforms=image_transforms,
+                revision=cfg.dataset.revision,
+                video_backend=cfg.dataset.video_backend,
+            )
+            frame_ds = LeRobotDataset(
+                repo_id,
+                root=cfg.dataset.root,
+                episodes=cfg.dataset.episodes,
+                image_transforms=image_transforms,
+                revision=cfg.dataset.revision,
+                video_backend=cfg.dataset.video_backend,
+            )
+            _configure_vision_only_dataset(current_ds, cfg.policy)
+            prompt_cfg = BehaviorPromptConfig(
+                prompt_action_chunk_size=int(getattr(cfg.policy, "bp_action_chunk_size", cfg.policy.chunk_size)),
+                same_episode_policy=cfg.dataset.bp_same_episode_policy,
+                seed=int(cfg.dataset.bp_seed),
+                num_chunks=cfg.dataset.bp_num_chunks,
+                height=cfg.dataset.height,
+                width=cfg.dataset.width,
+                max_state_dim=cfg.dataset.max_state_dim,
+                max_action_dim=cfg.dataset.max_action_dim,
+                qwen3_vl_processor_path=cfg.dataset.qwen3_vl_processor_path,
+                action_mode=cfg.dataset.action_mode,
+            )
+            bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, frame_ds, prompt_cfg)
+            bp_datasets.append(bp_dataset)
+            data_stats[current_ds.meta.robot_type] = current_ds.meta.stats
+
+        if len(bp_datasets) == 1:
+            return bp_datasets[0], data_stats
+        return MultiLeRobotDataset(bp_datasets), data_stats
 
     if isinstance(cfg.dataset, RoboChallengeRawW1DatasetConfig):
         if not is_tbot_sa1(cfg.policy.type):

@@ -1,0 +1,2 @@
+/vla/workspace/data/adjust_bottle/aloha-agilex_clean_50
+/vla/workspace/data/adjust_bottle/aloha-agilex_randomized_500

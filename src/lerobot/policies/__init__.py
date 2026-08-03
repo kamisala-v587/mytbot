@@ -16,6 +16,7 @@ from .InternVLA_A1_3B.configuration_internvla_a1 import QwenA1Config as QwenA1Co
 from .InternVLA_A1_2B.configuration_internvla_a1 import InternA1Config as InternA1Config
 from .qwenaction.configuration_qwenaction import QwenActionConfig as QwenActionConfig
 from .TBot_SA1.configuration_tbot_sa1 import TBotSA1Config as TBotSA1Config
+from .BP_TBot.configuration_bp_tbot import BPTBotConfig as BPTBotConfig
 from .fastwam.configuration_fastwam import FastWAMConfig as FastWAMConfig
 from .TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanConfig as TBotSA1WanConfig
 from .pi0.configuration_pi0 import PI0Config as PI0Config
@@ -26,6 +27,7 @@ __all__ = [
     "InternA1Config", 
     "QwenActionConfig",
     "TBotSA1Config",
+    "BPTBotConfig",
     "FastWAMConfig",
     "TBotSA1WanConfig",
     "PI0Config",
