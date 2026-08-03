@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 import torch
 import torch.nn.functional as F
@@ -165,6 +165,41 @@ class BPComposeFieldsTransform(DataTransformFn):
     def __call__(self, data: DataDict) -> DataDict:
         # BehaviorPromptLeRobotDataset currently stores prompt["state"] and prompt["action"]
         # from already indexed LeRobot samples. No additional source fields remain here.
+        return data
+
+
+@DataTransformFn.register_subclass("bp_delta_action")
+@dataclass
+class BPDeltaActionTransformFn(DataTransformFn):
+    """Convert behavior_prompt action chunks to deltas from their chunk states."""
+
+    mask: Optional[list[bool]] = None
+
+    def __call__(self, data: DataDict) -> DataDict:
+        prompt = data[BP_PREFIX]
+        if "state" not in prompt or "action" not in prompt:
+            return data
+
+        state = prompt["state"]
+        action = prompt["action"]
+        if state.shape[-1] == 0 or action.shape[-1] == 0:
+            return data
+
+        if self.mask is None:
+            mask = torch.ones(state.shape[-1], dtype=torch.bool, device=state.device)
+        else:
+            mask = torch.as_tensor(self.mask, dtype=torch.bool, device=state.device)
+        if mask.shape[-1] != state.shape[-1]:
+            raise ValueError(
+                f"BPDeltaActionTransformFn mask dim {mask.shape[-1]} does not match "
+                f"state dim {state.shape[-1]}"
+            )
+
+        delta = torch.where(mask, state, torch.zeros_like(state))
+        while delta.ndim < action.ndim:
+            delta = delta.unsqueeze(-2)
+        prompt["action"] = action - delta.to(device=action.device, dtype=action.dtype)
+        data[BP_PREFIX] = prompt
         return data
 
 

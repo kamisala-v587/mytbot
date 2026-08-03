@@ -1,0 +1,6 @@
+/vla/workspace/data/adjust_bottle/aloha-agilex_clean_50
+/vla/workspace/data/adjust_bottle/aloha-agilex_randomized_500
+/vla/workspace/data/hanging_mug/aloha-agilex_clean_50
+/vla/workspace/data/hanging_mug/aloha-agilex_randomized_500
+/vla/workspace/data/turn_switch/aloha-agilex_clean_50
+/vla/workspace/data/turn_switch/aloha-agilex_randomized_500

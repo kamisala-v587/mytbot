@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import Dataset
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from lerobot.transforms.constants import get_feature_mapping, get_image_mapping
+from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping
 from lerobot.transforms.core import (
     ComposeFieldsTransform,
     DataDict,
@@ -31,6 +31,7 @@ from lerobot.transforms.core import (
 )
 from lerobot.transforms.core_bp import (
     BPComposeFieldsTransform,
+    BPDeltaActionTransformFn,
     BPImgOnlyQwen3VLTransformFn,
     BPNormalizeTransformFn,
     BPPadOrSampleChunksFn,
@@ -80,6 +81,7 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         BPRemapImageKeyTransformFn(),
         BPNormalizeTransformFn(),
         BPComposeFieldsTransform(),
+        BPDeltaActionTransformFn(),
         BPPadStateAndActionTransformFn(
             max_state_dim=prompt_cfg.max_state_dim,
             max_action_dim=prompt_cfg.max_action_dim,
@@ -100,7 +102,7 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         UnifyBPInputsTransformFn(),
     ]
     if prompt_cfg.action_mode != "delta":
-        transforms = [t for t in transforms if not isinstance(t, DeltaActionTransformFn)]
+        transforms = [t for t in transforms if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
     return transforms
 
 class BehaviorPromptLeRobotDataset(Dataset):
@@ -170,6 +172,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 )
             elif isinstance(transform, BPComposeFieldsTransform):
                 transforms[idx] = replace(transform, mapping=feature_mapping)
+            elif isinstance(transform, BPDeltaActionTransformFn):
+                transforms[idx] = replace(transform, mask=get_mask_mapping(robot_type, current_ds.meta.features))
             elif isinstance(transform, BPRemapImageKeyTransformFn):
                 transforms[idx] = replace(transform, mapping=image_mapping)
 

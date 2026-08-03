@@ -19,6 +19,7 @@ from lerobot.transforms.core import (
 )
 from lerobot.transforms.core_bp import (
     BPComposeFieldsTransform,
+    BPDeltaActionTransformFn,
     BPImgOnlyQwen3VLTransformFn,
     BPNormalizeTransformFn,
     BPPadOrSampleChunksFn,
@@ -56,6 +57,7 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 BPRemapImageKeyTransformFn(),
                 BPNormalizeTransformFn(),
                 BPComposeFieldsTransform(),
+                BPDeltaActionTransformFn(),
                 BPPadStateAndActionTransformFn(
                     max_state_dim=BPTBotDatasetConfig.max_state_dim,
                     max_action_dim=BPTBotDatasetConfig.max_action_dim,
@@ -88,11 +90,16 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 inputs[idx] = replace(transform, num_chunks=self.bp_num_chunks)
             elif isinstance(transform, (BPImgOnlyQwen3VLTransformFn, ImgOnlyQwen3VLTransformFn)):
                 inputs[idx] = replace(transform, pretrained_model_name_or_path=self.qwen3_vl_processor_path)
-        has_delta = any(isinstance(t, DeltaActionTransformFn) for t in inputs)
-        if self.action_mode != "delta" and has_delta:
-            inputs = [t for t in inputs if not isinstance(t, DeltaActionTransformFn)]
-        elif self.action_mode == "delta" and not has_delta:
-            inputs.insert(0, DeltaActionTransformFn())
+        has_current_delta = any(isinstance(t, DeltaActionTransformFn) for t in inputs)
+        has_bp_delta = any(isinstance(t, BPDeltaActionTransformFn) for t in inputs)
+        if self.action_mode != "delta" and (has_current_delta or has_bp_delta):
+            inputs = [t for t in inputs if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
+        elif self.action_mode == "delta":
+            if not has_bp_delta:
+                insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, BPPadStateAndActionTransformFn)), 0)
+                inputs.insert(insert_idx, BPDeltaActionTransformFn())
+            if not has_current_delta:
+                inputs.insert(0, DeltaActionTransformFn())
         self.data_transforms = replace(self.data_transforms, inputs=inputs)
 
 

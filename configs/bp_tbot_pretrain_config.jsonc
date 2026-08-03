@@ -1,9 +1,8 @@
 {
     "dataset": {
         "type": "BP_TBot",
-        "repo_id": "/vla/workspace/data/hanging_mug/aloha-agilex_randomized_500",
-        "repo_id_file": null,
-        "root": "/vla/workspace/data/hanging_mug/aloha-agilex_randomized_500",
+        // "repo_id": "/vla/workspace/data/hanging_mug/aloha-agilex_randomized_500",
+        "repo_id_file": "/vla/workspace/my_tbot/.config/ds_ids/bp_datasets.txt",
         "action_mode": "delta",
         "use_external_stats": false,
         "external_stats_path": null,
@@ -32,7 +31,7 @@
     "env": null,
     "policy": {
         "type": "BP_TBot",
-        "pretrained_path": "/vla/workspace/models/bp_tbot_init",
+        "pretrained_path": "/vla/workspace/my_tbot/outputs/BP_TBot/pretrain_v1/2026-07-30/22-39-35_BP_TBot——test/checkpoints/020000/pretrained_model",
         "push_to_hub": false,
         "device": null,
 
@@ -50,7 +49,7 @@
 
         "num_inference_steps": 10,
         "image_resolution": [224, 224],
-        "image_delta_indices": [-15, 0, 15],
+        "image_delta_indices": [-50, 0, 50],
         "tokenizer_max_length": 48,
         "bp_num_chunks": 4,
         "bp_action_chunk_size": 50,
@@ -75,9 +74,9 @@
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 1000,
-        "scheduler_decay_steps": 300000,
-        "scheduler_decay_lr": 2e-6,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 20000,
+        "scheduler_decay_lr": 5e-6,
 
         "scale_factor": 8,
         "lambda_gen": 0.01,
@@ -100,8 +99,8 @@
         "log_da3_teacher_timing": true
     },
 
-    "output_dir": "outputs/BP_TBot/pretrain_v1",
-    "job_name": "BP_TBot——test",
+    "output_dir": "outputs/BP_TBot/SFT-rand",
+    "job_name": "BP_TBot_test2",
     "resume": false,
     "seed": 42,
     "num_workers": 8,
@@ -111,7 +110,7 @@
     "eval_freq": 100,
     "log_freq": 10,
     "save_checkpoint": true,
-    "save_freq": 1000,
+    "save_freq": 2000,
     "use_policy_training_preset": true,
 
     "eval": {

@@ -65,12 +65,14 @@ class LayerNorm2d(nn.Module):
     """对形状为 [B, C, H, W] 的张量，在通道维度上做 LayerNorm。"""
 
     def __init__(self, num_channels: int, eps: float = 1e-6):
+        """当前需要：初始化 LayerNorm2d 的参数和子模块。"""
         super().__init__()
         self.weight = nn.Parameter(torch.ones(num_channels))
         self.bias = nn.Parameter(torch.zeros(num_channels))
         self.eps = eps
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """当前需要：执行 LayerNorm2d 的前向计算。"""
         mean = x.mean(dim=1, keepdim=True)
         var = (x - mean).pow(2).mean(dim=1, keepdim=True)
         x = (x - mean) / torch.sqrt(var + self.eps)
@@ -81,6 +83,7 @@ class Future3DRefineBlock(nn.Module):
     """每个视角 2D 上采样后的轻量共享空间精炼模块。"""
 
     def __init__(self, dim: int):
+        """当前需要：初始化 Future3DRefineBlock 的参数和子模块。"""
         super().__init__()
         self.depthwise = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim)
         self.depthwise_norm = LayerNorm2d(dim)
@@ -89,6 +92,7 @@ class Future3DRefineBlock(nn.Module):
         self.pointwise_norm = LayerNorm2d(dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """当前需要：执行 Future3DRefineBlock 的前向计算。"""
         residual = x
         x = self.depthwise(x)
         x = self.depthwise_norm(x)
@@ -105,6 +109,7 @@ class Future3DPerceiverFeedForward(nn.Module):
     """DA3 query resampler 内部的 LayerNorm-MLP 残差分支。"""
 
     def __init__(self, dim: int):
+        """当前需要：初始化 Future3DPerceiverFeedForward 的参数和子模块。"""
         super().__init__()
         self.net = nn.Sequential(
             nn.LayerNorm(dim),
@@ -114,6 +119,7 @@ class Future3DPerceiverFeedForward(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """当前需要：执行 Future3DPerceiverFeedForward 的前向计算。"""
         return self.net(x)
 
 
@@ -121,6 +127,7 @@ class Future3DPerceiverAttention(nn.Module):
     """Perceiver 风格的交叉注意力：query 只读取 messenger token。"""
 
     def __init__(self, dim: int, dim_head: int, heads: int):
+        """当前需要：初始化 Future3DPerceiverAttention 的参数和子模块。"""
         super().__init__()
         self.dim_head = dim_head
         self.heads = heads
@@ -133,11 +140,13 @@ class Future3DPerceiverAttention(nn.Module):
         self.to_out = nn.Linear(inner_dim, dim, bias=False)
 
     def _reshape_heads(self, x: torch.Tensor) -> torch.Tensor:
+        """当前保留：_reshape_heads 用于 BP_TBot 训练、推理或兼容逻辑。"""
         batch_size, seq_len, width = x.shape
         x = x.view(batch_size, seq_len, self.heads, width // self.heads)
         return x.transpose(1, 2)
 
     def forward(self, memory: torch.Tensor, queries: torch.Tensor) -> torch.Tensor:
+        """当前需要：执行 Future3DPerceiverAttention 的前向计算。"""
         memory = self.memory_norm(memory)
         queries = self.query_norm(queries)
 
@@ -164,6 +173,7 @@ class Future3DPerceiverResampler(nn.Module):
     """共享 Perceiver 式重采样器：将 messenger token 扩展为与 DA3 对齐的 query latent。"""
 
     def __init__(self, dim: int, num_heads: int, output_dim: int):
+        """当前需要：初始化 Future3DPerceiverResampler 的参数和子模块。"""
         super().__init__()
         if dim % num_heads != 0:
             raise ValueError(f"dim ({dim}) must be divisible by num_heads ({num_heads})")
@@ -175,6 +185,7 @@ class Future3DPerceiverResampler(nn.Module):
         self.output_proj = nn.Linear(dim, output_dim)
 
     def forward(self, output_queries: torch.Tensor, messenger_tokens: torch.Tensor) -> torch.Tensor:
+        """当前需要：执行 Future3DPerceiverResampler 的前向计算。"""
         latents = output_queries
         latents = latents + self.attn(messenger_tokens, latents)
         latents = latents + self.ff(latents)
@@ -209,7 +220,7 @@ def get_safe_dtype(target_dtype, device_type):
             return torch.float64
     return target_dtype
 
-
+# TODO 考虑更新prefix中的steps的pos加入方式为正弦余弦编码
 def create_sinusoidal_pos_embedding(  # see openpi `create_sinusoidal_pos_embedding` (exact copy)
     time: torch.Tensor, dimension: int, min_period: float, max_period: float, device="cpu"
 ) -> Tensor:
@@ -231,6 +242,7 @@ def create_sinusoidal_pos_embedding(  # see openpi `create_sinusoidal_pos_embedd
 
 
 def sample_beta(alpha, beta, bsize, device):  # see openpi `sample_beta` (exact copy)
+    """当前需要：按 Beta 分布采样 flow matching 时间步。"""
     alpha_t = torch.as_tensor(alpha, dtype=torch.float32, device=device)
     beta_t = torch.as_tensor(beta, dtype=torch.float32, device=device)
     dist = torch.distributions.Beta(alpha_t, beta_t)
@@ -282,6 +294,7 @@ def pad_vector(vector, new_dim):
 def compute_layer_complete(
     layer_idx, inputs_embeds, attention_mask, position_ids, und_expert, gen_expert, act_expert
 ):
+    """当前需要：梯度检查点模式下执行单层三 expert 前向。"""
     models = [und_expert.language_model, gen_expert, act_expert]
     query_states = []
     key_states = []
@@ -357,6 +370,7 @@ class QwenConfig:
     """Qwen 模型变体的配置。"""
 
     def __init__(self, head_dim, hidden_size, intermediate_size, num_attention_heads, num_hidden_layers, num_key_value_heads):
+        """当前需要：保存 Qwen 变体的结构超参数。"""
         self.head_dim = head_dim
         self.hidden_size = hidden_size
         self.intermediate_size = intermediate_size
@@ -408,6 +422,7 @@ class Qwen3VLWithExpertModel(
         qwen3_vl_pretrained_path: str,
         precision: Literal["bfloat16", "float32"] = "bfloat16",
     ):
+        """当前需要：初始化 UND/GEN/ACT 三个 expert。"""
         super().__init__()
 
         vlm_config_hf = CONFIG_MAPPING["qwen3_vl"]()
@@ -469,6 +484,7 @@ class Qwen3VLWithExpertModel(
         self.to_bfloat16_for_selected_params(precision)
 
     def to_bfloat16_for_selected_params(self, precision: Literal["bfloat16", "float32"] = "bfloat16"):
+        """当前需要：将可用参数转为 bfloat16 并保留敏感层为 float32。"""
         if precision == "bfloat16":
             self.to(dtype=torch.bfloat16)
         elif precision == "float32":
@@ -499,6 +515,7 @@ class Qwen3VLWithExpertModel(
         use_cache: bool | None = None,
         collect_middle_layers: tuple[int, ...] | None = None,
     ):
+        """当前需要：执行三 expert 联合 Transformer 前向。"""
         collected_middle_states = None
         if inputs_embeds[1] is None and inputs_embeds[2] is None:
             prefix_output = self.und_expert.language_model.forward(
@@ -617,9 +634,11 @@ class Qwen3VLWithExpertModel(
 # BPTBotModel：核心神经网络（三段 embedding + 三 expert + 三个 loss 分支）
 # =============================================================================
 class BPTBotModel(nn.Module):
+    """核心模型类；当前需要，承载 BP prefix、MoT forward、训练 loss 和默认 BP 推理。"""
 
     @staticmethod
     def _resolve_cosmos_tokenizer_dir(path_or_name: str) -> str:
+        """当前需要：解析 loss_gen 使用的 Cosmos tokenizer 路径。"""
         candidate_dir = os.path.expanduser(path_or_name)
         if os.path.isdir(candidate_dir):
             enc_path = os.path.join(candidate_dir, "encoder.jit")
@@ -643,6 +662,7 @@ class BPTBotModel(nn.Module):
         return downloaded_dir
 
     def _get_lora_injection_roots(self) -> dict[str, nn.Module]:
+        """当前可选：LoRA 微调时返回可注入的 expert 根模块。"""
         return {
             "und": self.qwen3_vl_with_expert.und_expert.language_model,
             "gen": self.qwen3_vl_with_expert.gen_expert,
@@ -650,6 +670,7 @@ class BPTBotModel(nn.Module):
         }
 
     def _get_lora_freeze_roots(self) -> dict[str, nn.Module]:
+        """当前可选：LoRA 微调时返回需要冻结的 expert 根模块。"""
         return {
             "und": self.qwen3_vl_with_expert.und_expert.language_model,
             "gen": self.qwen3_vl_with_expert.gen_expert,
@@ -657,11 +678,13 @@ class BPTBotModel(nn.Module):
         }
 
     def _register_frozen_eval_module(self, module: nn.Module):
+        """当前需要：记录训练时必须保持 eval 的冻结模块。"""
         if any(existing_module is module for existing_module in self._frozen_eval_modules):
             return
         self._frozen_eval_modules.append(module)
 
     def _apply_lora_to_selected_experts(self):
+        """当前可选：按配置给指定 expert 注入 LoRA。"""
         self.lora_module_counts = {}
         if not self.config.lora_enabled:
             return
@@ -695,6 +718,7 @@ class BPTBotModel(nn.Module):
         )
 
     def __init__(self, config: BPTBotConfig):
+        """当前需要：构建 BP_TBot 的主干、BP prefix 层和辅助 loss 模块。"""
         super().__init__()
         self.config = config
         self.omit_visual_tokens_in_causal_inference = True
@@ -864,6 +888,7 @@ class BPTBotModel(nn.Module):
         self.set_requires_grad()
 
     def set_requires_grad(self):
+        """当前需要：根据冻结/LoRA 配置设置训练参数。"""
         self._frozen_eval_modules = []
 
         if self.config.freeze_vision_encoder:
@@ -917,6 +942,7 @@ class BPTBotModel(nn.Module):
             self._register_frozen_eval_module(self.da3_teacher)
 
     def train(self, mode: bool = True):
+        """当前需要：覆盖 train 以保持冻结外部模块处于 eval。"""
         super().train(mode)
         for frozen_eval_module in self._frozen_eval_modules:
             frozen_eval_module.eval()
@@ -930,6 +956,7 @@ class BPTBotModel(nn.Module):
         gen_expert_impl: str | None = None,
         act_expert_impl: str | None = None,
     ):
+        """当前需要：临时切换注意力实现以支持 KV cache 推理。"""
         previous_impls = []
 
         def set_impl(config: object, new_impl: str | None):
@@ -1022,6 +1049,7 @@ class BPTBotModel(nn.Module):
         return full_att_2d_masks_4d, position_ids
 
     def sample_noise(self, shape, device):
+        """当前需要：采样 action flow matching 的初始噪声。"""
         return torch.normal(
             mean=0.0,
             std=1.0,
@@ -1031,33 +1059,35 @@ class BPTBotModel(nn.Module):
         )
 
     def sample_time(self, bsize, device):
+        """当前需要：采样训练时 flow matching 的时间步。"""
         time_beta = sample_beta(
             self.config.time_sampling_beta_alpha, self.config.time_sampling_beta_beta, bsize, device
         )
         time = time_beta * self.config.time_sampling_scale + self.config.time_sampling_offset
         return time.to(dtype=torch.float32, device=device)
 
-    @dynamo.disable
-    def embed_prefix(
-        self, pixel_values, image_grid_thw, lang_tokens, lang_masks
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        image_token_id = self.qwen3_vl_with_expert.und_expert.config.image_token_id
-        D1 = pixel_values.shape[-1]
-        pixel_values = pixel_values.view(-1, D1)
-        image_grid_thw = image_grid_thw.view(-1, 3)
-        image_embs, _ = self.qwen3_vl_with_expert.und_expert.visual(pixel_values, image_grid_thw)
+    # @dynamo.disable
+    # def embed_prefix(
+    #     self, pixel_values, image_grid_thw, lang_tokens, lang_masks
+    # ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    #     """当前保留：原 TBot current-only prefix，用于部分非 BP 调试路径。"""
+    #     image_token_id = self.qwen3_vl_with_expert.und_expert.config.image_token_id
+    #     D1 = pixel_values.shape[-1]
+    #     pixel_values = pixel_values.view(-1, D1)
+    #     image_grid_thw = image_grid_thw.view(-1, 3)
+    #     image_embs, _ = self.qwen3_vl_with_expert.und_expert.visual(pixel_values, image_grid_thw)
 
-        embs = self.qwen3_vl_with_expert.und_expert.get_input_embeddings()(lang_tokens)
-        B, L, D2 = embs.shape
-        embs = embs.view(-1, D2)
-        lang_tokens = lang_tokens.view(-1)
-        embs[lang_tokens == image_token_id] = image_embs  # 用真实图像 embedding 替换占位 token
-        embs = embs.view(B, L, D2)
+    #     embs = self.qwen3_vl_with_expert.und_expert.get_input_embeddings()(lang_tokens)
+    #     B, L, D2 = embs.shape
+    #     embs = embs.view(-1, D2)
+    #     lang_tokens = lang_tokens.view(-1)
+    #     embs[lang_tokens == image_token_id] = image_embs  # 用真实图像 embedding 替换占位 token
+    #     embs = embs.view(B, L, D2)
 
-        pad_masks = lang_masks.to(torch.bool)
-        att_masks = torch.zeros_like(pad_masks, dtype=torch.bool, device=pad_masks.device)
+    #     pad_masks = lang_masks.to(torch.bool)
+    #     att_masks = torch.zeros_like(pad_masks, dtype=torch.bool, device=pad_masks.device)
 
-        return embs, pad_masks, att_masks
+    #     return embs, pad_masks, att_masks
 
     def _split_image_only_segments(self, input_ids: torch.Tensor, image_grid_thw: torch.Tensor) -> list[torch.Tensor]:
         """Split current image-only Qwen tokens into one segment per camera.
@@ -1231,6 +1261,7 @@ class BPTBotModel(nn.Module):
         return prefix_embs, prefix_pad_masks, prefix_att_masks, prefix_lang_tokens, combined_image_grid_thw
 
     def get_cosmos_features(self, images):
+        """当前需要：为 loss_gen 提取未来帧 Cosmos latent。"""
         shape = images.shape[:-3]
         c, h, w = images.shape[-3:]
         images = images.reshape(-1, c, h, w)
@@ -1242,6 +1273,7 @@ class BPTBotModel(nn.Module):
         return features
 
     def append_future_query_tokens(self, embs, pad_masks, att_masks):
+        """当前需要：给 middle 段追加 3D messenger query token。"""
         if self.future_3d_queries is None:
             self.middle_query_token_count = 0
             self.middle_total_token_count = embs.shape[1]
@@ -1329,10 +1361,12 @@ class BPTBotModel(nn.Module):
         return att_2d_masks
 
     def uses_causal_attention(self) -> bool:
+        """当前保留：读取 causal 消融配置；默认 BP 推理不支持 causal。"""
         return getattr(self.config, "attention_mask_mode", "default") == "causal"
 
     @staticmethod
     def _allow_attention_block(mask: torch.Tensor, query_slice: slice, key_slice: slice) -> None:
+        """当前保留：causal 消融注意力 mask 的小工具。"""
         if query_slice.start == query_slice.stop or key_slice.start == key_slice.stop:
             return
         mask[:, query_slice, key_slice] = True
@@ -1412,12 +1446,14 @@ class BPTBotModel(nn.Module):
         att_masks: torch.Tensor,
         prefix_len: int,
     ) -> torch.Tensor:
+        """当前需要：构造训练和默认推理用的整体注意力 mask。"""
         att_2d_masks = make_att_2d_masks(pad_masks, att_masks)
         if self.uses_causal_attention():
             return self.apply_causal_attention(att_2d_masks, pad_masks, prefix_len=prefix_len)
         return self.apply_view_aware_query_attention(att_2d_masks, prefix_len=prefix_len)
 
     def split_middle_tokens(self, middle_tokens: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+        """当前需要：拆分 middle visual token 和 3D query token。"""
         visual_tokens = middle_tokens[:, : self.middle_visual_token_count]
         if self.middle_query_token_count == 0:
             return visual_tokens, None
@@ -1425,6 +1461,7 @@ class BPTBotModel(nn.Module):
         return visual_tokens, query_tokens
 
     def reshape_future_queries_to_view_grid(self, query_tokens: torch.Tensor) -> torch.Tensor:
+        """当前需要：将 3D query 按视角重排为网格。"""
         expected_tokens = self.config.da3_num_views * self.future_3d_tokens_per_view
         if query_tokens.shape[1] != expected_tokens:
             raise ValueError(
@@ -1440,6 +1477,7 @@ class BPTBotModel(nn.Module):
         )
 
     def refine_projected_query_grid(self, query_tokens: torch.Tensor, layer_idx: int) -> torch.Tensor:
+        """当前需要：对投影后的 3D query 做轻量空间精炼。"""
         if self.future_3d_shared_refine_trunk is None:
             raise RuntimeError("Future 3D refine trunk is unavailable in the current alignment mode")
 
@@ -1461,6 +1499,7 @@ class BPTBotModel(nn.Module):
         )
 
     def get_3d_token_mask(self, img_masks: torch.Tensor, target_len: int) -> torch.Tensor:
+        """当前需要：根据有效相机 mask 构造 DA3 token mask。"""
         token_mask = img_masks.unsqueeze(-1).expand(-1, -1, self.config.da3_tokens_per_view).reshape(img_masks.shape[0], -1)
         if token_mask.shape[1] == target_len:
             return token_mask
@@ -1506,6 +1545,7 @@ class BPTBotModel(nn.Module):
         messenger_tokens: torch.Tensor,
         layer_idx: int,
     ) -> torch.Tensor:
+        """当前需要：query_decoder 模式下把 messenger token 解码为 DA3 对齐 token。"""
         if self.future_3d_shared_output_queries is None or self.future_3d_output_decoder is None:
             raise RuntimeError("Future 3D output decoder is unavailable when 3D queries are disabled")
 
@@ -1540,6 +1580,7 @@ class BPTBotModel(nn.Module):
         messenger_tokens: torch.Tensor,
         layer_idx: int,
     ) -> torch.Tensor:
+        """当前可选：upsample 模式下把 messenger token 上采样到 DA3 网格。"""
         if not self.da3_query_projectors:
             raise RuntimeError("DA3 upsample projector stack is unavailable in the current alignment mode")
 
@@ -1547,6 +1588,7 @@ class BPTBotModel(nn.Module):
         return self.da3_query_projectors[layer_idx](refined_queries)
 
     def project_query_layers(self, middle_layer_outputs: tuple[torch.Tensor, ...]) -> list[torch.Tensor]:
+        """当前需要：把指定 middle 层输出投影到 DA3 特征维度。"""
         projected_queries = []
         target_len = self.future_3d_output_token_count
         for layer_idx, middle_layer in enumerate(middle_layer_outputs):
@@ -1567,6 +1609,7 @@ class BPTBotModel(nn.Module):
         return projected_queries
 
     def compute_3d_query_loss(self, middle_layer_outputs, future_images, img_masks):
+        """当前需要：计算 loss_3d 的 DA3 teacher 蒸馏损失。"""
         if self.da3_teacher is None or middle_layer_outputs is None:
             zero = future_images.new_zeros((), dtype=torch.float32)
             return zero, {}
@@ -1668,6 +1711,7 @@ class BPTBotModel(nn.Module):
         return total_loss, loss_logs
 
     def reshape_projected_queries(self, projected_queries: list[torch.Tensor]) -> dict[str, torch.Tensor]:
+        """当前保留：将投影 query 整理为按层输出的调试结构。"""
         reshaped_queries = {}
         for query_layer_idx, projected_query in zip(self.query_layer_indices, projected_queries, strict=False):
             reshaped_queries[f"layer_{query_layer_idx}"] = rearrange(
@@ -1678,75 +1722,8 @@ class BPTBotModel(nn.Module):
             )
         return reshaped_queries
 
-    @torch.no_grad()
-    def predict_future_3d_queries(
-        self,
-        images,
-        img_masks,
-        pixel_values,
-        image_grid_thw,
-        lang_tokens,
-        lang_masks,
-        state,
-    ) -> dict[str, torch.Tensor]:
-        if self.future_3d_queries is None:
-            raise RuntimeError("3D query tokens are disabled in the current TBotSA1 configuration")
-
-        bsize = state.shape[0]
-        prefix_embs, prefix_pad_masks, prefix_att_masks = self.embed_prefix(
-            pixel_values, image_grid_thw, lang_tokens, lang_masks
-        )
-        middle_embs, middle_pad_masks, middle_att_masks = self.embed_middle(images[:, :, :2], img_masks)
-
-        zero_actions = torch.zeros(
-            bsize,
-            self.config.chunk_size,
-            self.config.max_action_dim,
-            device=state.device,
-            dtype=state.dtype,
-        )
-        zero_time = torch.zeros(bsize, device=state.device, dtype=torch.float32)
-        suffix_embs, suffix_pad_masks, suffix_att_masks = self.embed_suffix(state, zero_actions, zero_time)
-
-        if (
-            self.qwen3_vl_with_expert.und_expert.language_model.layers[0].self_attn.q_proj.weight.dtype
-            == torch.bfloat16
-        ):
-            suffix_embs = suffix_embs.to(dtype=torch.bfloat16)
-            middle_embs = middle_embs.to(dtype=torch.bfloat16)
-            prefix_embs = prefix_embs.to(dtype=torch.bfloat16)
-
-        pad_masks = torch.cat([prefix_pad_masks, middle_pad_masks, suffix_pad_masks], dim=1)
-        att_masks = torch.cat([prefix_att_masks, middle_att_masks, suffix_att_masks], dim=1)
-        att_2d_masks = self.build_training_attention_mask(
-            pad_masks,
-            att_masks,
-            prefix_len=prefix_pad_masks.shape[1],
-        )
-        position_ids, rope_deltas = self.get_position_ids(lang_tokens, image_grid_thw, pad_masks)
-        del rope_deltas
-
-        att_2d_masks_4d = self._prepare_attention_masks_4d(att_2d_masks)
-        outputs = self.qwen3_vl_with_expert.forward(
-            attention_mask=att_2d_masks_4d,
-            position_ids=position_ids,
-            past_key_values=None,
-            inputs_embeds=[prefix_embs, middle_embs, suffix_embs],
-            use_cache=False,
-            collect_middle_layers=self.query_layer_indices,
-        )
-        (_, middle_out, _), _, middle_layer_outputs = outputs
-        _, final_query_tokens = self.split_middle_tokens(middle_out)
-
-        projected_queries = self.project_query_layers(tuple(middle_layer_outputs))
-        result = self.reshape_projected_queries(projected_queries)
-
-        if final_query_tokens is not None:
-            result["final_query_tokens"] = final_query_tokens
-
-        return result
-
     def embed_middle(self, images, img_masks):
+        """当前需要：编码 middle 段 Cosmos visual token 和 3D query。"""
         device = images[0].device
         B, N_view, T = images.shape[:3]
         features = self.get_cosmos_features(images)
@@ -1789,6 +1766,7 @@ class BPTBotModel(nn.Module):
         batch_size: int,
         device: torch.device,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """当前保留：causal 快速路径的 query-only middle 构造。"""
         if self.future_3d_queries is None:
             raise RuntimeError("causal query-only inference requires enabled 3D query tokens")
 
@@ -1823,6 +1801,7 @@ class BPTBotModel(nn.Module):
         suffix_pad_masks: torch.Tensor,
         virtual_visual_token_count: int,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """当前保留：causal 快速路径的位置编码工具，默认 BP 推理不用。"""
         if virtual_visual_token_count <= 0:
             pad_masks = torch.cat([prefix_pad_masks, middle_pad_masks, suffix_pad_masks], dim=1)
             return self.get_position_ids(lang_tokens, image_grid_thw, pad_masks)
@@ -1934,6 +1913,7 @@ class BPTBotModel(nn.Module):
         return embs, pad_masks, att_masks
 
     def get_position_ids(self, lang_tokens, image_grid_thw, pad_masks):
+        """当前需要：根据 Qwen 图像网格生成三轴 RoPE position ids。"""
         L = lang_tokens.shape[1]
         pseudo_avail_token_id = 777
         padded_lang_tokens = torch.ones_like(pad_masks).to(lang_tokens) * pseudo_avail_token_id
@@ -1949,6 +1929,7 @@ class BPTBotModel(nn.Module):
         return position_ids, rope_deltas
 
     def decode_cosmos(self, features):
+        """当前需要：将 middle visual 输出解码回 Cosmos latent。"""
         b, n, t, c, h, w =self.cosmos_feat_shape
         features = rearrange(features, 'b (n t h w) c -> b n t c h w', b=b, n=n, t=t, h=h, w=w)
         features = features.mean(2)  # b n c h w
@@ -2068,7 +2049,7 @@ class BPTBotModel(nn.Module):
 
     @torch.no_grad()  # 参考 openpi `sample_actions`（略有改动）
     def sample_actions(
-        self, images, img_masks, pixel_values, image_grid_thw, lang_tokens, lang_masks, state, noise=None, num_steps=None, decode_image=False
+        self, images, img_masks, pixel_values, image_grid_thw, lang_tokens, lang_masks, state, behavior_prompt, noise=None, num_steps=None, decode_image=False
     ) -> tuple[Tensor, Tensor | None]:
         """推理：多步去噪采样 action chunk，可选解码重建图像。"""
         if num_steps is None:
@@ -2088,24 +2069,18 @@ class BPTBotModel(nn.Module):
             noise = self.sample_noise(actions_shape, device)
 
         if self.uses_causal_attention():
-            return self.sample_actions_causal(
-                images,
-                img_masks,
-                pixel_values,
-                image_grid_thw,
-                lang_tokens,
-                lang_masks,
-                state,
-                noise=noise,
-                num_steps=num_steps,
-                decode_image=decode_image,
+            raise NotImplementedError(
+                "BP_TBot behavior-prompt inference is currently implemented only for default attention. "
+                "sample_actions_causal still needs BP prefix position-id handling."
             )
 
-        prefix_embs, prefix_pad_masks, prefix_att_masks = self.embed_prefix(
-            pixel_values, image_grid_thw, lang_tokens, lang_masks
+        prefix_embs, prefix_pad_masks, prefix_att_masks, prefix_lang_tokens, prefix_image_grid_thw = self.embed_prefix_with_behavior_prompt(
+            pixel_values, image_grid_thw, lang_tokens, lang_masks, behavior_prompt
         )
+        expert_dtype = self.qwen3_vl_with_expert.und_expert.language_model.layers[0].self_attn.q_proj.weight.dtype
+        prefix_embs = prefix_embs.to(dtype=expert_dtype)
         prefix_att_2d_masks = make_att_2d_masks(prefix_pad_masks, prefix_att_masks)
-        prefix_position_ids, rope_deltas = self.get_position_ids(lang_tokens, image_grid_thw, prefix_pad_masks)
+        prefix_position_ids, rope_deltas = self.get_position_ids(prefix_lang_tokens, prefix_image_grid_thw, prefix_pad_masks)
 
         prefix_att_2d_masks_4d = self._prepare_attention_masks_4d(prefix_att_2d_masks)
         with self._temporary_attention_implementations(
@@ -2125,6 +2100,7 @@ class BPTBotModel(nn.Module):
             middle_embs, middle_pad_masks, middle_att_masks = self.embed_middle(
                 images[:, :, :2], img_masks,
             )
+            middle_embs = middle_embs.to(dtype=expert_dtype)
 
             middle_len = middle_pad_masks.shape[1]
             batch_size = prefix_pad_masks.shape[0]
@@ -2188,141 +2164,11 @@ class BPTBotModel(nn.Module):
             return x_t, recon_images
 
     @torch.no_grad()
-    def sample_actions_causal(
-        self,
-        images,
-        img_masks,
-        pixel_values,
-        image_grid_thw,
-        lang_tokens,
-        lang_masks,
-        state,
-        noise,
-        num_steps,
-        decode_image=False,
-    ) -> tuple[Tensor, Tensor | None]:
-        """causal 注意力消融的精确推理路径。
-
-        3D scene/query 块可读当前去噪中的 action 块，
-        因此 middle token 无法与 suffix 独立缓存。
-        此路径在每步去噪时重算完整的 prefix/middle/suffix Transformer。
-        默认路径仍使用 KV cache 加速。
-        """
-        bsize = state.shape[0]
-        device = state.device
-        dtype = state.dtype
-
-        prefix_embs, prefix_pad_masks, prefix_att_masks = self.embed_prefix(
-            pixel_values, image_grid_thw, lang_tokens, lang_masks
+    def sample_actions_causal(self, *args, **kwargs) -> tuple[Tensor, Tensor | None]:
+        """当前不需要：原 TBot causal 推理入口，BP prefix 尚未适配，保留短错误提示。"""
+        raise NotImplementedError(
+            "BP_TBot does not support causal inference yet; use attention_mask_mode='default'."
         )
-        causal_action_only_fast_path = (
-            not decode_image
-            and bool(getattr(self, "omit_visual_tokens_in_causal_inference", True))
-        )
-        middle_images = images[:, :, :2]
-        virtual_visual_token_count = 0
-        if causal_action_only_fast_path:
-            virtual_visual_token_count = self.infer_middle_visual_token_count(middle_images)
-            middle_embs, middle_pad_masks, middle_att_masks = self.embed_middle_queries_only(
-                batch_size=bsize,
-                device=device,
-            )
-        else:
-            middle_embs, middle_pad_masks, middle_att_masks = self.embed_middle(
-                middle_images, img_masks,
-            )
-
-        zero_actions = torch.zeros(
-            bsize,
-            self.config.chunk_size,
-            self.config.max_action_dim,
-            device=device,
-            dtype=dtype,
-        )
-        zero_time = torch.zeros(bsize, device=device, dtype=torch.float32)
-        _, suffix_pad_masks, suffix_att_masks = self.embed_suffix(state, zero_actions, zero_time)
-
-        if (
-            self.qwen3_vl_with_expert.und_expert.language_model.layers[0].self_attn.q_proj.weight.dtype
-            == torch.bfloat16
-        ):
-            middle_embs = middle_embs.to(dtype=torch.bfloat16)
-            prefix_embs = prefix_embs.to(dtype=torch.bfloat16)
-
-        pad_masks = torch.cat([prefix_pad_masks, middle_pad_masks, suffix_pad_masks], dim=1)
-        att_masks = torch.cat([prefix_att_masks, middle_att_masks, suffix_att_masks], dim=1)
-        att_2d_masks = self.build_training_attention_mask(
-            pad_masks,
-            att_masks,
-            prefix_len=prefix_pad_masks.shape[1],
-        )
-        att_2d_masks_4d = self._prepare_attention_masks_4d(att_2d_masks)
-        if causal_action_only_fast_path:
-            position_ids, rope_deltas = self.get_position_ids_with_omitted_middle_visual_tokens(
-                lang_tokens,
-                image_grid_thw,
-                prefix_pad_masks,
-                middle_pad_masks,
-                suffix_pad_masks,
-                virtual_visual_token_count,
-            )
-        else:
-            position_ids, rope_deltas = self.get_position_ids(lang_tokens, image_grid_thw, pad_masks)
-        del rope_deltas
-
-        dt = -1.0 / num_steps
-        dt = torch.tensor(dt, dtype=torch.float32, device=device)
-
-        x_t = noise
-        time = torch.tensor(1.0, dtype=torch.float32, device=device)
-        last_middle_out = None
-        with self._temporary_attention_implementations(
-            und_expert_impl="eager",
-            gen_expert_impl="eager",
-            act_expert_impl="eager",
-        ):
-            while time >= -dt / 2:
-                expanded_time = time.expand(bsize)
-                suffix_embs, _, _ = self.embed_suffix(state, x_t.to(dtype), expanded_time.to(dtype))
-                if (
-                    self.qwen3_vl_with_expert.und_expert.language_model.layers[0].self_attn.q_proj.weight.dtype
-                    == torch.bfloat16
-                ):
-                    suffix_embs = suffix_embs.to(dtype=torch.bfloat16)
-
-                outputs_embeds, _ = self.qwen3_vl_with_expert.forward(
-                    attention_mask=att_2d_masks_4d,
-                    position_ids=position_ids,
-                    past_key_values=None,
-                    inputs_embeds=[prefix_embs, middle_embs, suffix_embs],
-                    use_cache=False,
-                )
-                _, middle_out, suffix_out = outputs_embeds
-                last_middle_out = middle_out
-                suffix_out = suffix_out[:, -self.config.chunk_size :].to(dtype=torch.float32)
-                v_t = self.action_out_proj(suffix_out)
-                x_t = x_t + dt * v_t
-                time += dt
-
-        if decode_image:
-            if last_middle_out is None:
-                raise RuntimeError("causal inference produced no middle tokens to decode.")
-
-            def cosmos_out_func(middle_out):
-                return self.decode_cosmos(middle_out)
-
-            middle_visual_out, _ = self.split_middle_tokens(last_middle_out)
-            decode_dtype = torch.bfloat16 if self.config.dtype == "bfloat16" else torch.float32
-            pred_cosmos_features = self._apply_checkpoint(
-                cosmos_out_func,
-                middle_visual_out.to(dtype=decode_dtype),
-            )
-            pred_cosmos_features = pred_cosmos_features.squeeze(0)
-            recon_images = self.cosmos.decode(pred_cosmos_features.squeeze(0))
-        else:
-            recon_images = None
-
-        return x_t, recon_images
 
     def denoise_step(
         self,
@@ -2335,6 +2181,8 @@ class BPTBotModel(nn.Module):
     ):
         """在给定时间步对噪声 x_t 执行一步去噪。"""
         suffix_embs, _, _ = self.embed_suffix(state, x_t, timestep)
+        expert_dtype = self.qwen3_vl_with_expert.act_expert.layers[0].self_attn.q_proj.weight.dtype
+        suffix_embs = suffix_embs.to(dtype=expert_dtype)
         outputs_embeds, _ = self.qwen3_vl_with_expert.forward(
             attention_mask=suffix_att_2d_masks_4d,
             position_ids=suffix_position_ids,
@@ -2385,6 +2233,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         self.reset()
 
     def __str__(self) -> str:
+        """当前可选：打印模型参数和配置摘要。"""
         lines = []
 
         # ---- 基本信息 ----
@@ -2481,6 +2330,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         return "\n".join(lines)
 
     def to(self, *args, **kwargs):
+        """当前需要：移动模型设备并特殊处理 Cosmos tokenizer。"""
         cosmos_device = getattr(self.config, "cosmos_device", None)
         if cosmos_device is None:
             super().to(*args, **kwargs)
@@ -2505,9 +2355,11 @@ class BPTBotPolicy(PreTrainedPolicy):
         return self
 
     def get_optim_params(self) -> dict:
+        """当前需要：返回优化器要训练的参数。"""
         return (param for param in self.parameters() if param.requires_grad)
 
     def merge_lora_weights_(self):
+        """当前可选：导出 LoRA 合并权重时使用。"""
         if not self.config.lora_enabled:
             return self
 
@@ -2519,6 +2371,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         return self
 
     def get_merged_state_dict_to_save(self) -> dict[str, Tensor]:
+        """当前可选：保存合并 LoRA checkpoint 时使用。"""
         merged_state_dict = dict(self.get_state_dict_to_save())
         if not self.config.lora_enabled:
             return merged_state_dict
@@ -2549,6 +2402,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         return merged_state_dict
 
     def save_merged_pretrained(self, save_directory: str | Path) -> None:
+        """当前可选：导出不含 LoRA adapter 的合并模型。"""
         save_directory = Path(save_directory)
         save_directory.mkdir(parents=True, exist_ok=True)
 
@@ -2563,10 +2417,12 @@ class BPTBotPolicy(PreTrainedPolicy):
         )
 
     def _get_loaded_pretrained_source_config(self) -> BPTBotConfig | None:
+        """当前需要：判断 checkpoint 来源配置以兼容加载。"""
         source_config = getattr(self, "_loaded_pretrained_source_config", None)
         return source_config if isinstance(source_config, BPTBotConfig) else None
 
     def _validate_lora_loading_compatibility(self) -> bool:
+        """当前可选：LoRA checkpoint 加载兼容性检查。"""
         source_config = self._get_loaded_pretrained_source_config()
         if source_config is None:
             return False
@@ -2623,6 +2479,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         return (not source_config.lora_enabled) and self.config.lora_enabled
 
     def get_state_dict_to_save(self) -> dict[str, Tensor]:
+        """当前需要：保存 checkpoint 时过滤冻结外部模块。"""
         state_dict = self.state_dict()
         filtered_state_dict = {
             key: value
@@ -2644,6 +2501,7 @@ class BPTBotPolicy(PreTrainedPolicy):
     def classify_model_loading_keys(
         self, missing_keys: list[str], unexpected_keys: list[str]
     ) -> tuple[list[str], list[str], list[str]]:
+        """当前需要：加载 tbot_base 或 BP checkpoint 时过滤预期 missing/unexpected key。"""
         ignored_missing_prefixes = (
             "model.bp_type_embedding.",
             "model.bp_chunk_embedding.",
@@ -2727,6 +2585,7 @@ class BPTBotPolicy(PreTrainedPolicy):
         return actions
 
     def prepare_gen_features(self, batch):
+        """当前可选：调试时直接提取 Cosmos 特征。"""
         images = torch.stack([batch[f"{OBS_IMAGES}.image{i}"] for i in range(3)], dim=1)  # B, N_view, T, C, H, W
         B, N_view, T = images.shape[:3]
         images = rearrange(images, 'b n t c h w -> (b n t) c h w')
@@ -2764,28 +2623,12 @@ class BPTBotPolicy(PreTrainedPolicy):
 
         images, img_masks = self._preprocess_images(batch)
 
-        # 调用模型做多步去噪采样
-        actions, recon_images = self.model.sample_actions(images, img_masks, pixel_values, image_grid_thw, lang_tokens, lang_masks, state, decode_image = decode_image)
+        if "behavior_prompt" not in batch:
+            raise KeyError("BP_TBot inference requires batch['behavior_prompt'] to build the BP prefix.")
+        behavior_prompt = batch["behavior_prompt"]
 
-        # 去掉 padding，恢复到真实 action 维度
-        original_action_dim = self.config.output_features[ACTION].shape[0]
-        actions = actions[:, :, :original_action_dim]
-
-        return actions, recon_images
-
-    @torch.no_grad()
-    def predict_future_3d_queries(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
-        """导出 gen expert 指定层上的 future 3D query token（用于可视化/调试）。"""
-        self.eval()
-
-        pixel_values = batch[f"{OBS_PREFIX}pixel_values"]
-        image_grid_thw = batch[f"{OBS_PREFIX}image_grid_thw"]
-        lang_tokens = batch[f"{OBS_PREFIX}input_ids"]
-        lang_masks = batch[f"{OBS_PREFIX}attention_mask"]
-        state = self.prepare_state(batch)
-        images, img_masks = self._preprocess_images(batch)
-
-        return self.model.predict_future_3d_queries(
+        # 调用模型做多步去噪采样；BP_TBot 推理必须使用 behavior prompt prefix。
+        actions, recon_images = self.model.sample_actions(
             images,
             img_masks,
             pixel_values,
@@ -2793,7 +2636,15 @@ class BPTBotPolicy(PreTrainedPolicy):
             lang_tokens,
             lang_masks,
             state,
+            behavior_prompt,
+            decode_image=decode_image,
         )
+
+        # 去掉 padding，恢复到真实 action 维度
+        original_action_dim = self.config.output_features[ACTION].shape[0]
+        actions = actions[:, :, :original_action_dim]
+
+        return actions, recon_images
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
         """训练入口：解析 batch → 调用 BPTBotModel → 汇总总 loss。"""
