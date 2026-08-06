@@ -1223,9 +1223,10 @@ def main():
         if _is_local_main_process():
             error_info = traceback.format_exc()
             error_info = "代码累了，它想歇会：\n" + error_info
-            send_error_to_dingtalk(error_info)
+            # send_error_to_dingtalk(error_info)
         else:
-            logging.error("非主进程，不发送错误信息 + 1")
+            # logging.error("非主进程，不发送错误信息 + 1")
+            pass
         raise e
 
 

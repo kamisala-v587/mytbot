@@ -21,12 +21,22 @@ BP_TBot 额外需要 behavior prompt：
     }
 
 启动示例::
-
+    cd /vla/workspace/my_tbot
+    
     python .code/serve_bp_tbot_policy.py \
         --ckpt_path outputs/BP_TBot/pretrain_v1/.../checkpoints/011000 \
         --bp_dataset /vla/workspace/data/hanging_mug/aloha-agilex_randomized_500 \
         --host 0.0.0.0 --port 8000 \
-        --default_prompt "hang the mug"
+
+    python .code/serve_bp_tbot_policy.py \
+        --ckpt_path /vla/workspace/my_tbot/outputs/BP_TBot/SFTv2/2026-08-04/11-29-30_BP_TBot_test2/checkpoints/035000 \
+        --bp_dataset /vla/workspace/data/adjust_bottle/aloha-agilex_randomized_500 \
+        --host 0.0.0.0 --port 8000 
+    python .code/serve_bp_tbot_policy.py \
+        --ckpt_path /vla/workspace/my_tbot/outputs/BP_TBot/SFTv2/2026-08-04/11-29-30_BP_TBot_test2/checkpoints/035000 \
+        --bp_dataset /vla/workspace/data/hanging_mug/aloha-agilex_clean_50 \
+        --host 0.0.0.0 --port 8000 
+
 """
 
 from __future__ import annotations
@@ -888,15 +898,15 @@ class BPTBotPolicyService:
         if obs.get("reset") or obs.get("timestep") == 0:
             self.policy.reset()
         inputs, state = self._obs_to_current_inputs(obs)
-        behavior_prompt, bp_source = self._resolve_behavior_prompt(obs)
+        behavior_prompt, bp_source = self._resolve_behavior_prompt(obs) # 从obs或者本地获取BP
+        # 拼接BP到inputs中
         behavior_prompt = _add_behavior_prompt_batch_dim(behavior_prompt)
         inputs["behavior_prompt"] = _move_nested_to_device(behavior_prompt, self.device, self.runtime_dtype)
         with torch.inference_mode():
             action_pred, _ = self.policy.predict_action_chunk(inputs, decode_image=False)
-        if action_pred.ndim != 3:
-            raise RuntimeError(f"策略输出 shape 异常: {tuple(action_pred.shape)}，期望 (B,T,A)")
-        model_action_pred = action_pred[0, : self.infer_horizon, : self.target_action_dim]
-        action_pred = self.unnormalize_action_fn({ACTION: model_action_pred})[ACTION]
+        
+        model_action_pred = action_pred[0, : self.infer_horizon, : self.target_action_dim] # 截断
+        action_pred = self.unnormalize_action_fn({ACTION: model_action_pred})[ACTION] # 反归一化
         model_action_np = model_action_pred.detach().cpu().numpy().astype(np.float32)
         action_np = action_pred.detach().cpu().numpy().astype(np.float32)
         if self.action_mode == "delta" and self.delta_mask is not None:
@@ -944,7 +954,7 @@ class WebsocketPolicyServer:
         while True:
             try:
                 start_time = time.monotonic()
-                obs = msgpack_unpack(await websocket.recv())
+                obs = msgpack_unpack(await websocket.recv()) # 客户端解码obs
                 infer_start = time.monotonic()
                 action = self._policy.infer(obs)
                 infer_ms = (time.monotonic() - infer_start) * 1000.0

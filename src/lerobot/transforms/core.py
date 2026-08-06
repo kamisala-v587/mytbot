@@ -468,6 +468,41 @@ class DeltaActionTransformFn(DataTransformFn):
         return out, size
 
 
+@DataTransformFn.register_subclass("delta_action_to_abs")
+@dataclass
+class DeltaActionToAbsTransformFn(DataTransformFn):
+    """Convert delta action outputs back to absolute actions by adding current state."""
+
+    action_key: str = ACTION
+    state_key: str = OBS_STATE
+    mask: Optional[list[bool]] = None
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if self.action_key not in data or self.state_key not in data:
+            return data
+
+        action = data[self.action_key]
+        state = data[self.state_key]
+        if action.shape[-1] == 0 or state.shape[-1] == 0:
+            return data
+
+        if self.mask is None:
+            mask = torch.ones(state.shape[-1], dtype=torch.bool, device=state.device)
+        else:
+            mask = torch.as_tensor(self.mask, dtype=torch.bool, device=state.device)
+        if mask.shape[-1] != state.shape[-1]:
+            raise ValueError(
+                f"DeltaActionToAbsTransformFn mask dim {mask.shape[-1]} does not match state dim {state.shape[-1]}"
+            )
+
+        addend = torch.where(mask, state, torch.zeros_like(state)).to(device=action.device, dtype=action.dtype)
+        action_dims = min(action.shape[-1], addend.shape[-1])
+        out = action.clone()
+        out[..., :action_dims] = out[..., :action_dims] + addend[..., :action_dims]
+        data[self.action_key] = out
+        return data
+
+
 def hydrate_inject_missing_state_action_transform(
     transforms: list[DataTransformFn],
     dataset: LeRobotDataset | StreamingLeRobotDataset,

@@ -1,9 +1,9 @@
 {
     "dataset": {
         "type": "BP_TBot",
-        // "repo_id": "/vla/workspace/data/hanging_mug/aloha-agilex_randomized_500",
+        "repo_id": "bptbot_datasets",
         "repo_id_file": "/vla/workspace/my_tbot/.config/ds_ids/bp_datasets.txt",
-        "action_mode": "delta",
+        "action_mode": "abs",
         "use_external_stats": false,
         "external_stats_path": null,
         "external_stats_root": null,
@@ -31,7 +31,7 @@
     "env": null,
     "policy": {
         "type": "BP_TBot",
-        "pretrained_path": "/vla/workspace/my_tbot/outputs/BP_TBot/pretrain_v1/2026-07-30/22-39-35_BP_TBot——test/checkpoints/020000/pretrained_model",
+        "pretrained_path": "/vla/workspace/models/bp_mytbot_init_4_chunk",
         "push_to_hub": false,
         "device": null,
 
@@ -96,7 +96,9 @@
         "da3_code_root": "/vla/workspace/my_tbot/third_party/Depth-Anything-3",
         "da3_teacher_process_res": 504,
         "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
-        "log_da3_teacher_timing": true
+        "log_da3_teacher_timing": true,
+        "mask_action_dim_padding_loss": true, // 截断
+        "action_loss_valid_dim": 14 // 截断
     },
 
     "output_dir": "outputs/BP_TBot/SFT-rand",
@@ -106,11 +108,11 @@
     "num_workers": 8,
     "batch_size": 8,
     "gradient_accumulation_steps": 1,
-    "steps": 20000,
+    "steps": 50000,
     "eval_freq": 100,
     "log_freq": 10,
     "save_checkpoint": true,
-    "save_freq": 2000,
+    "save_freq": 1000,
     "use_policy_training_preset": true,
 
     "eval": {

@@ -69,7 +69,7 @@ class BehaviorPromptConfig:
     max_state_dim: int = 32
     max_action_dim: int = 32
     qwen3_vl_processor_path: str = "Qwen/Qwen3-VL-2B-Instruct"
-    action_mode: str = "delta"
+    action_mode: str = ""
 
 
 def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTransformFn]:
@@ -79,9 +79,8 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         BPPadOrSampleChunksFn(num_chunks=prompt_cfg.num_chunks),
         BPResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
         BPRemapImageKeyTransformFn(),
-        BPNormalizeTransformFn(),
         BPComposeFieldsTransform(),
-        BPDeltaActionTransformFn(),
+        BPNormalizeTransformFn(),
         BPPadStateAndActionTransformFn(
             max_state_dim=prompt_cfg.max_state_dim,
             max_action_dim=prompt_cfg.max_action_dim,
@@ -89,7 +88,6 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         BPImgOnlyQwen3VLTransformFn(pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path),
         # Current branch: mirror TBot transforms, but Qwen input is image-only.
         InjectMissingStateActionTransformFn(),
-        DeltaActionTransformFn(),
         ResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
         RemapImageKeyTransformFn(),
         NormalizeTransformFn(),
@@ -101,8 +99,11 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         ImgOnlyQwen3VLTransformFn(pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path),
         UnifyBPInputsTransformFn(),
     ]
-    if prompt_cfg.action_mode != "delta":
-        transforms = [t for t in transforms if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
+    if prompt_cfg.action_mode == "delta":
+        bp_insert_idx = next((i for i, t in enumerate(transforms) if isinstance(t, BPNormalizeTransformFn)), 0)
+        transforms.insert(bp_insert_idx, BPDeltaActionTransformFn())
+        current_insert_idx = next((i for i, t in enumerate(transforms) if isinstance(t, ResizeImagesWithPadFn)), 0)
+        transforms.insert(current_insert_idx, DeltaActionTransformFn())
     return transforms
 
 class BehaviorPromptLeRobotDataset(Dataset):

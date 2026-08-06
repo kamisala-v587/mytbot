@@ -47,6 +47,7 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
     bp_num_chunks: int = 4
     bp_same_episode_policy: str = "avoid"
     bp_seed: int = 0
+    action_mode: str = ""
 
     data_transforms: TransformGroup = field(
         default_factory=lambda: TransformGroup(
@@ -55,9 +56,8 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 BPPadOrSampleChunksFn(num_chunks=BPTBotDatasetConfig.bp_num_chunks),
                 BPResizeImagesWithPadFn(height=BPTBotDatasetConfig.height, width=BPTBotDatasetConfig.width),
                 BPRemapImageKeyTransformFn(),
-                BPNormalizeTransformFn(),
                 BPComposeFieldsTransform(),
-                BPDeltaActionTransformFn(),
+                BPNormalizeTransformFn(),
                 BPPadStateAndActionTransformFn(
                     max_state_dim=BPTBotDatasetConfig.max_state_dim,
                     max_action_dim=BPTBotDatasetConfig.max_action_dim,
@@ -65,7 +65,6 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 BPImgOnlyQwen3VLTransformFn(),
                 # Current branch: mirror TBot transforms, but Qwen input is image-only.
                 InjectMissingStateActionTransformFn(),
-                DeltaActionTransformFn(),
                 ResizeImagesWithPadFn(height=BPTBotDatasetConfig.height, width=BPTBotDatasetConfig.width),
                 RemapImageKeyTransformFn(),
                 NormalizeTransformFn(),
@@ -90,16 +89,12 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 inputs[idx] = replace(transform, num_chunks=self.bp_num_chunks)
             elif isinstance(transform, (BPImgOnlyQwen3VLTransformFn, ImgOnlyQwen3VLTransformFn)):
                 inputs[idx] = replace(transform, pretrained_model_name_or_path=self.qwen3_vl_processor_path)
-        has_current_delta = any(isinstance(t, DeltaActionTransformFn) for t in inputs)
-        has_bp_delta = any(isinstance(t, BPDeltaActionTransformFn) for t in inputs)
-        if self.action_mode != "delta" and (has_current_delta or has_bp_delta):
-            inputs = [t for t in inputs if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
-        elif self.action_mode == "delta":
-            if not has_bp_delta:
-                insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, BPPadStateAndActionTransformFn)), 0)
-                inputs.insert(insert_idx, BPDeltaActionTransformFn())
-            if not has_current_delta:
-                inputs.insert(0, DeltaActionTransformFn())
+        inputs = [t for t in inputs if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
+        if self.action_mode == "delta":
+            bp_insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, BPNormalizeTransformFn)), 0)
+            inputs.insert(bp_insert_idx, BPDeltaActionTransformFn())
+            current_insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, ResizeImagesWithPadFn)), 0)
+            inputs.insert(current_insert_idx, DeltaActionTransformFn())
         self.data_transforms = replace(self.data_transforms, inputs=inputs)
 
 
