@@ -94,3 +94,14 @@ CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
   --resume=true \
   --config_path='outputs/BP_TBot/pretrain_v1/2026-07-30/22-39-35_BP_TBot——test/checkpoints/011000/pretrained_model/train_config.json' \
   --num_workers=8
+
+
+### H100 - Tbot -SFT
+cd /vla/workspace/my_tbot
+conda activate mytbot
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+export LEROBOT_PARALLEL_DATASET_LOAD=0
+
+CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1   -m lerobot.scripts.lerobot_train   --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc 

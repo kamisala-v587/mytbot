@@ -7,6 +7,7 @@ from lerobot.configs.default import DatasetConfig
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1Config, TBotSA1DatasetConfig
 from lerobot.policies.TBot_SA1.da3_teacher import resolve_da3_backbone_defaults
+from lerobot.utils.constants import OBS_IMAGES
 from lerobot.transforms.core import (
     ComposeFieldsTransform,
     DeltaActionTransformFn,
@@ -47,16 +48,24 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
     bp_num_chunks: int = 4
     bp_same_episode_policy: str = "avoid"
     bp_seed: int = 0
-    action_mode: str = ""
+    bp_camera_keys: list[str] = field(
+        default_factory=lambda: [
+            f"{OBS_IMAGES}.image0",
+            f"{OBS_IMAGES}.image1",
+            f"{OBS_IMAGES}.image2",
+        ]
+    )
+    action_mode: str = "delta"
 
     data_transforms: TransformGroup = field(
         default_factory=lambda: TransformGroup(
             inputs=[
-                # BP-only branch: fixed K, image/state/action processing, Qwen image-only pixels.
+                # BP-only branch: image remap/selection, fixed K, state/action processing, Qwen image-only pixels.
+                BPRemapImageKeyTransformFn(),
                 BPPadOrSampleChunksFn(num_chunks=BPTBotDatasetConfig.bp_num_chunks),
                 BPResizeImagesWithPadFn(height=BPTBotDatasetConfig.height, width=BPTBotDatasetConfig.width),
-                BPRemapImageKeyTransformFn(),
                 BPComposeFieldsTransform(),
+                BPDeltaActionTransformFn(),
                 BPNormalizeTransformFn(),
                 BPPadStateAndActionTransformFn(
                     max_state_dim=BPTBotDatasetConfig.max_state_dim,
@@ -81,20 +90,35 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
     )
 
     def __post_init__(self):
-        """Propagate local Qwen processor path and delta-action setting to transforms."""
+        """Propagate local BP camera, Qwen processor, and delta-action settings to transforms."""
+        original_action_mode = self.action_mode
+        if str(original_action_mode).lower() == "obs":
+            # Parent configs only validate abs/delta; BP_TBot treats obs as an input-only path.
+            self.action_mode = "abs"
         super().__post_init__()
+        self.action_mode = original_action_mode
+
         inputs = list(self.data_transforms.inputs)
-        for idx, transform in enumerate(inputs):
-            if isinstance(transform, BPPadOrSampleChunksFn):
-                inputs[idx] = replace(transform, num_chunks=self.bp_num_chunks)
-            elif isinstance(transform, (BPImgOnlyQwen3VLTransformFn, ImgOnlyQwen3VLTransformFn)):
-                inputs[idx] = replace(transform, pretrained_model_name_or_path=self.qwen3_vl_processor_path)
-        inputs = [t for t in inputs if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
-        if self.action_mode == "delta":
-            bp_insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, BPNormalizeTransformFn)), 0)
-            inputs.insert(bp_insert_idx, BPDeltaActionTransformFn())
-            current_insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, ResizeImagesWithPadFn)), 0)
+        use_delta = str(self.action_mode).lower() != "obs"
+        if use_delta and not any(isinstance(t, DeltaActionTransformFn) for t in inputs):
+            current_insert_idx = next((i for i, t in enumerate(inputs) if isinstance(t, ResizeImagesWithPadFn)), len(inputs))
             inputs.insert(current_insert_idx, DeltaActionTransformFn())
+        elif not use_delta:
+            inputs = [t for t in inputs if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
+
+        for idx, transform in enumerate(inputs):
+            if isinstance(transform, BPRemapImageKeyTransformFn):
+                inputs[idx] = replace(transform, bp_camera_keys=list(self.bp_camera_keys))
+            elif isinstance(transform, BPPadOrSampleChunksFn):
+                inputs[idx] = replace(transform, num_chunks=self.bp_num_chunks)
+            elif isinstance(transform, BPImgOnlyQwen3VLTransformFn):
+                inputs[idx] = replace(
+                    transform,
+                    pretrained_model_name_or_path=self.qwen3_vl_processor_path,
+                    bp_camera_keys=list(self.bp_camera_keys),
+                )
+            elif isinstance(transform, ImgOnlyQwen3VLTransformFn):
+                inputs[idx] = replace(transform, pretrained_model_name_or_path=self.qwen3_vl_processor_path)
         self.data_transforms = replace(self.data_transforms, inputs=inputs)
 
 
@@ -125,8 +149,6 @@ class BPTBotConfig(TBotSA1Config):
 
     bp_num_chunks: int = 4
     bp_action_chunk_size: int = 50
-    bp_use_type_embedding: bool = True
-    bp_use_chunk_embedding: bool = True
     bp_use_action_step_embedding: bool = True
 
     def __post_init__(self):

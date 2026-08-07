@@ -41,7 +41,7 @@ from lerobot.transforms.core_bp import (
     ImgOnlyQwen3VLTransformFn,
     UnifyBPInputsTransformFn,
 )
-from lerobot.utils.constants import ACTION, OBS_STATE
+from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE
 
 
 BP_PREFIX = "behavior_prompt"
@@ -69,23 +69,36 @@ class BehaviorPromptConfig:
     max_state_dim: int = 32
     max_action_dim: int = 32
     qwen3_vl_processor_path: str = "Qwen/Qwen3-VL-2B-Instruct"
+    bp_camera_keys: list[str] | None = None
     action_mode: str = ""
+
+    def __post_init__(self) -> None:
+        if self.bp_camera_keys is None:
+            self.bp_camera_keys = [
+                f"{OBS_IMAGES}.image0",
+                f"{OBS_IMAGES}.image1",
+                f"{OBS_IMAGES}.image2",
+            ]
 
 
 def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTransformFn]:
     """Create BP_TBot default transform chain without instantiating DatasetConfig."""
     transforms: list[DataTransformFn] = [
-        # BP-only branch: fixed K, image/state/action processing, Qwen image-only pixels.
+        # BP-only branch: image remap/selection, fixed K, state/action processing, Qwen image-only pixels.
+        BPRemapImageKeyTransformFn(bp_camera_keys=list(prompt_cfg.bp_camera_keys or [])),
         BPPadOrSampleChunksFn(num_chunks=prompt_cfg.num_chunks),
         BPResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
-        BPRemapImageKeyTransformFn(),
         BPComposeFieldsTransform(),
+        BPDeltaActionTransformFn(),
         BPNormalizeTransformFn(),
         BPPadStateAndActionTransformFn(
             max_state_dim=prompt_cfg.max_state_dim,
             max_action_dim=prompt_cfg.max_action_dim,
         ),
-        BPImgOnlyQwen3VLTransformFn(pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path),
+        BPImgOnlyQwen3VLTransformFn(
+            pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path,
+            bp_camera_keys=list(prompt_cfg.bp_camera_keys or []),
+        ),
         # Current branch: mirror TBot transforms, but Qwen input is image-only.
         InjectMissingStateActionTransformFn(),
         ResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
@@ -99,9 +112,9 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
         ImgOnlyQwen3VLTransformFn(pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path),
         UnifyBPInputsTransformFn(),
     ]
-    if prompt_cfg.action_mode == "delta":
-        bp_insert_idx = next((i for i, t in enumerate(transforms) if isinstance(t, BPNormalizeTransformFn)), 0)
-        transforms.insert(bp_insert_idx, BPDeltaActionTransformFn())
+    if str(prompt_cfg.action_mode).lower() == "obs":
+        transforms = [t for t in transforms if not isinstance(t, (BPDeltaActionTransformFn, DeltaActionTransformFn))]
+    elif not any(isinstance(t, DeltaActionTransformFn) for t in transforms):
         current_insert_idx = next((i for i, t in enumerate(transforms) if isinstance(t, ResizeImagesWithPadFn)), 0)
         transforms.insert(current_insert_idx, DeltaActionTransformFn())
     return transforms

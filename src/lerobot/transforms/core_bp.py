@@ -15,6 +15,12 @@ from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE, OBS_STR, SAMP
 
 
 BP_PREFIX = "behavior_prompt"
+DEFAULT_BP_CAMERA_KEYS = [
+    f"{OBS_IMAGES}.image0",
+    f"{OBS_IMAGES}.image1",
+    f"{OBS_IMAGES}.image2",
+]
+BP_CAMERA_INDEX = {key: idx for idx, key in enumerate(DEFAULT_BP_CAMERA_KEYS)}
 
 
 @DataTransformFn.register_subclass("bp_pad_or_sample_chunks")
@@ -83,34 +89,34 @@ class BPResizeImagesWithPadFn(DataTransformFn):
 @DataTransformFn.register_subclass("bp_remap_image_key")
 @dataclass
 class BPRemapImageKeyTransformFn(DataTransformFn):
-    """Remap behavior_prompt image keys to TBot's canonical image0/image1/image2 keys."""
+    """Remap BP image keys to canonical keys and keep only configured BP cameras."""
 
     mapping: dict[str, str] = field(default_factory=dict)
+    bp_camera_keys: list[str] = field(default_factory=lambda: list(DEFAULT_BP_CAMERA_KEYS))
 
     def __call__(self, data: DataDict) -> DataDict:
         prompt = data[BP_PREFIX]
         images = prompt["images"]
-        remapped = 0
-        new_images: dict[str, torch.Tensor] = {}
+        remapped: dict[str, torch.Tensor] = {}
         for old_key, new_key in self.mapping.items():
-            if old_key not in images:
-                continue
-            new_images[new_key] = images[old_key]
-            remapped += 1
-        if remapped == 0:
+            if old_key in images:
+                remapped[new_key] = images[old_key]
+        if not remapped:
             available = ", ".join(sorted(images.keys()))
             expected = ", ".join(sorted(self.mapping.keys()))
             raise KeyError(f"[BPRemapImageKeyTransformFn] expected [{expected}], got [{available}]")
 
-        # Mirror RemapImageKeyTransformFn: pad missing cameras with image0 and mark them invalid later via camera index.
-        if f"{OBS_IMAGES}.image0" not in new_images:
-            first = next(iter(new_images.values()))
-            new_images[f"{OBS_IMAGES}.image0"] = first
-        if f"{OBS_IMAGES}.image1" not in new_images:
-            new_images[f"{OBS_IMAGES}.image1"] = torch.ones_like(new_images[f"{OBS_IMAGES}.image0"])
-        if f"{OBS_IMAGES}.image2" not in new_images:
-            new_images[f"{OBS_IMAGES}.image2"] = torch.ones_like(new_images[f"{OBS_IMAGES}.image0"])
-        prompt["images"] = new_images
+        unknown = [key for key in self.bp_camera_keys if key not in BP_CAMERA_INDEX]
+        if unknown:
+            allowed = ", ".join(DEFAULT_BP_CAMERA_KEYS)
+            raise KeyError(f"[BPRemapImageKeyTransformFn] unsupported bp_camera_keys={unknown}; allowed [{allowed}]")
+
+        missing = [key for key in self.bp_camera_keys if key not in remapped]
+        if missing:
+            available = ", ".join(sorted(remapped.keys()))
+            raise KeyError(f"[BPRemapImageKeyTransformFn] missing configured BP cameras {missing}; available [{available}]")
+
+        prompt["images"] = {key: remapped[key] for key in self.bp_camera_keys}
         data[BP_PREFIX] = prompt
         return data
 
@@ -272,6 +278,7 @@ class BPImgOnlyQwen3VLTransformFn(DataTransformFn):
 
     pretrained_model_name_or_path: str = "Qwen/Qwen3-VL-2B-Instruct"
     spatial_merge_size: int = 2
+    bp_camera_keys: list[str] = field(default_factory=lambda: list(DEFAULT_BP_CAMERA_KEYS))
     processor: Any = field(default=None, init=False, repr=False)
     _processor_source: str | None = field(default=None, init=False, repr=False)
 
@@ -290,9 +297,18 @@ class BPImgOnlyQwen3VLTransformFn(DataTransformFn):
         image_chunk_indices = []
         image_camera_indices = []
         num_chunks = int(prompt["mask"].shape[0])
-        image_keys = [f"{OBS_IMAGES}.image0", f"{OBS_IMAGES}.image1", f"{OBS_IMAGES}.image2"]
+        image_keys = list(self.bp_camera_keys)
+        unknown = [key for key in image_keys if key not in BP_CAMERA_INDEX]
+        if unknown:
+            allowed = ", ".join(DEFAULT_BP_CAMERA_KEYS)
+            raise KeyError(f"[BPImgOnlyQwen3VLTransformFn] unsupported bp_camera_keys={unknown}; allowed [{allowed}]")
+        missing = [key for key in image_keys if key not in prompt["images"]]
+        if missing:
+            available = ", ".join(sorted(prompt["images"].keys()))
+            raise KeyError(f"[BPImgOnlyQwen3VLTransformFn] missing BP images {missing}; available [{available}]")
         for chunk_idx in range(num_chunks):
-            for camera_idx, image_key in enumerate(image_keys):
+            for image_key in image_keys:
+                camera_idx = BP_CAMERA_INDEX[image_key]
                 img_inputs = self.processor.image_processor(prompt["images"][image_key][chunk_idx], do_rescale=False)
                 grid = img_inputs.image_grid_thw.squeeze(0)
                 token_count = torch.prod(grid) // self.spatial_merge_size**2

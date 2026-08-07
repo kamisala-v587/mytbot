@@ -976,6 +976,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 max_state_dim=cfg.dataset.max_state_dim,
                 max_action_dim=cfg.dataset.max_action_dim,
                 qwen3_vl_processor_path=cfg.dataset.qwen3_vl_processor_path,
+                bp_camera_keys=list(cfg.dataset.bp_camera_keys),
                 action_mode=cfg.dataset.action_mode,
             )
             bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, frame_ds, prompt_cfg)

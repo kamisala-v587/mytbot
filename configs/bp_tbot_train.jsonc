@@ -1,9 +1,9 @@
 {
     "dataset": {
         "type": "BP_TBot",
-        "repo_id": "bptbot_datasets",
-        "repo_id_file": "/vla/workspace/my_tbot/.config/ds_ids/bp_datasets.txt",
-        "action_mode": "abs",
+        "repo_id": "/vla/workspace/data/adjust_bottle/singe_clean_100",
+        // "repo_id_file": "/vla/workspace/my_tbot/.config/ds_ids/bp_datasets.txt",
+        "action_mode": "delta", // BP_TBot 默认加入 delta transforms；仅 action_mode="obs" 时跳过。
         "use_external_stats": false,
         "external_stats_path": null,
         "external_stats_root": null,
@@ -20,6 +20,9 @@
         "bp_num_chunks": 4, // 专有配置参数；action chunk size 由 policy.bp_action_chunk_size 控制
         "bp_same_episode_policy": "avoid",
         "bp_seed": 0,
+        "bp_camera_keys": [
+            "observation.images.image0"
+        ],
         
         "image_transforms": {
             "enable": false,
@@ -31,7 +34,7 @@
     "env": null,
     "policy": {
         "type": "BP_TBot",
-        "pretrained_path": "/vla/workspace/models/bp_mytbot_init_4_chunk",
+        "pretrained_path": "/vla/workspace/models/Behavior_Prompt_Tbots/bptbot_init_v2_4block",
         "push_to_hub": false,
         "device": null,
 
@@ -53,8 +56,6 @@
         "tokenizer_max_length": 48,
         "bp_num_chunks": 4,
         "bp_action_chunk_size": 50,
-        "bp_use_type_embedding": true,
-        "bp_use_chunk_embedding": true,
         "bp_use_action_step_embedding": true,
 
         "normalization_mapping": {
@@ -76,7 +77,7 @@
         "optimizer_grad_clip_norm": 1.0,
         "scheduler_warmup_steps": 500,
         "scheduler_decay_steps": 20000,
-        "scheduler_decay_lr": 5e-6,
+        "scheduler_decay_lr": 2e-6,
 
         "scale_factor": 8,
         "lambda_gen": 0.01,
@@ -108,11 +109,11 @@
     "num_workers": 8,
     "batch_size": 8,
     "gradient_accumulation_steps": 1,
-    "steps": 50000,
+    "steps": 20000,
     "eval_freq": 100,
-    "log_freq": 10,
+    "log_freq": 100,
     "save_checkpoint": true,
-    "save_freq": 1000,
+    "save_freq": 2000,
     "use_policy_training_preset": true,
 
     "eval": {

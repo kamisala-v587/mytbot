@@ -29,6 +29,7 @@ import torch.nn.functional as F  # noqa: N812
 from torch import Tensor, nn
 import torch._dynamo as dynamo
 from einops import rearrange
+from safetensors.torch import load_file as load_safetensor_file
 
 from transformers.models.auto import CONFIG_MAPPING
 from transformers.models.qwen3_vl import modeling_qwen3_vl
@@ -47,6 +48,7 @@ from lerobot.policies.TBot_SA1.lora import (
 )
 from lerobot.policies.names import BP_TBOT
 from lerobot.policies.pretrained import PreTrainedPolicy
+from lerobot.policies.utils import log_model_loading_keys
 from lerobot.utils.utils import format_big_number
 from lerobot.utils.constants import (
     HF_HOME,
@@ -1173,10 +1175,9 @@ class BPTBotModel(nn.Module):
 
         state_action_embs = torch.cat([state_embs, action_embs], dim=-1)
         prompt_embs = self.bp_state_action_fuse_mlp(state_action_embs)
-        if self.config.bp_use_chunk_embedding:
-            # Chunk position marks which behavior-prompt chunk this state/action token represents.
-            chunk_ids = behavior_prompt["chunk_indices"].to(device=prompt_embs.device, dtype=torch.long)
-            prompt_embs = prompt_embs + self.bp_chunk_embedding(chunk_ids).to(dtype=prompt_embs.dtype)
+        # Chunk position marks which behavior-prompt chunk this state/action token represents.
+        chunk_ids = behavior_prompt["chunk_indices"].to(device=prompt_embs.device, dtype=torch.long)
+        prompt_embs = prompt_embs + self.bp_chunk_embedding(chunk_ids).to(dtype=prompt_embs.dtype)
         return prompt_embs
 
     @dynamo.disable
@@ -1228,13 +1229,11 @@ class BPTBotModel(nn.Module):
         bp_visual_len = bp_input_ids.shape[1]
         current_embs = visual_prefix_embs[:, :current_len]
         bp_visual_embs = visual_prefix_embs[:, current_len : current_len + bp_visual_len]
-        if self.config.bp_use_type_embedding:
-            current_type_ids = torch.zeros(current_embs.shape[:2], dtype=torch.long, device=current_embs.device)
-            bp_type_ids = torch.ones(bp_visual_embs.shape[:2], dtype=torch.long, device=bp_visual_embs.device)
-            current_embs = current_embs + self.bp_type_embedding(current_type_ids).to(dtype=current_embs.dtype)
-            bp_visual_embs = bp_visual_embs + self.bp_type_embedding(bp_type_ids).to(dtype=bp_visual_embs.dtype)
-        if self.config.bp_use_chunk_embedding:
-            bp_visual_embs = bp_visual_embs + self.bp_chunk_embedding(bp_visual_chunk_ids).to(dtype=bp_visual_embs.dtype)
+        current_type_ids = torch.zeros(current_embs.shape[:2], dtype=torch.long, device=current_embs.device)
+        bp_type_ids = torch.ones(bp_visual_embs.shape[:2], dtype=torch.long, device=bp_visual_embs.device)
+        current_embs = current_embs + self.bp_type_embedding(current_type_ids).to(dtype=current_embs.dtype)
+        bp_visual_embs = bp_visual_embs + self.bp_type_embedding(bp_type_ids).to(dtype=bp_visual_embs.dtype)
+        bp_visual_embs = bp_visual_embs + self.bp_chunk_embedding(bp_visual_chunk_ids).to(dtype=bp_visual_embs.dtype)
 
         # 4) BP state/action prompt tokens: (B,K,hidden), including action-step and chunk positions.
         bp_prompt_embs = self.embed_bp_state_action_prompt(behavior_prompt).to(dtype=visual_prefix_embs.dtype) # MLP映射state 和action
@@ -2209,6 +2208,23 @@ class BPTBotPolicy(PreTrainedPolicy):
         "model.cosmos.",
         "model.da3_teacher.",
     )
+    _allowed_shape_mismatch_prefixes = (
+        "model.bp_type_embedding.",
+        "model.bp_chunk_embedding.",
+        "model.bp_action_step_embedding.",
+        "model.bp_state_mlp.",
+        "model.bp_action_mlp.",
+        "model.bp_state_action_fuse_mlp.",
+        "model.da3_query_projectors.",
+        "model.future_3d_layer_input_norms.",
+        "model.future_3d_shared_refine_trunk.",
+        "model.future_3d_messenger_norms.",
+        "model.future_3d_output_decoder.",
+    )
+    _allowed_shape_mismatch_exact = {
+        "model.future_3d_queries",
+        "model.future_3d_shared_output_queries",
+    }
 
     def __init__(
         self,
@@ -2497,6 +2513,73 @@ class BPTBotPolicy(PreTrainedPolicy):
             f"{', '.join(self._save_excluded_prefixes)}"
         )
         return filtered_state_dict
+
+    @classmethod
+    def _load_as_safetensor(
+        cls,
+        model: "BPTBotPolicy",
+        model_file: str,
+        map_location: str,
+        strict: bool,
+    ) -> "BPTBotPolicy":
+        state_dict = load_safetensor_file(model_file, device="cpu")
+        model_state = model.state_dict()
+        filtered_state_dict: dict[str, Tensor] = {}
+        skipped_shape_keys: list[str] = []
+        unexpected_shape_keys: list[str] = []
+
+        for key, value in state_dict.items():
+            target = model_state.get(key)
+            if target is not None and tuple(value.shape) != tuple(target.shape):
+                allowed = key in cls._allowed_shape_mismatch_exact or any(
+                    key.startswith(prefix) for prefix in cls._allowed_shape_mismatch_prefixes
+                )
+                if allowed:
+                    skipped_shape_keys.append(key)
+                    continue
+                unexpected_shape_keys.append(key)
+                continue
+            filtered_state_dict[key] = value
+
+        if unexpected_shape_keys:
+            preview = ", ".join(unexpected_shape_keys[:8])
+            remaining = len(unexpected_shape_keys) - 8
+            suffix = f", ... (+{remaining} more)" if remaining > 0 else ""
+            raise RuntimeError(
+                "Unexpected shape mismatch while loading BP_TBot pretrained weights: "
+                f"{preview}{suffix}"
+            )
+
+        if skipped_shape_keys:
+            preview = ", ".join(skipped_shape_keys[:8])
+            remaining = len(skipped_shape_keys) - 8
+            suffix = f", ... (+{remaining} more)" if remaining > 0 else ""
+            logging.info(
+                "Skipping BP_TBot shape-mismatched pretrained key(s); modules will be initialized from current config: %s%s",
+                preview,
+                suffix,
+            )
+
+        missing_keys, unexpected_keys = model.load_state_dict(filtered_state_dict, strict=strict)
+        missing_keys = [key for key in missing_keys if key not in skipped_shape_keys]
+        missing_keys, unexpected_keys, expected_missing_keys = model.classify_model_loading_keys(
+            list(missing_keys),
+            list(unexpected_keys),
+        )
+        if expected_missing_keys:
+            preview = expected_missing_keys[:8]
+            preview_str = ", ".join(preview)
+            remaining = len(expected_missing_keys) - len(preview)
+            suffix = f", ... (+{remaining} more)" if remaining > 0 else ""
+            logging.info(
+                "Expected missing key(s) when loading model (new modules initialized separately): "
+                f"{preview_str}{suffix}"
+            )
+        log_model_loading_keys(missing_keys, unexpected_keys)
+
+        if map_location != "cpu":
+            model.to(map_location)
+        return model
 
     def classify_model_loading_keys(
         self, missing_keys: list[str], unexpected_keys: list[str]

@@ -1,0 +1,120 @@
+{
+    "dataset": {
+        "type": "TBot_SA1",
+        "repo_id": "/vla/workspace/data/hanging_mug/aloha-agilex_clean_50",
+        "action_mode": "delta",
+        "use_external_stats": false,
+        "external_stats_path": null,
+        "external_stats_root": null,
+        "use_imagenet_stats": true,
+        "video_backend": "pyav",
+        "streaming": false,
+        "dist_loading": false,
+        "weight_rules_path": null,
+        "height": 224,
+        "width": 224,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
+        
+        "image_transforms": {
+            "enable": false,
+            "preset": null
+        }
+
+    },
+
+    "env": null,
+    "policy": {
+        "type": "TBot_SA1",
+        "pretrained_path": "/vla/workspace/models/tbot_base",
+        "push_to_hub": false,
+        "device": null,
+
+        "dtype": "bfloat16",
+        "qwen3_vl_variant": "qwen3_vl_28l",
+        "action_expert_variant": "qwen3_28l",
+        "qwen3_vl_pretrained_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "attention_mask_mode": "default",
+
+        "num_inference_steps": 10,
+        "image_resolution": [224, 224],
+        "image_delta_indices": [-50, 0, 50],
+        "tokenizer_max_length": 48,
+
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "IDENTITY",
+            "ACTION": "IDENTITY"
+        },
+
+        // BP prefix is long; keep checkpointing enabled for a safer first training run.
+        "gradient_checkpointing": true,
+        "freeze_vision_encoder": false,
+        "train_expert_only": false,
+        "train_vlm_only": false,
+
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 20000,
+        "scheduler_decay_lr": 5e-6,
+
+        "scale_factor": 8,
+        "lambda_gen": 0.01,
+        "cosmos_tokenizer_path_or_name": "/vla/workspace/models/Cosmos-Tokenizer-CI8x8",
+
+        "enable_3d_queries": true,
+        "num_3d_query_tokens": 432,
+        "da3_alignment_mode": "query_decoder",
+        "query_layer_indices": [13, 19, 23, 27],
+        "da3_variant": "auto",
+        "da3_teacher_layers": [11, 15, 19, 23],
+        "da3_query_dim": 2048,
+        "da3_tokens_per_view": 1296,
+        "da3_num_views": 3,
+        "lambda_3d": 0.01,
+        "da3_model_path_or_name": "/vla/workspace/models/DA3-LARGE-1.1",
+        "da3_code_root": "/vla/workspace/my_tbot/third_party/Depth-Anything-3",
+        "da3_teacher_process_res": 504,
+        "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
+        "log_da3_teacher_timing": true
+    },
+
+    "output_dir": "outputs/TBot/SFT-rand",
+    "job_name": "TBot_test2",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 8,
+    "batch_size": 8,
+    "gradient_accumulation_steps": 1,
+    "steps": 1000,
+    "eval_freq": 100,
+    "log_freq": 10,
+    "save_checkpoint": true,
+    "save_freq": 200,
+    "use_policy_training_preset": true,
+
+    "eval": {
+        "n_episodes": 50,
+        "batch_size": 50,
+        "use_async_envs": false
+    },
+
+    "wandb": {
+        "enable": true,
+        "project": "TBot",
+        "mode": "offline"
+    },
+
+    "rename_map": {}
+}

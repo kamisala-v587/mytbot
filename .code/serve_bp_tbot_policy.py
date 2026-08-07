@@ -21,21 +21,19 @@ BP_TBot 额外需要 behavior prompt：
     }
 
 启动示例::
-    cd /vla/workspace/my_tbot
-    
-    python .code/serve_bp_tbot_policy.py \
-        --ckpt_path outputs/BP_TBot/pretrain_v1/.../checkpoints/011000 \
-        --bp_dataset /vla/workspace/data/hanging_mug/aloha-agilex_randomized_500 \
-        --host 0.0.0.0 --port 8000 \
+cd /vla/workspace/my_tbot
+conda activate mytbot
 
-    python .code/serve_bp_tbot_policy.py \
-        --ckpt_path /vla/workspace/my_tbot/outputs/BP_TBot/SFTv2/2026-08-04/11-29-30_BP_TBot_test2/checkpoints/035000 \
-        --bp_dataset /vla/workspace/data/adjust_bottle/aloha-agilex_randomized_500 \
-        --host 0.0.0.0 --port 8000 
-    python .code/serve_bp_tbot_policy.py \
-        --ckpt_path /vla/workspace/my_tbot/outputs/BP_TBot/SFTv2/2026-08-04/11-29-30_BP_TBot_test2/checkpoints/035000 \
-        --bp_dataset /vla/workspace/data/hanging_mug/aloha-agilex_clean_50 \
-        --host 0.0.0.0 --port 8000 
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+
+python .code/serve_bp_tbot_policy.py \
+  --ckpt_path /vla/workspace/my_tbot/outputs/BP_TBot/SFT-rand/2026-08-06/18-23-14_BP_TBot_test2/checkpoints/020000/pretrained_model \
+  --bp_dataset /vla/workspace/data/adjust_bottle/singe_clean_100 \
+  --bp_camera_keys observation.images.image0\ 
+  --host 0.0.0.0 \
+  --port 8000
 
 """
 
@@ -230,6 +228,7 @@ class ServeArgs:
     bp_num_chunks: int | None = None
     bp_seed: int = 0
     bp_same_episode_policy: str = "avoid"
+    bp_camera_keys: list[str] | None = None
     bp_cache_size: int = 16
     disable_3d_teacher_for_eval: bool = True
     num_inference_steps: int | None = None
@@ -251,6 +250,13 @@ def _bool_env(name: str, default: bool) -> bool:
     raise ValueError(f"Environment variable {name} must be boolean-like, got {raw!r}")
 
 
+def _parse_bp_camera_keys(raw: str | None) -> list[str] | None:
+    if raw is None or not raw.strip():
+        return None
+    keys = [item.strip() for item in raw.split(",") if item.strip()]
+    return keys or None
+
+
 def parse_args() -> ServeArgs:
     parser = argparse.ArgumentParser(
         description="启动 mytbot BP_TBot checkpoint 的 WebSocket 推理服务。",
@@ -266,7 +272,7 @@ def parse_args() -> ServeArgs:
     parser.add_argument("--infer_horizon", type=int, default=None)
     parser.add_argument("--stats_key", default=None)
     parser.add_argument("--stats_path", default=None)
-    parser.add_argument("--action_mode", choices=["abs", "delta"], default=None)
+    parser.add_argument("--action_mode", choices=["abs", "delta", "obs"], default=None)
     parser.add_argument("--resize_size", type=int, default=224)
     parser.add_argument("--request_image_height", type=int, default=480)
     parser.add_argument("--request_image_width", type=int, default=640)
@@ -281,6 +287,11 @@ def parse_args() -> ServeArgs:
     parser.add_argument("--bp_num_chunks", type=int, default=None)
     parser.add_argument("--bp_seed", type=int, default=0)
     parser.add_argument("--bp_same_episode_policy", choices=["avoid", "allow", "forbid"], default="avoid")
+    parser.add_argument(
+        "--bp_camera_keys",
+        default=None,
+        help="逗号分隔的 canonical BP 相机 key；默认沿用 checkpoint 配置或三路 image0,image1,image2。",
+    )
     parser.add_argument("--bp_cache_size", type=int, default=16, help="预处理并缓存的 dataset fallback BP 数量；0 表示每次随机现取。")
     parser.add_argument("--num_inference_steps", type=int, default=None)
     parser.add_argument(
@@ -319,6 +330,7 @@ def parse_args() -> ServeArgs:
         bp_num_chunks=parsed.bp_num_chunks,
         bp_seed=parsed.bp_seed,
         bp_same_episode_policy=parsed.bp_same_episode_policy,
+        bp_camera_keys=_parse_bp_camera_keys(parsed.bp_camera_keys),
         bp_cache_size=parsed.bp_cache_size,
         disable_3d_teacher_for_eval=disable_3d,
         num_inference_steps=parsed.num_inference_steps,
@@ -660,6 +672,7 @@ class BPTBotPolicyService:
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig
 
         dataset_cfg = self.train_cfg.dataset if self.train_cfg is not None else None
+        default_bp_camera_keys = [f"{OBS_IMAGES}.image0", f"{OBS_IMAGES}.image1", f"{OBS_IMAGES}.image2"]
         return BehaviorPromptConfig(
             prompt_action_chunk_size=int(getattr(self.config, "bp_action_chunk_size", self.config.chunk_size)),
             same_episode_policy=self.args.bp_same_episode_policy,
@@ -670,6 +683,7 @@ class BPTBotPolicyService:
             max_state_dim=int(getattr(dataset_cfg, "max_state_dim", getattr(self.config, "max_state_dim", 32))),
             max_action_dim=int(getattr(dataset_cfg, "max_action_dim", getattr(self.config, "max_action_dim", 32))),
             qwen3_vl_processor_path=str(getattr(dataset_cfg, "qwen3_vl_processor_path", getattr(self.config, "qwen3_vl_processor_path", DEFAULT_QWEN3_VL_PATH))),
+            bp_camera_keys=list(self.args.bp_camera_keys or getattr(dataset_cfg, "bp_camera_keys", default_bp_camera_keys)),
             action_mode=self.action_mode,
         )
 

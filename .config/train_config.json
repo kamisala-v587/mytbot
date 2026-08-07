@@ -1,26 +1,26 @@
 {
     "dataset": {
         "type": "TBot_SA1", 
-        "repo_id": "/vla/.data/adjust_bottle",
-        "qwen3_vl_processor_path": "/vla/.models/Qwen3-VL-2B-Instruct",  
+        "repo_id": "/vla/workspace/data/hanging_mug/aloha-agilex_clean_50",
+        "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",  
         "video_backend": "pyav" 
     },
     "env": null,
     "policy": {
     "type": "TBot_SA1", 
-    "pretrained_path": "/vla/.models/tbot_base", 
+    "pretrained_path": "/vla/workspace/models/tbot_base", 
     "push_to_hub": false, 
 
     "qwen3_vl_variant": "qwen3_vl_28l",  
     "action_expert_variant": "qwen3_28l", 
-    "qwen3_vl_pretrained_path": "/vla/.models/Qwen3-VL-2B-Instruct",
-    "cosmos_tokenizer_path_or_name": "/vla/.models/Cosmos-Tokenizer-CI8x8", 
+    "qwen3_vl_pretrained_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
+    "cosmos_tokenizer_path_or_name": "/vla/workspace/models/Cosmos-Tokenizer-CI8x8", 
 
     "attention_mask_mode": "causal", 
     "enable_3d_queries": true, 
     "num_3d_query_tokens": 432,
     "lambda_3d": 0.01,
-    "da3_model_path_or_name": "/vla/.models/DA3-LARGE-1.1",
+    "da3_model_path_or_name": "/vla/workspace/models/DA3-LARGE-1.1",
     "da3_code_root": "/vla/my_tbot/third_party/Depth-Anything-3",
 	"train_expert_only": false, 
     "train_vlm_only": false, 
@@ -35,7 +35,7 @@
     "job_name": "TBot_SA1-finetune",
     "resume": false,
     "seed": 42,
-    "num_workers": 12,
+    "num_workers": 8,
     "batch_size": 8,
     "steps": 200,
     "eval_freq": 1000,

@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MYTBOT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${MYTBOT_ROOT}"
 
-CONFIG_PATH="${CONFIG_PATH:-${MYTBOT_ROOT}/configs/bp_tbot_pretrain_config.jsonc}"
+CONFIG_PATH="${CONFIG_PATH:-${MYTBOT_ROOT}/configs/bp_tbot_train.jsonc}"
 NUM_PROCESSES="${NUM_PROCESSES:-1}"
 PARALLEL_DATASET_LOAD="${PARALLEL_DATASET_LOAD:-0}"
 
