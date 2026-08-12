@@ -1,6 +1,6 @@
 {
     "dataset": {
-        "type": "TBot_SA1",
+        "type": "tbot_bp",
         "repo_id": "robotwin_clean",
         "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_clean_ids.txt",
         "action_mode": "delta",
@@ -17,18 +17,27 @@
         "max_state_dim": 32,
         "max_action_dim": 32,
         "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
-        
+
+        // tbot_bp 数据侧：决定每个 sample 取多少个 BP chunk；必须和 policy.bp_num_chunks 对齐。
+        "bp_num_chunks": 10,
+        "bp_same_episode_policy": "avoid",
+        "bp_seed": 0,
+        "bp_camera_keys": [
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
+        ],
+
         "image_transforms": {
             "enable": false,
             "preset": null
         }
-
     },
 
     "env": null,
     "policy": {
-        "type": "TBot_SA1",
-        "pretrained_path": "/vla/workspace/models/tbot_base",
+        "type": "tbot_bp",
+        "pretrained_path": "/vla/workspace/models/tbot_bp_init_v0.2_c10",
         "push_to_hub": false,
         "device": null,
 
@@ -38,8 +47,8 @@
         "qwen3_vl_pretrained_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
 
         "n_obs_steps": 1,
-        "chunk_size": 50,
-        "n_action_steps": 50,
+        "chunk_size": 50, // 模型预测步数
+        "n_action_steps": 50, // 对外返回步数，推理用
         "max_state_dim": 32,
         "max_action_dim": 32,
         "attention_mask_mode": "default",
@@ -49,13 +58,30 @@
         "image_delta_indices": [-15, 0, 15],
         "tokenizer_max_length": 48,
 
+        // tbot_bp 核心：BPObsEncoder 结构配置。保存/加载 checkpoint 时这些字段必须可复现。
+        "bp_num_chunks": 10,
+        "bp_action_chunk_size": 50,
+        "bp_camera_keys": [
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
+        ],
+        "bp_vision_model_name": "vit_base_patch16_clip_224.openai",
+        "bp_token_dim": 768, // bp encoder 中间维度，后续统一为2048
+        "bp_image_feature_aggregation": "cls",
+        "bp_share_rgb_model": true,
+        "bp_use_vision_norm": true,
+        "bp_freeze_vision_encoder": false,
+        "bp_use_action_step_embedding": true,
+        "bp_use_modality_type_embedding": true,
+        "bp_use_chunk_position_embedding": true,
+
         "normalization_mapping": {
             "VISUAL": "IDENTITY",
             "STATE": "IDENTITY",
             "ACTION": "IDENTITY"
         },
 
-        // BP prefix is long; keep checkpointing enabled for a safer first training run.
         "gradient_checkpointing": true,
         "freeze_vision_encoder": false,
         "train_expert_only": false,
@@ -77,6 +103,8 @@
         "enable_3d_queries": true,
         "num_3d_query_tokens": 432,
         "da3_alignment_mode": "query_decoder",
+        "da3_query_resampler_layers": 1,
+        "da3_query_resampler_ff_mult": 1,
         "query_layer_indices": [13, 19, 23, 27],
         "da3_variant": "auto",
         "da3_teacher_layers": [11, 15, 19, 23],
@@ -88,11 +116,14 @@
         "da3_code_root": "/vla/workspace/my_tbot/third_party/Depth-Anything-3",
         "da3_teacher_process_res": 504,
         "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
-        "log_da3_teacher_timing": true
+        "log_da3_teacher_timing": true,
+
+        "mask_action_dim_padding_loss": true, // 截断计算loss
+        "action_loss_valid_dim": 14 // 截断计算loss
     },
 
-    "output_dir": "outputs/TBot/SFT-rand",
-    "job_name": "tbot_base_clean_sft_baseline_v1",
+    "output_dir": "outputs/tbot_bp/SFT-rand",
+    "job_name": "tbot_bp_test",
     "resume": false,
     "seed": 42,
     "num_workers": 8,
@@ -100,9 +131,9 @@
     "gradient_accumulation_steps": 1,
     "steps": 70000,
     "eval_freq": 100,
-    "log_freq": 10,
+    "log_freq": 100,
     "save_checkpoint": true,
-    "save_freq": 5000,
+    "save_freq": 2000,
     "use_policy_training_preset": true,
 
     "eval": {
@@ -113,7 +144,7 @@
 
     "wandb": {
         "enable": true,
-        "project": "TBot",
+        "project": "tbot_bp",
         "mode": "offline"
     },
 

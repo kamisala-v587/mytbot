@@ -1,0 +1,12 @@
+
+
+groups:
+  - name: robotwin_clean
+    match: "(?i)/robotwin2\\.0/.+_clean_[0-9]+$"
+    total_weight: 0.5
+    inside: uniform
+
+  - name: robotwin_rand
+    match: "(?i)/robotwin2\\.0/.+_randomized_[0-9]+$"
+    total_weight: 0.5
+    inside: uniform

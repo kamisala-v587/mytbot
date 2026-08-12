@@ -32,6 +32,7 @@ from accelerate import Accelerator
 from accelerate.utils import send_to_device
 from termcolor import colored
 from torch.optim import Optimizer
+from torch.utils.data._utils.collate import default_collate
 from tqdm import tqdm
 
 from lerobot.configs import parser
@@ -41,6 +42,8 @@ from lerobot.datasets.sampler import MultiLeRobotWeightedSampler
 from lerobot.datasets.utils import cycle, load_json, write_json
 from lerobot.optim.factory import make_optimizer_and_scheduler
 from lerobot.policies.factory import make_policy
+from lerobot.policies.BP_TBot.configuration_bp_tbot import BPTBotDatasetConfig
+from lerobot.policies.BP_TBot_v2.configuration_bp_tbot import BPTBotV2DatasetConfig
 from lerobot.policies.names import (
     TBOT_SA1_WAN,
     TBOT_SA1_WAN_ALIASES,
@@ -844,8 +847,28 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor = 2 if cfg.num_workers > 0 else None
         worker_init_fn = None
 
+    def _debug_tbot_bp_sample_shapes(sample, prefix=""):
+        if isinstance(sample, dict):
+            for key, value in sample.items():
+                next_prefix = f"{prefix}.{key}" if prefix else str(key)
+                yield from _debug_tbot_bp_sample_shapes(value, next_prefix)
+        elif isinstance(sample, torch.Tensor):
+            yield prefix, tuple(sample.shape), str(sample.dtype)
+
+    def _debug_collate(batch):
+        try:
+            return default_collate(batch)
+        except Exception:
+            print("[tbot_bp debug] default_collate failed; per-sample tensor shapes:")
+            for sample_idx, sample in enumerate(batch):
+                print(f"  sample[{sample_idx}]")
+                for name, shape, dtype in _debug_tbot_bp_sample_shapes(sample):
+                    print(f"    {name}: shape={shape} dtype={dtype}")
+            raise
+
     dataloader = torch.utils.data.DataLoader(
         dataset,
+        collate_fn=_debug_collate if isinstance(cfg.dataset, (BPTBotDatasetConfig, BPTBotV2DatasetConfig)) else None,
         num_workers=num_workers, 
         batch_size=cfg.batch_size,
         shuffle=shuffle and not cfg.dataset.streaming,

@@ -359,16 +359,10 @@ class UnifyBPInputsTransformFn(DataTransformFn):
             BP_PREFIX: {
                 "mask": prompt["mask"],
                 "chunk_indices": prompt["chunk_indices"],
-                "source_time_ratio": prompt["source_time_ratio"],
                 "state": prompt["state"],
                 "action": prompt["action"],
                 "action_is_pad": prompt["action_is_pad"],
                 "images": prompt["images"],
-                "pixel_values": prompt["pixel_values"],
-                "image_grid_thw": prompt["image_grid_thw"],
-                "image_token_counts": prompt["image_token_counts"],
-                "image_chunk_indices": prompt["image_chunk_indices"],
-                "image_camera_indices": prompt["image_camera_indices"],
             },
         }
         return data

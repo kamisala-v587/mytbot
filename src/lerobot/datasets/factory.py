@@ -45,6 +45,7 @@ from lerobot.policies.fastwam.configuration_fastwam import FastWAMDatasetConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanDatasetConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfig, RoboChallengeRawW1DatasetConfig
 from lerobot.policies.BP_TBot.configuration_bp_tbot import BPTBotDatasetConfig
+from lerobot.policies.BP_TBot_v2.configuration_bp_tbot import BPTBotV2DatasetConfig
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
@@ -937,7 +938,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         image_transforms = None
 
 
-    if isinstance(cfg.dataset, BPTBotDatasetConfig):
+    if isinstance(cfg.dataset, (BPTBotDatasetConfig, BPTBotV2DatasetConfig)):
         if cfg.dataset.streaming:
             raise ValueError("BP_TBot dataset currently supports non-streaming LeRobot datasets only.")
         repo_ids = resolve_repo_ids(cfg)
@@ -979,7 +980,10 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 bp_camera_keys=list(cfg.dataset.bp_camera_keys),
                 action_mode=cfg.dataset.action_mode,
             )
-            bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, frame_ds, prompt_cfg)
+            if isinstance(cfg.dataset, BPTBotV2DatasetConfig):
+                bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms_v2(current_ds, frame_ds, prompt_cfg)
+            else:
+                bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, frame_ds, prompt_cfg)
             bp_datasets.append(bp_dataset)
             data_stats[current_ds.meta.robot_type] = current_ds.meta.stats
 

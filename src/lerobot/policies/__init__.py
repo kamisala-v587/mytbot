@@ -12,24 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .InternVLA_A1_3B.configuration_internvla_a1 import QwenA1Config as QwenA1Config
-from .InternVLA_A1_2B.configuration_internvla_a1 import InternA1Config as InternA1Config
-from .qwenaction.configuration_qwenaction import QwenActionConfig as QwenActionConfig
-from .TBot_SA1.configuration_tbot_sa1 import TBotSA1Config as TBotSA1Config
-from .BP_TBot.configuration_bp_tbot import BPTBotConfig as BPTBotConfig
-from .fastwam.configuration_fastwam import FastWAMConfig as FastWAMConfig
-from .TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanConfig as TBotSA1WanConfig
-from .pi0.configuration_pi0 import PI0Config as PI0Config
-from .pi05.configuration_pi05 import PI05Config as PI05Config
+from __future__ import annotations
 
-__all__ = [
-    "QwenA1Config", 
-    "InternA1Config", 
-    "QwenActionConfig",
-    "TBotSA1Config",
-    "BPTBotConfig",
-    "FastWAMConfig",
-    "TBotSA1WanConfig",
-    "PI0Config",
-    "PI05Config",
-]
+import importlib
+from typing import Any
+
+_CONFIG_IMPORTS = {
+    "QwenA1Config": ".InternVLA_A1_3B.configuration_internvla_a1",
+    "InternA1Config": ".InternVLA_A1_2B.configuration_internvla_a1",
+    "QwenActionConfig": ".qwenaction.configuration_qwenaction",
+    "TBotSA1Config": ".TBot_SA1.configuration_tbot_sa1",
+    "BPTBotConfig": ".BP_TBot.configuration_bp_tbot",
+    "BPTBotV2Config": ".BP_TBot_v2.configuration_bp_tbot",
+    "FastWAMConfig": ".fastwam.configuration_fastwam",
+    "TBotSA1WanConfig": ".TBot_SA1_Wan.configuration_tbot_sa1_wan",
+    "PI0Config": ".pi0.configuration_pi0",
+    "PI05Config": ".pi05.configuration_pi05",
+}
+
+__all__ = list(_CONFIG_IMPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    if name not in _CONFIG_IMPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = importlib.import_module(_CONFIG_IMPORTS[name], package=__name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

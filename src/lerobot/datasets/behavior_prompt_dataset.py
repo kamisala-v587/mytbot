@@ -197,7 +197,52 @@ class BehaviorPromptLeRobotDataset(Dataset):
             prompt_cfg=prompt_cfg,
             transform=compose(transforms),
         )
+    @classmethod
+    def with_default_transforms_v2(
+        cls,
+        current_ds: LeRobotDataset,
+        frame_ds: LeRobotDataset,
+        prompt_cfg: BehaviorPromptConfig | None = None,
+    ) -> BehaviorPromptLeRobotDataset:
+        """
+        源于with_default_transforms 但是不加入bp的某些处理管道，用于兼容TransfermObsEncoder
+        """
+        if prompt_cfg is None:
+            prompt_cfg = BehaviorPromptConfig()
+        transforms = _make_default_transform_fns(prompt_cfg)
+        # tbot_bp 的 BP 图像由 BPObsEncoder 直接编码，不再生成 BP Qwen pixel_values。
+        # 但必须保留 UnifyBPInputsTransformFn：它会移除 source_indices 等可变长采样元数据，
+        # 只留下能够稳定 batch collate 的固定形状模型输入。
+        transforms = [t for t in transforms if not isinstance(t, BPImgOnlyQwen3VLTransformFn)]
+        transforms = hydrate_inject_missing_state_action_transform(transforms, current_ds)
+        transforms = hydrate_normalize_transform(transforms, current_ds)
+        transforms = hydrate_compose_field_transform(transforms, current_ds)
+        transforms = hydrate_delta_action_transform(transforms, current_ds)
+        transforms = hydrate_remap_image_key_transform(transforms, current_ds)
 
+        robot_type = current_ds.meta.robot_type
+        feature_mapping = get_feature_mapping(robot_type, current_ds.meta.features)
+        image_mapping = get_image_mapping(robot_type, current_ds.meta.features)
+        for idx, transform in enumerate(transforms):
+            if isinstance(transform, BPNormalizeTransformFn):
+                transforms[idx] = replace(
+                    transform,
+                    norm_stats=current_ds.meta.stats,
+                    selected_keys=feature_mapping[OBS_STATE] + feature_mapping[ACTION],
+                )
+            elif isinstance(transform, BPComposeFieldsTransform):
+                transforms[idx] = replace(transform, mapping=feature_mapping)
+            elif isinstance(transform, BPDeltaActionTransformFn):
+                transforms[idx] = replace(transform, mask=get_mask_mapping(robot_type, current_ds.meta.features))
+            elif isinstance(transform, BPRemapImageKeyTransformFn):
+                transforms[idx] = replace(transform, mapping=image_mapping)
+
+        return cls(
+            current_ds=current_ds,
+            frame_ds=frame_ds,
+            prompt_cfg=prompt_cfg,
+            transform=compose(transforms),
+        )
 
     @property
     def repo_id(self) -> str:
