@@ -1,69 +1,119 @@
 # Tools
 
-本目录包含预训练数据检查、格式转换与 norm stats 工作流脚本。
+本目录的 norm stats 只提供一个 Python 入口：`tools/run_norm_stats.py`。实现位于
+`tools/norm_stats/` 子包，不应直接作为命令调用。
 
-## 数据集工具
+## 快速开始
 
-| 脚本 | 作用 |
-|------|------|
-| `check_lerobot_v3_integrity.py` | LeRobot v3 数据集基础完整性检查 |
-| `check_pretrain_dataset_pipeline.py` | pretrain 数据管线检查 |
-| `convert_egodex_to_lerobot.py` | EgoDex 格式 → LeRobot v3 |
+repo 列表每行一个 repo id 或本地数据集路径；空行会跳过。相对 repo id 默认在
+`HF_LEROBOT_HOME` 下解析，也可通过 `--root` 指定共同根目录。解析后的 canonical 路径
+不得重复。
 
-## Norm stats — 官方全量脚本（勿改）
-
-| 脚本 | 作用 |
-|------|------|
-| `compute_norm_stats_single.py` | 单个 dataset 的 state/action 统计 |
-| `compute_norm_stats_multi.py` | 同 robot_type 多 dataset 一次性全量扫描聚合 |
-
-## Norm stats — 增量工作流（推荐）
-
-策略文件：`.config/norm_stats_policy.json`
-
-| 脚本 | 作用 |
-|------|------|
-| `run_norm_stats.py` | CLI 入口：`init` / `update` |
-| `norm_stats_pipeline.py` | Step1 per-dataset 缓存 + Step2 robot_type 聚合 |
-| `norm_stats_lib.py` | policy、manifest、merge、进度条等共享逻辑 |
-
-**两阶段流程**
-
-1. **Step1**：每个 dataset 写 `norm_stats_cache/datasets/{sha16}/stats.json`
-2. **Step2**：按 robot_type merge（或 import 外部 stats）→ `norm_stats/{robot_type}/delta/stats.json`
-
-**policy 语义**
-
-- `placeholder_robot_types`（如 `egodex_v`）：无真实 action，写 metadata 占位 stats
-- `import_group_stats_*`（如 `aloha`）：跳过 Step1，Step2 直接复制外部 group stats
-- `FORCE=1` / `--force`：仅强制重算**单个 dataset** 的 per-dataset 缓存，不影响 import 类型
-
-**常用命令**
+### TBot 训练目录（默认）
 
 ```bash
-# 首次全量（默认 8 并行 worker，可用 NUM_WORKERS 或 --num-workers 覆盖）
-python tools/run_norm_stats.py init
-
-# pretrain_data.txt 追加路径后增量更新
-python tools/run_norm_stats.py update
-
-# 强制重算所有 per-dataset 缓存
-python tools/run_norm_stats.py init --force
-
-# 预览计划，不写入
-python tools/run_norm_stats.py init --dry-run --limit 10
+python tools/run_norm_stats.py \
+  --repo-id-file .config/ds_ids/pretrain_data.txt \
+  --output-format tbot \
+  --output-root /path/to/norm_stats \
+  --action-mode delta \
+  --chunk-size 50 \
+  --num-workers 8
 ```
 
-**训练配置**
+它按 `infer_embodiment_variant` 的 `resolved_robot_type` 分组，写入：
+
+```text
+/path/to/norm_stats/<resolved_robot_type>/<action_mode>/stats.json
+/path/to/norm_stats/<resolved_robot_type>/<action_mode>/manifest.json
+```
+
+此布局与训练配置直接匹配：
 
 ```json
-"use_external_stats": true,
-"external_stats_root": "/home/jovyan/vla/workspace/mytbot/norm_stats",
-"action_mode": "delta"
+{
+  "use_external_stats": true,
+  "external_stats_root": "/path/to/norm_stats",
+  "action_mode": "delta"
+}
 ```
 
-## 其他
+### 合并成一个 stats.json
 
-| 脚本 | 作用 |
-|------|------|
-| `launch_pretrain.sh` | 启动 pretrain 训练 |
+```bash
+python tools/run_norm_stats.py \
+  --repo-id-file repos.txt \
+  --output-format default \
+  --output-path /path/to/stats.json
+```
+
+`default` 不按机械臂分组，只写 `--output-path` 指定的单个 `stats.json`，不会在旁边
+生成 manifest。聚合前会强制校验全部非视觉 feature key、shape、feature mapping 和 mask
+一致；不一致即报错。`--output-path` 在此模式下必填。
+
+## 计算语义
+
+- `--action-mode` 默认 `delta`。
+- 非 action feature 始终统计 episode 的全部帧，包括短 episode。
+- `abs` action 始终统计全部帧，不受 `chunk-size` 或采样上限影响。
+- `delta` action 只统计长度至少为 `chunk-size` 的有效滑动窗口。
+- `--max-chunks-per-episode`、`--max-chunks-per-repo` 只抽样 delta action 窗口，
+  `--sample-seed` 保证可复现。
+- `--skip-action-robot-types` 可跳过指定原始或 resolved robot type 的 action；被跳过的
+  action 不写虚构 count，聚合时仅合并真实存在的 action 样本。
+- 内部以 float64 累积 count/mean/mean_sq/min/max，跨 repo 按每个 feature 自身 count
+  加权，最后计算 std；输出 JSON 的 count 保持 `[N]`。
+- 外部 `stats.json` 完全排除 video/image key；视觉 shape 和数值不参与跨 repo 校验。图像统计由
+  各数据集自身 `meta.stats` 保留，或由训练时启用的 ImageNet stats 配置覆盖。
+
+## 增量缓存
+
+默认缓存目录为 `norm_stats_cache`，新结构为：
+
+```text
+<cache-root>/datasets/<dataset_id>/metadata.json
+<cache-root>/datasets/<dataset_id>/stats_payload.json
+```
+
+快速指纹跟踪 `meta/info.json`、`meta/episodes*`、`data/**/*.parquet` 的相对路径、
+文件大小和 `mtime_ns`，并包含 info 内容 SHA256、算法/缓存版本以及全部影响统计的参数。
+因此文件增删改或有效计算配置变化都会产生新的 dataset id。`abs` 始终全帧计算，故其
+指纹会忽略无效的 chunk size、采样上限和 seed；`delta` 继续纳入这些参数。项目不依赖 xxhash。
+
+写缓存与最终输出都采用同目录临时文件后原子替换；缓存 metadata 最后写入并校验
+payload SHA256，因此两文件半写或错配会安全视为 miss。程序也会扫描旧缓存目录，读取旧
+`{fingerprint,result}` schema，并依据 payload 内的 action/config/data fingerprint 校验，
+而不是信任旧目录名；命中后自动迁移到新结构。
+
+## 规划与进度
+
+```bash
+python tools/run_norm_stats.py --repo-id-file repos.txt --dry-run
+```
+
+`dry-run` 只展示 hit/miss 和 miss 的预计 frame 工作量，不计算且不写任何文件。正常运行
+按 repo 使用 spawn 多进程并实时接收完成项；每完成一仓立即原子写缓存，并打印完成进度、
+耗时和基于 miss `info.total_frames` 吞吐估算的 ETA。
+
+## 参数
+
+所有参数都支持下划线旧拼法（例如 `--repo_id_file`），推荐连字符形式：
+
+- `--repo-id-file`（必填）、`--cache-root`、`--root`
+- `--output-format {tbot,default}`、`--output-root`、`--output-path`
+- `--action-mode {delta,abs}`、`--chunk-size`、`--num-workers`
+- `--max-chunks-per-episode`、`--max-chunks-per-repo`、`--sample-seed`
+- `--skip-action-robot-types [TYPE ...]`、`--dry-run`
+
+## 轻量验证
+
+```bash
+python -m compileall -q tools/run_norm_stats.py tools/norm_stats
+pytest -q tools/norm_stats/tests
+```
+
+## 其他工具
+
+- `check_lerobot_v3_integrity.py`：LeRobot v3 数据集基础完整性检查。
+- `check_pretrain_dataset_pipeline.py`：pretrain 数据管线检查。
+- `convert_egodex_to_lerobot.py`：EgoDex 转 LeRobot v3。

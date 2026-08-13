@@ -36,8 +36,8 @@ from transformers.models.qwen3_vl import modeling_qwen3_vl
 from transformers.models.qwen3_vl import Qwen3VLForConditionalGeneration, Qwen3VLTextModel
 
 from lerobot.policies.TBot_SA1.cosmos_tokenizer.image_lib import ImageTokenizer
-from lerobot.policies.BP_TBot_v2.configuration_bp_tbot import BPTBotV2Config
-from lerobot.policies.BP_TBot_v2.bp_transformer_obs_encoder import BPObsEncoder, BPTransformerObsEncoder
+from lerobot.policies.BPVA.configuration_bpva import BPVAConfig
+from lerobot.policies.BPVA.bp_transformer_obs_encoder import BPObsEncoder, BPTransformerObsEncoder
 from lerobot.policies.TBot_SA1.da3_teacher import DA3BackboneTeacher
 from lerobot.policies.TBot_SA1.lora import (
     LoRALinear,
@@ -48,9 +48,9 @@ from lerobot.policies.TBot_SA1.lora import (
     resolve_lora_target_linear_names,
 )
 try:
-    from lerobot.policies.names import TBOT_BP
+    from lerobot.policies.names import BPVA
 except ImportError:
-    TBOT_BP = "tbot_bp"
+    BPVA = "bpva"
 from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.policies.utils import log_model_loading_keys
 from lerobot.utils.utils import format_big_number
@@ -617,9 +617,9 @@ class Qwen3VLWithExpertModel(
 
 
 # =============================================================================
-# TBotBPModel：核心神经网络（三段 embedding + 三 expert + 三个 loss 分支）
+# BPVAModel：核心神经网络（三段 embedding + 三 expert + 三个 loss 分支）
 # =============================================================================
-class TBotBPModel(nn.Module):
+class BPVAModel(nn.Module):
     """核心模型类；当前需要，承载 BP prefix、MoT forward、训练 loss 和默认 BP 推理。"""
 
     @staticmethod
@@ -703,8 +703,8 @@ class TBotBPModel(nn.Module):
             ),
         )
 
-    def __init__(self, config: BPTBotV2Config):
-        """当前需要：构建 tbot_bp 主干，并把 BPObsEncoder 纳入同一个 checkpoint。"""
+    def __init__(self, config: BPVAConfig):
+        """当前需要：构建 BPVA 主干，并把 BPObsEncoder 纳入同一个 checkpoint。"""
         super().__init__()
         self.config = config
         self.omit_visual_tokens_in_causal_inference = True
@@ -757,7 +757,7 @@ class TBotBPModel(nn.Module):
         self.action_time_mlp_in = nn.Linear(2 * action_expert_config.hidden_size, action_expert_config.hidden_size)
         self.action_time_mlp_out = nn.Linear(action_expert_config.hidden_size, action_expert_config.hidden_size)
 
-        # BPObsEncoder 是 tbot_bp 模型的一部分：保存/加载 checkpoint 时会随 model.state_dict() 一起走。
+        # BPObsEncoder 是 BPVA 模型的一部分：保存/加载 checkpoint 时会随 model.state_dict() 一起走。
         # 大致功能为：每个 BP chunk 的 3 图像 + state + action -> 1 个 2048 维 prefix token，开发者通常只需要看它的 forward 输出形状。
         prefix_dim = vlm_config.hidden_size
         bp_chunk_encoder = BPTransformerObsEncoder(
@@ -880,6 +880,14 @@ class TBotBPModel(nn.Module):
             for params in self.qwen3_vl_with_expert.und_expert.visual.parameters():
                 params.requires_grad = False
             self._register_frozen_eval_module(self.qwen3_vl_with_expert.und_expert.visual)
+
+        if self.config.bp_freeze_vision_encoder:
+            bp_vision_models = self.bp_obs_encoder.chunk_encoder.key_model_map
+            for bp_vision_model in bp_vision_models.values():
+                bp_vision_model.eval()
+                for params in bp_vision_model.parameters():
+                    params.requires_grad = False
+                self._register_frozen_eval_module(bp_vision_model)
 
         if self.config.lora_enabled:
             freeze_roots = self._get_lora_freeze_roots()
@@ -1072,7 +1080,7 @@ class TBotBPModel(nn.Module):
             image_grid_thw.view(-1, 3),
         )
 
-        # 2. lang_tokens 在 tbot_bp 中主要提供 image placeholder 的位置结构。
+        # 2. lang_tokens 在 BPVA 中主要提供 image placeholder 的位置结构。
         embs = self.qwen3_vl_with_expert.und_expert.get_input_embeddings()(lang_tokens)
         batch_size, prefix_len, hidden_dim = embs.shape
         embs_flat = embs.view(-1, hidden_dim)
@@ -1094,7 +1102,7 @@ class TBotBPModel(nn.Module):
         lang_masks: torch.Tensor,
         behavior_prompt: dict[str, Tensor],
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """构造 tbot_bp 的最终 prefix。
+        """构造 BPVA 的最终 prefix。
 
         1. 当前观测按原始 TBot `embed_prefix` 编码，得到 `(B, L_current, 2048)`。
         2. behavior_prompt 交给 `BPObsEncoder`，每个 chunk 得到一个 `(B, K, 2048)` token。
@@ -2095,13 +2103,13 @@ class TBotBPModel(nn.Module):
 
 
 # =============================================================================
-# TBotBPPolicy：LeRobot 接口层（训练/推理入口，batch 解析与 loss 汇总）
+# BPVAPolicy：LeRobot 接口层（训练/推理入口，batch 解析与 loss 汇总）
 # =============================================================================
-class TBotBPPolicy(PreTrainedPolicy):
-    """tbot_bp 策略：原始 TBot current prefix + BPObsEncoder chunk prefix。"""
+class BPVAPolicy(PreTrainedPolicy):
+    """BPVA 策略：原始 TBot current prefix + BPObsEncoder chunk prefix。"""
 
-    config_class = BPTBotV2Config
-    name = TBOT_BP
+    config_class = BPVAConfig
+    name = BPVA
     _save_excluded_prefixes = (
         "model.cosmos.",
         "model.da3_teacher.",
@@ -2121,7 +2129,7 @@ class TBotBPPolicy(PreTrainedPolicy):
 
     def __init__(
         self,
-        config: BPTBotV2Config,
+        config: BPVAConfig,
     ):
         """
         Args:
@@ -2131,7 +2139,7 @@ class TBotBPPolicy(PreTrainedPolicy):
         config.validate_features()
         self.config = config
 
-        self.model = TBotBPModel(config)
+        self.model = BPVAModel(config)
 
         # 按需启用梯度检查点
         if config.gradient_checkpointing:
@@ -2325,10 +2333,10 @@ class TBotBPPolicy(PreTrainedPolicy):
             state_dict=self.get_merged_state_dict_to_save(),
         )
 
-    def _get_loaded_pretrained_source_config(self) -> BPTBotV2Config | None:
+    def _get_loaded_pretrained_source_config(self) -> BPVAConfig | None:
         """当前需要：判断 checkpoint 来源配置以兼容加载。"""
         source_config = getattr(self, "_loaded_pretrained_source_config", None)
-        return source_config if isinstance(source_config, BPTBotV2Config) else None
+        return source_config if isinstance(source_config, BPVAConfig) else None
 
     def _validate_lora_loading_compatibility(self) -> bool:
         """当前可选：LoRA checkpoint 加载兼容性检查。"""
@@ -2410,11 +2418,11 @@ class TBotBPPolicy(PreTrainedPolicy):
     @classmethod
     def _load_as_safetensor(
         cls,
-        model: "TBotBPPolicy",
+        model: "BPVAPolicy",
         model_file: str,
         map_location: str,
         strict: bool,
-    ) -> "TBotBPPolicy":
+    ) -> "BPVAPolicy":
         state_dict = load_safetensor_file(model_file, device="cpu")
         model_state = model.state_dict()
         filtered_state_dict: dict[str, Tensor] = {}
@@ -2439,7 +2447,7 @@ class TBotBPPolicy(PreTrainedPolicy):
             remaining = len(unexpected_shape_keys) - 8
             suffix = f", ... (+{remaining} more)" if remaining > 0 else ""
             raise RuntimeError(
-                "Unexpected shape mismatch while loading tbot_bp pretrained weights: "
+                "Unexpected shape mismatch while loading BPVA pretrained weights: "
                 f"{preview}{suffix}"
             )
 
@@ -2448,7 +2456,7 @@ class TBotBPPolicy(PreTrainedPolicy):
             remaining = len(skipped_shape_keys) - 8
             suffix = f", ... (+{remaining} more)" if remaining > 0 else ""
             logging.info(
-                "Skipping tbot_bp shape-mismatched pretrained key(s); modules will be initialized from current config: %s%s",
+                "Skipping BPVA shape-mismatched pretrained key(s); modules will be initialized from current config: %s%s",
                 preview,
                 suffix,
             )
@@ -2627,7 +2635,7 @@ class TBotBPPolicy(PreTrainedPolicy):
         return actions, recon_images
 
     def forward(self, batch: dict[str, Tensor]) -> tuple[Tensor, dict]:
-        """训练入口：解析 batch → 调用 TBotBPModel → 汇总总 loss。"""
+        """训练入口：解析 batch → 调用 BPVAModel → 汇总总 loss。"""
 
         # 从 batch 解析输入（由 data transform / Qwen3VL processor 产出）
         pixel_values = batch[f"{OBS_PREFIX}pixel_values"]
@@ -2717,13 +2725,13 @@ if __name__ == "__main__":
 
     processor = Qwen3_VLProcessorTransformFn()
 
-    cfg = BPTBotV2Config()
+    cfg = BPVAConfig()
     cfg.qwen3_vl_variant="qwen3_vl_28l"
     cfg.action_expert_variant="qwen3_28l"
     cfg.freeze_vision_encoder=True
     dtype = torch.float32 if cfg.dtype == 'float32' else torch.bfloat16
 
-    model = TBotBPPolicy(cfg)
+    model = BPVAPolicy(cfg)
 
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

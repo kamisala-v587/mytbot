@@ -140,7 +140,7 @@ if [[ "${USE_EXTERNAL_STATS}" == "true" ]]; then
   fi
   if [[ -n "${DATASET_EXTERNAL_STATS_PATH}" && ! -f "${DATASET_EXTERNAL_STATS_PATH}" ]]; then
     echo "Missing external stats: ${DATASET_EXTERNAL_STATS_PATH}"
-    echo "Compute them first with tools/compute_norm_stats_single.py or set DATASET_EXTERNAL_STATS_PATH."
+    echo "Compute them first with tools/run_norm_stats.py or set DATASET_EXTERNAL_STATS_PATH."
     exit 1
   fi
 fi

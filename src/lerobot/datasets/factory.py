@@ -44,8 +44,7 @@ from lerobot.datasets.transformed_dataset import (
 from lerobot.policies.fastwam.configuration_fastwam import FastWAMDatasetConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanDatasetConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfig, RoboChallengeRawW1DatasetConfig
-from lerobot.policies.BP_TBot.configuration_bp_tbot import BPTBotDatasetConfig
-from lerobot.policies.BP_TBot_v2.configuration_bp_tbot import BPTBotV2DatasetConfig
+from lerobot.policies.BPVA.configuration_bpva import BPVADatasetConfig
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
@@ -141,6 +140,37 @@ def find_info_json_path_for_repo(cfg: TrainPipelineConfig, repo_id: str) -> Path
         return root / repo_id / "meta" / "info.json"
     else:
         return HF_LEROBOT_HOME / repo_id / "meta" / "info.json"
+
+
+def _load_external_stats_for_dataset(cfg: TrainPipelineConfig, dataset: LeRobotDataset) -> dict | None:
+    """按训练约定加载 resolved robot_type 的聚合 stats，并写回 dataset meta。"""
+    if not cfg.dataset.use_external_stats:
+        return None
+    robot_type = dataset.meta.robot_type
+    resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
+    candidates: list[Path] = []
+    if cfg.dataset.external_stats_path is not None:
+        candidates.append(Path(cfg.dataset.external_stats_path))
+    elif getattr(cfg.dataset, "external_stats_root", None) is not None:
+        root = Path(cfg.dataset.external_stats_root)
+        candidates.append(root / resolved_robot_type / cfg.dataset.action_mode / "stats.json")
+        if resolved_robot_type != robot_type:
+            candidates.append(root / robot_type / cfg.dataset.action_mode / "stats.json")
+    else:
+        root = HF_LEROBOT_HOME / "stats"
+        candidates.append(root / resolved_robot_type / cfg.dataset.action_mode / "stats.json")
+        if resolved_robot_type != robot_type:
+            candidates.append(root / robot_type / cfg.dataset.action_mode / "stats.json")
+    stats_path = next((path for path in candidates if path.is_file()), None)
+    if stats_path is None:
+        tried = "\n".join(f"  - {path}" for path in candidates)
+        raise FileNotFoundError(
+            f"use_external_stats=True but no external stats file was found. Tried:\n{tried}"
+        )
+    stats = cast_stats_to_numpy(load_json(stats_path))
+    dataset.meta.stats.update(stats)
+    logging.info("Using external stats from %s for robot_type=%s", stats_path, resolved_robot_type)
+    return stats
 
 
 def load_info_for_repos(
@@ -938,9 +968,9 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         image_transforms = None
 
 
-    if isinstance(cfg.dataset, (BPTBotDatasetConfig, BPTBotV2DatasetConfig)):
+    if isinstance(cfg.dataset, BPVADatasetConfig):
         if cfg.dataset.streaming:
-            raise ValueError("BP_TBot dataset currently supports non-streaming LeRobot datasets only.")
+            raise ValueError("BPVA dataset currently supports non-streaming LeRobot datasets only.")
         repo_ids = resolve_repo_ids(cfg)
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 
@@ -958,17 +988,28 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 revision=cfg.dataset.revision,
                 video_backend=cfg.dataset.video_backend,
             )
-            frame_ds = LeRobotDataset(
+            bp_action_chunk_size = int(getattr(cfg.policy, "bp_action_chunk_size", cfg.policy.chunk_size))
+            # BP prompt 每个关键帧只需要三路当前图像，但 action 仍需未来 T 步。
+            # 仅给 action 设置 delta，避免为读取 BP action 连带解码 [-15, 0, 15] 历史图像。
+            prompt_delta_timestamps = {
+                key: [step / ds_meta.fps for step in range(bp_action_chunk_size)]
+                for key in ds_meta.features
+                if key == ACTION or key in get_feature_mapping(ds_meta.robot_type, ds_meta.features)[ACTION]
+            }
+            prompt_ds = LeRobotDataset(
                 repo_id,
                 root=cfg.dataset.root,
                 episodes=cfg.dataset.episodes,
+                delta_timestamps=prompt_delta_timestamps or None,
                 image_transforms=image_transforms,
                 revision=cfg.dataset.revision,
                 video_backend=cfg.dataset.video_backend,
             )
             _configure_vision_only_dataset(current_ds, cfg.policy)
+            _load_external_stats_for_dataset(cfg, current_ds)
+            prompt_ds.meta.stats.update(current_ds.meta.stats)
             prompt_cfg = BehaviorPromptConfig(
-                prompt_action_chunk_size=int(getattr(cfg.policy, "bp_action_chunk_size", cfg.policy.chunk_size)),
+                prompt_action_chunk_size=bp_action_chunk_size,
                 same_episode_policy=cfg.dataset.bp_same_episode_policy,
                 seed=int(cfg.dataset.bp_seed),
                 num_chunks=cfg.dataset.bp_num_chunks,
@@ -980,12 +1021,10 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 bp_camera_keys=list(cfg.dataset.bp_camera_keys),
                 action_mode=cfg.dataset.action_mode,
             )
-            if isinstance(cfg.dataset, BPTBotV2DatasetConfig):
-                bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms_v2(current_ds, frame_ds, prompt_cfg)
-            else:
-                bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, frame_ds, prompt_cfg)
+            bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, prompt_ds, prompt_cfg)
             bp_datasets.append(bp_dataset)
-            data_stats[current_ds.meta.robot_type] = current_ds.meta.stats
+            resolved_robot_type = infer_embodiment_variant(current_ds.meta.robot_type, current_ds.meta.features)
+            data_stats[resolved_robot_type] = current_ds.meta.stats
 
         if len(bp_datasets) == 1:
             return bp_datasets[0], data_stats

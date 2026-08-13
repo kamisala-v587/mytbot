@@ -203,7 +203,7 @@ find -L "${ROBOTWIN_ROOT}" -path "*/meta/info.json" -print \
   | while read -r info; do dirname "$(dirname "$info")"; done \
   | sort -u > robotwin_repo_ids.txt
 
-python tools/compute_norm_stats_multi.py \
+python tools/run_norm_stats.py --output-format default \
   --repo_id_file robotwin_repo_ids.txt \
   --action_mode delta \
   --chunk_size 50 \
@@ -238,11 +238,11 @@ bash launch/tbot_sa1_finetune.sh
 For delta-action training, compute normalization statistics first:
 
 ```bash
-python tools/compute_norm_stats_single.py \
-  --repo_id /path/to/lerobot_v3.0_dataset \
+python tools/run_norm_stats.py --output-format default \
+  --repo-id-file /path/to/one_repo_per_line.txt \
   --action_mode delta \
   --chunk_size 50 \
-  --output_dir norm_stats
+  --output-path norm_stats/stats.json
 ```
 
 ### Multi-Dataset Pretraining

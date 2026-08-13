@@ -132,7 +132,7 @@ printf '%s\n' \
   "$LIBERO_DATA_ROOT/libero_10_no_noops_1.0.0_lerobot_v30" \
   > "$LIBERO_REPO_ID_FILE"
 
-PYTHONPATH=./src python tools/compute_norm_stats_multi.py \
+PYTHONPATH=./src python tools/run_norm_stats.py --output-format default \
   --repo_id_file "$LIBERO_REPO_ID_FILE" \
   --action_mode abs \
   --chunk_size 10 \

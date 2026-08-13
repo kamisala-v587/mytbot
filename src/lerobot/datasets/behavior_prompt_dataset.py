@@ -32,7 +32,6 @@ from lerobot.transforms.core import (
 from lerobot.transforms.core_bp import (
     BPComposeFieldsTransform,
     BPDeltaActionTransformFn,
-    BPImgOnlyQwen3VLTransformFn,
     BPNormalizeTransformFn,
     BPPadOrSampleChunksFn,
     BPPadStateAndActionTransformFn,
@@ -53,8 +52,8 @@ BP_PREFIX = "behavior_prompt"
 class BehaviorPromptConfig:
     """Configuration for sampling a behavior prompt trajectory.
 
-    The prompt trajectory is split into candidate action chunks. A later transform
-    can pad or downsample these candidates to a fixed K for batching/model input.
+    The prompt trajectory is sampled into at most K action chunks before video IO.
+    A later transform only pads short trajectories to fixed K for batching.
     """
 
     prompt_action_chunk_size: int = 50
@@ -62,7 +61,7 @@ class BehaviorPromptConfig:
     same_episode_policy: str = "avoid"  # avoid / allow / forbid
     seed: int = 0
 
-    # Default transform settings used by `with_default_transforms`.
+    # BPVA 默认数据变换配置。
     num_chunks: int = 4
     height: int = 224
     width: int = 224
@@ -81,10 +80,10 @@ class BehaviorPromptConfig:
             ]
 
 
-def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTransformFn]:
-    """Create BP_TBot default transform chain without instantiating DatasetConfig."""
+def _make_bpva_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTransformFn]:
+    """构造 BPVA 数据变换链，不依赖 DatasetConfig 实例。"""
     transforms: list[DataTransformFn] = [
-        # BP-only branch: image remap/selection, fixed K, state/action processing, Qwen image-only pixels.
+        # BP 分支：固定 K 个 chunk，并处理图像、状态和动作。
         BPRemapImageKeyTransformFn(bp_camera_keys=list(prompt_cfg.bp_camera_keys or [])),
         BPPadOrSampleChunksFn(num_chunks=prompt_cfg.num_chunks),
         BPResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
@@ -95,11 +94,7 @@ def _make_default_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTr
             max_state_dim=prompt_cfg.max_state_dim,
             max_action_dim=prompt_cfg.max_action_dim,
         ),
-        BPImgOnlyQwen3VLTransformFn(
-            pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path,
-            bp_camera_keys=list(prompt_cfg.bp_camera_keys or []),
-        ),
-        # Current branch: mirror TBot transforms, but Qwen input is image-only.
+        # 当前观测分支：沿用 TBot 的 Qwen 图像输入。
         InjectMissingStateActionTransformFn(),
         ResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
         RemapImageKeyTransformFn(),
@@ -125,8 +120,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
     Args:
         current_ds: Dataset with delta timestamps. It provides the normal TBot
             current sample and action window.
-        frame_ds: Dataset without delta timestamps. It is used for random-access
-            prompt frame images/state by absolute frame index.
+        prompt_ds: Dataset whose images use only the current frame while action
+            uses the configured future action window. One access returns a complete BP chunk.
         prompt_cfg: Prompt sampling configuration.
         transform: Optional transform applied after `behavior_prompt` is attached.
 
@@ -139,12 +134,12 @@ class BehaviorPromptLeRobotDataset(Dataset):
     def __init__(
         self,
         current_ds: LeRobotDataset,
-        frame_ds: LeRobotDataset,
+        prompt_ds: LeRobotDataset,
         prompt_cfg: BehaviorPromptConfig,
         transform: DataTransformFn | None = None,
     ) -> None:
         self.current_ds = current_ds
-        self.frame_ds = frame_ds
+        self.prompt_ds = prompt_ds
         self.prompt_cfg = prompt_cfg
         self.transform = transform or IdentityTransformFn()
         self.rng = random.Random(prompt_cfg.seed)
@@ -156,18 +151,14 @@ class BehaviorPromptLeRobotDataset(Dataset):
     def with_default_transforms(
         cls,
         current_ds: LeRobotDataset,
-        frame_ds: LeRobotDataset,
+        prompt_ds: LeRobotDataset,
         prompt_cfg: BehaviorPromptConfig | None = None,
     ) -> BehaviorPromptLeRobotDataset:
-        """Build a BP dataset using default transforms.
-
-        Inputs mirror `__init__`: callers provide already-built current/frame
-        datasets and optionally a prompt sampling config. When `prompt_cfg` is
-        omitted, `BehaviorPromptConfig()` supplies notebook-friendly defaults.
-        """
+        """构造 BPVA 数据集及其完整数据变换链。"""
         if prompt_cfg is None:
             prompt_cfg = BehaviorPromptConfig()
-        transforms = _make_default_transform_fns(prompt_cfg)
+        transforms = _make_bpva_transform_fns(prompt_cfg)
+        # UnifyBPInputsTransformFn 会移除可变长采样元数据，只保留可稳定拼 batch 的模型输入。
         transforms = hydrate_inject_missing_state_action_transform(transforms, current_ds)
         transforms = hydrate_normalize_transform(transforms, current_ds)
         transforms = hydrate_compose_field_transform(transforms, current_ds)
@@ -193,53 +184,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
 
         return cls(
             current_ds=current_ds,
-            frame_ds=frame_ds,
-            prompt_cfg=prompt_cfg,
-            transform=compose(transforms),
-        )
-    @classmethod
-    def with_default_transforms_v2(
-        cls,
-        current_ds: LeRobotDataset,
-        frame_ds: LeRobotDataset,
-        prompt_cfg: BehaviorPromptConfig | None = None,
-    ) -> BehaviorPromptLeRobotDataset:
-        """
-        源于with_default_transforms 但是不加入bp的某些处理管道，用于兼容TransfermObsEncoder
-        """
-        if prompt_cfg is None:
-            prompt_cfg = BehaviorPromptConfig()
-        transforms = _make_default_transform_fns(prompt_cfg)
-        # tbot_bp 的 BP 图像由 BPObsEncoder 直接编码，不再生成 BP Qwen pixel_values。
-        # 但必须保留 UnifyBPInputsTransformFn：它会移除 source_indices 等可变长采样元数据，
-        # 只留下能够稳定 batch collate 的固定形状模型输入。
-        transforms = [t for t in transforms if not isinstance(t, BPImgOnlyQwen3VLTransformFn)]
-        transforms = hydrate_inject_missing_state_action_transform(transforms, current_ds)
-        transforms = hydrate_normalize_transform(transforms, current_ds)
-        transforms = hydrate_compose_field_transform(transforms, current_ds)
-        transforms = hydrate_delta_action_transform(transforms, current_ds)
-        transforms = hydrate_remap_image_key_transform(transforms, current_ds)
-
-        robot_type = current_ds.meta.robot_type
-        feature_mapping = get_feature_mapping(robot_type, current_ds.meta.features)
-        image_mapping = get_image_mapping(robot_type, current_ds.meta.features)
-        for idx, transform in enumerate(transforms):
-            if isinstance(transform, BPNormalizeTransformFn):
-                transforms[idx] = replace(
-                    transform,
-                    norm_stats=current_ds.meta.stats,
-                    selected_keys=feature_mapping[OBS_STATE] + feature_mapping[ACTION],
-                )
-            elif isinstance(transform, BPComposeFieldsTransform):
-                transforms[idx] = replace(transform, mapping=feature_mapping)
-            elif isinstance(transform, BPDeltaActionTransformFn):
-                transforms[idx] = replace(transform, mask=get_mask_mapping(robot_type, current_ds.meta.features))
-            elif isinstance(transform, BPRemapImageKeyTransformFn):
-                transforms[idx] = replace(transform, mapping=image_mapping)
-
-        return cls(
-            current_ds=current_ds,
-            frame_ds=frame_ds,
+            prompt_ds=prompt_ds,
             prompt_cfg=prompt_cfg,
             transform=compose(transforms),
         )
@@ -277,8 +222,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
     def _build_episode_to_indices(self) -> dict[int, list[int]]:
         """Build episode -> absolute frame index list without decoding images."""
         episode_to_indices: dict[int, list[int]] = defaultdict(list)
-        for row_idx in range(len(self.frame_ds)):
-            row = self.frame_ds.hf_dataset[row_idx]
+        for row_idx in range(len(self.prompt_ds)):
+            row = self.prompt_ds.hf_dataset[row_idx]
             episode_idx = self._to_int(row["episode_index"])
             absolute_idx = self._to_int(row["index"])
             episode_to_indices[episode_idx].append(absolute_idx)
@@ -288,7 +233,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
         """Build task -> episodes lookup so prompts prefer the same task."""
         task_to_episodes: dict[int, set[int]] = defaultdict(set)
         for episode_idx, indices in self._episode_to_indices.items():
-            first = self.frame_ds.hf_dataset[indices[0]]
+            first = self.prompt_ds.hf_dataset[indices[0]]
             task_idx = self._to_int(first.get("task_index", 0))
             task_to_episodes[task_idx].add(episode_idx)
         return {task_idx: sorted(episodes) for task_idx, episodes in task_to_episodes.items()}
@@ -311,13 +256,14 @@ class BehaviorPromptLeRobotDataset(Dataset):
         return self.rng.choice(candidates)
 
     def _resolve_num_chunks(self, trajectory_len: int) -> int:
-        """Derive candidate chunk count from trajectory length and action chunk size."""
+        """在视频读取前确定候选数，最多读取模型所需的 K 个 chunk。"""
         if self.prompt_cfg.prompt_action_chunk_size <= 0:
             raise ValueError("prompt_action_chunk_size must be positive")
-        num_chunks = max(1, math.ceil(trajectory_len / self.prompt_cfg.prompt_action_chunk_size))
+        trajectory_chunks = max(1, math.ceil(trajectory_len / self.prompt_cfg.prompt_action_chunk_size))
+        max_chunks = self.prompt_cfg.num_chunks
         if self.prompt_cfg.max_prompt_chunks is not None:
-            num_chunks = min(num_chunks, int(self.prompt_cfg.max_prompt_chunks))
-        return num_chunks
+            max_chunks = min(max_chunks, int(self.prompt_cfg.max_prompt_chunks))
+        return min(trajectory_chunks, max_chunks)
 
     @staticmethod
     def _linspace_indices(indices: list[int], num: int) -> list[int]:
@@ -332,8 +278,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
     def _build_prompt(self, current_sample: DataDict) -> dict[str, Any]:
         """Build the raw behavior_prompt dict before BP transforms.
 
-        Each prompt chunk has one representative frame image/state and one action
-        window read from `current_ds` at the same absolute frame index.
+        每个关键帧只访问一次 prompt_ds，同时取得三路当前图像、state 和未来 action window。
         """
         current_episode_idx = self._to_int(current_sample["episode_index"])
         current_task_idx = self._to_int(current_sample.get("task_index", 0))
@@ -349,27 +294,30 @@ class BehaviorPromptLeRobotDataset(Dataset):
             dtype=torch.float32,
         )
 
-        prompt_frames = [self.frame_ds[idx] for idx in prompt_frame_indices]
-        image_keys = list(self.frame_ds.meta.camera_keys)
+        prompt_samples = [self.prompt_ds[idx] for idx in prompt_frame_indices]
+        image_keys = list(self.prompt_ds.meta.camera_keys)
         prompt_images = {
-            key: torch.stack([frame[key] for frame in prompt_frames], dim=0)
+            key: torch.stack([sample[key] for sample in prompt_samples], dim=0)
             for key in image_keys
         }
-        prompt_state = torch.stack([frame[OBS_STATE] for frame in prompt_frames], dim=0)
-
-        prompt_actions = []
-        prompt_action_masks = []
-        for idx in prompt_frame_indices:
-            chunk_sample = self.current_ds[idx]
-            prompt_actions.append(chunk_sample[ACTION])
-            prompt_action_masks.append(
-                chunk_sample.get(
+        prompt_state = torch.stack([sample[OBS_STATE] for sample in prompt_samples], dim=0)
+        prompt_action = torch.stack([sample[ACTION] for sample in prompt_samples], dim=0)
+        prompt_action_is_pad = torch.stack(
+            [
+                sample.get(
                     "action_is_pad",
-                    torch.zeros(chunk_sample[ACTION].shape[0], dtype=torch.bool),
+                    torch.zeros(sample[ACTION].shape[0], dtype=torch.bool),
                 )
+                for sample in prompt_samples
+            ],
+            dim=0,
+        )
+        expected_action_steps = self.prompt_cfg.prompt_action_chunk_size
+        if prompt_action.shape[-2] != expected_action_steps:
+            raise ValueError(
+                f"prompt_ds action window must contain {expected_action_steps} steps, "
+                f"got shape {tuple(prompt_action.shape)}"
             )
-        prompt_action = torch.stack(prompt_actions, dim=0)
-        prompt_action_is_pad = torch.stack(prompt_action_masks, dim=0)
 
         return {
             "images": prompt_images,

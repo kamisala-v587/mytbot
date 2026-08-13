@@ -271,69 +271,12 @@ class ImgOnlyQwen3VLTransformFn(DataTransformFn):
         return data
 
 
-@DataTransformFn.register_subclass("bp_img_only_qwen3_vl")
-@dataclass
-class BPImgOnlyQwen3VLTransformFn(DataTransformFn):
-    """Process behavior_prompt images for Qwen3-VL image-only prefix inputs."""
-
-    pretrained_model_name_or_path: str = "Qwen/Qwen3-VL-2B-Instruct"
-    spatial_merge_size: int = 2
-    bp_camera_keys: list[str] = field(default_factory=lambda: list(DEFAULT_BP_CAMERA_KEYS))
-    processor: Any = field(default=None, init=False, repr=False)
-    _processor_source: str | None = field(default=None, init=False, repr=False)
-
-    def _ensure_processor(self) -> None:
-        if self.processor is not None and self._processor_source == self.pretrained_model_name_or_path:
-            return
-        self.processor = Qwen3VLProcessor.from_pretrained(self.pretrained_model_name_or_path)
-        self._processor_source = self.pretrained_model_name_or_path
-
-    def __call__(self, data: DataDict) -> DataDict:
-        self._ensure_processor()
-        prompt = data[BP_PREFIX]
-        pixel_values = []
-        image_grid_thw = []
-        image_token_counts = []
-        image_chunk_indices = []
-        image_camera_indices = []
-        num_chunks = int(prompt["mask"].shape[0])
-        image_keys = list(self.bp_camera_keys)
-        unknown = [key for key in image_keys if key not in BP_CAMERA_INDEX]
-        if unknown:
-            allowed = ", ".join(DEFAULT_BP_CAMERA_KEYS)
-            raise KeyError(f"[BPImgOnlyQwen3VLTransformFn] unsupported bp_camera_keys={unknown}; allowed [{allowed}]")
-        missing = [key for key in image_keys if key not in prompt["images"]]
-        if missing:
-            available = ", ".join(sorted(prompt["images"].keys()))
-            raise KeyError(f"[BPImgOnlyQwen3VLTransformFn] missing BP images {missing}; available [{available}]")
-        for chunk_idx in range(num_chunks):
-            for image_key in image_keys:
-                camera_idx = BP_CAMERA_INDEX[image_key]
-                img_inputs = self.processor.image_processor(prompt["images"][image_key][chunk_idx], do_rescale=False)
-                grid = img_inputs.image_grid_thw.squeeze(0)
-                token_count = torch.prod(grid) // self.spatial_merge_size**2
-                pixel_values.append(img_inputs.pixel_values)
-                image_grid_thw.append(grid)
-                image_token_counts.append(token_count.to(torch.long))
-                image_chunk_indices.append(torch.tensor(chunk_idx, dtype=torch.long))
-                image_camera_indices.append(torch.tensor(camera_idx, dtype=torch.long))
-        prompt["pixel_values"] = torch.cat(pixel_values, dim=0)
-        prompt["image_grid_thw"] = torch.stack(image_grid_thw, dim=0)
-        prompt["image_token_counts"] = torch.stack(image_token_counts, dim=0)
-        prompt["image_chunk_indices"] = torch.stack(image_chunk_indices, dim=0)
-        prompt["image_camera_indices"] = torch.stack(image_camera_indices, dim=0)
-        data[BP_PREFIX] = prompt
-        return data
-
-
 @DataTransformFn.register_subclass("unify_bp_inputs")
 @dataclass
 class UnifyBPInputsTransformFn(DataTransformFn):
-    """Keep only fields consumed by BPTBotPolicy.forward.
+    """只保留 BPVAPolicy.forward 消费的固定形状字段。
 
-    This transform intentionally drops scalar prompt sampling metadata such as
-    source episode id. Model-side code only sees BP tensors needed for prefix
-    construction.
+    采样来源等元数据不会进入模型，避免不同样本的可变长度字段导致 batch 拼接失败。
     """
 
     def __call__(self, data: DataDict) -> DataDict:

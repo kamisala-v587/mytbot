@@ -71,7 +71,8 @@ bash /home/jovyan/vla/workspace/mytbot/launch/watch_training.sh \
   "outputs/TBot_SA1/pretrain_v1/2026-07-03/01-46-07_ "
 
 
-## BP Tbot  - H100
+### Tbot训练 - H100
+```bash
 cd /vla/workspace/my_tbot
 conda activate mytbot
 export HF_HUB_OFFLINE=1
@@ -81,44 +82,93 @@ export LEROBOT_PARALLEL_DATASET_LOAD=0
 
 CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
   -m lerobot.scripts.lerobot_train \
-  --config_path=/vla/workspace/my_tbot/configs/bp_tbot_pretrain_config.jsonc
+  --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc
+```
 
-或者 
+### BPVA 初始化模型
+运行 `.code/LetMeSeeSee/初始化模型.ipynb`，输出 `/vla/workspace/models/bpva_init_c10_a50`。
+
+### BPVA smoke 训练
+```bash
 cd /vla/workspace/my_tbot
 conda activate mytbot
-bash tools/launch_bp_tbot_pretrain.sh
+export HF_HOME=/vla/.cache/huggingface
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+export LEROBOT_PARALLEL_DATASET_LOAD=0
 
-恢复
+CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
+  -m lerobot.scripts.lerobot_train \
+  --config_path=/vla/workspace/my_tbot/configs/bpva_train.jsonc \
+  --batch_size=1 \
+  --num_workers=0 \
+  --steps=1 \
+  --eval_freq=0 \
+  --save_checkpoint=false
+```
+
+### BPVA 正式训练
+```bash
+cd /vla/workspace/my_tbot
+conda activate mytbot
+export HF_HOME=/vla/.cache/huggingface
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+export LEROBOT_PARALLEL_DATASET_LOAD=0
+
+CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
+  -m lerobot.scripts.lerobot_train \
+  --config_path=/vla/workspace/my_tbot/configs/bpva_train.jsonc
+```
+
+### BPVA 恢复训练
+```bash
 CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
   -m lerobot.scripts.lerobot_train \
   --resume=true \
-  --config_path='outputs/BP_TBot/pretrain_v1/2026-07-30/22-39-35_BP_TBot——test/checkpoints/011000/pretrained_model/train_config.json' \
-  --num_workers=8
+  --config_path=<checkpoint>/pretrained_model/train_config.json
+```
 
-
-### Tbot训练 - H100
+#### PRO 6 K
 cd /vla/workspace/my_tbot
+source /vla/.conda/miniconda3/etc/profile.d/conda.sh
 conda activate mytbot
+
+export HF_HOME=/vla/.cache/huggingface
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export LEROBOT_PARALLEL_DATASET_LOAD=0
+export PYTHONPATH=/vla/workspace/my_tbot/src:${PYTHONPATH}
 
-CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1   -m lerobot.scripts.lerobot_train   --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc 
+export NCCL_CUMEM_ENABLE=0
+export NCCL_P2P_DISABLE=1
+export NCCL_SHM_DISABLE=1
+export NCCL_SOCKET_IFNAME=eth0
 
-CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1   -m lerobot.scripts.lerobot_train   --config_path=/vla/workspace/my_tbot/configs/tbot_bp_train.jsonc
-
-轻量测试
-CUDA_VISIBLE_DEVICES=0 \
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:128 \
-accelerate launch --num_processes=1 \
+CUDA_VISIBLE_DEVICES=2,3 accelerate launch --num_processes=2 \
   -m lerobot.scripts.lerobot_train \
-  --config_path=/vla/workspace/my_tbot/configs/tbot_bp_train.jsonc \
-  --batch_size=1 \
-  --steps=1 \
-  --eval_freq=0 \
-  --save_checkpoint=false \
-  --num_workers=0 \
-  --policy.lambda_3d=0.0 \
-  --policy.lambda_gen=0.0 \
-  --policy.gradient_checkpointing=true
+  --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc
+
+### 守护进程
+```bash
+cd /vla/workspace/my_tbot
+mkdir -p logs
+source /vla/.conda/miniconda3/etc/profile.d/conda.sh
+conda activate mytbot
+
+nohup bash launch/bpva_train_watchdog2.sh > logs/bpva_watchdog.nohup.log 2>&1 &
+
+tail -f /vla/workspace/my_tbot/logs/bpva_watchdog.nohup.log
+```
+
+如需查看单次训练进程的详细日志，按守护日志里打印的 `bpva_train_attempt_*.log` 文件名打开，例如：
+
+```bash
+tail -f /vla/workspace/my_tbot/logs/bpva_train_attempt_001_2026-08-12_18-18-07.log
+```
+
+### P6000的使用
+

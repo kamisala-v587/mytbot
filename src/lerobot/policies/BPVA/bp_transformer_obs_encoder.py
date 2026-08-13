@@ -16,7 +16,7 @@ class _BlockWandbImport(MetaPathFinder):
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname == "wandb" or fullname.startswith("wandb."):
-            raise ImportError("wandb is optional for tbot_bp BPObsEncoder")
+            raise ImportError("wandb is optional for BPVA BPObsEncoder")
         return None
 
 
@@ -84,7 +84,7 @@ class BPObsEncoderOutput:
 class BPTransformerObsEncoder(nn.Module):
     """Encode behavior-prompt chunks into compact chunk-level tokens.
 
-    This module is the BP_TBot_v2 counterpart of myva's TransformerObsEncoder,
+    This module is the BPVA counterpart of myva's TransformerObsEncoder,
     but it directly consumes behavior_prompt dictionaries and includes action
     chunks in the encoder path.
 
@@ -131,6 +131,7 @@ class BPTransformerObsEncoder(nn.Module):
         self.action_dim = int(action_dim)
         self.action_chunk_size = int(action_chunk_size)
         self.image_feature_aggregation = image_feature_aggregation
+        self.share_rgb_model = bool(share_rgb_model)
         self.use_vision_norm = bool(use_vision_norm)
         self.use_action_step_embedding = bool(use_action_step_embedding)
         self.use_modality_type_embedding = bool(use_modality_type_embedding)
@@ -226,11 +227,8 @@ class BPTransformerObsEncoder(nn.Module):
         if state.shape[-1] != self.state_dim:
             raise ValueError(f"Expected state dim {self.state_dim}, got {state.shape[-1]}")
 
-        # 1. 每个 chunk 得到 3 个图像 token，每个 token 都是 token_dim。
-        image_tokens = [
-            self._encode_image(images[image_key], image_key, batch_size, num_chunks, added_batch)
-            for image_key in self.image_keys
-        ]
+        # 1. 每个 chunk 得到 3 个图像 token。共享 backbone 时合并相机维，只执行一次 ViT forward。
+        image_tokens = self._encode_images(images, batch_size, num_chunks)
         # 2. action 先加入 chunk 内 step 位置编码，再将完整动作序列压成一个 token。
         action_for_encoding = action
         if self.action_step_embedding is not None:
@@ -323,36 +321,70 @@ class BPTransformerObsEncoder(nn.Module):
         if mask.ndim == 2:
             return mask
         raise ValueError(f"mask must be (K,) or (B, K), got {tuple(mask.shape)}")
-    # 编码单张图像token为一个token_dim
-    def _encode_image(
+    def _prepare_image_batch(
         self,
         image: torch.Tensor,
         image_key: str,
         batch_size: int,
         num_chunks: int,
-        added_batch: bool,
     ) -> torch.Tensor:
+        """校验单路 BP 图像，并展平为 `(B*K, C, H, W)`。"""
         if image.ndim == 4:
             image = image.unsqueeze(0)
         elif image.ndim != 5:
-            raise ValueError(f"{image_key} image must be (K, C, H, W) or (B, K, C, H, W), got {tuple(image.shape)}")
+            raise ValueError(
+                f"{image_key} image must be (K, C, H, W) or (B, K, C, H, W), got {tuple(image.shape)}"
+            )
         if image.shape[:2] != (batch_size, num_chunks):
-            raise ValueError(f"{image_key} shape {tuple(image.shape)} does not match (B, K)=({batch_size}, {num_chunks})")
+            raise ValueError(
+                f"{image_key} shape {tuple(image.shape)} does not match (B, K)=({batch_size}, {num_chunks})"
+            )
         if image.shape[2] != 3:
             raise ValueError(f"{image_key} expected 3 channels, got {image.shape[2]}")
+        return image.reshape(batch_size * num_chunks, *image.shape[2:])
 
-        module_name = self.image_module_names[image_key]
-        vision_model = self.key_model_map[module_name]
-        flat = image.reshape(batch_size * num_chunks, *image.shape[2:])
+    def _normalize_image_batch(self, flat: torch.Tensor, vision_model: nn.Module) -> torch.Tensor:
         flat = flat.to(dtype=next(vision_model.parameters()).dtype)
         if self.use_vision_norm:
             flat = (flat - self.image_mean.to(flat)) / self.image_std.to(flat)
-        features = vision_model(flat)  # timm vision backbone
-        features = self._aggregate_image_features(features)  # Identity 或 Linear(image_feature_dim -> 768)
-        token = self.image_projections[module_name](features)
-        if token.shape[-1] != self.token_dim:
-            raise RuntimeError(f"{image_key} projected dim {token.shape[-1]} != token_dim {self.token_dim}")
-        return token.reshape(batch_size, num_chunks, 1, self.token_dim)
+        return flat
+
+    def _encode_images(
+        self,
+        images: dict[str, torch.Tensor],
+        batch_size: int,
+        num_chunks: int,
+    ) -> list[torch.Tensor]:
+        """编码三路 BP 图像；共享 backbone 时将三路相机合并为一次 ViT 调用。"""
+        flat_by_camera = [
+            self._prepare_image_batch(images[image_key], image_key, batch_size, num_chunks)
+            for image_key in self.image_keys
+        ]
+        items_per_camera = batch_size * num_chunks
+
+        if self.share_rgb_model:
+            shared_model = self.key_model_map[self.image_module_names[self.image_keys[0]]]
+            merged = self._normalize_image_batch(torch.cat(flat_by_camera, dim=0), shared_model)
+            merged_features = self._aggregate_image_features(shared_model(merged))
+            features_by_camera = merged_features.split(items_per_camera, dim=0)
+        else:
+            features_by_camera = [
+                self._aggregate_image_features(
+                    self.key_model_map[self.image_module_names[image_key]](
+                        self._normalize_image_batch(flat, self.key_model_map[self.image_module_names[image_key]])
+                    )
+                )
+                for image_key, flat in zip(self.image_keys, flat_by_camera, strict=True)
+            ]
+
+        image_tokens = []
+        for image_key, features in zip(self.image_keys, features_by_camera, strict=True):
+            module_name = self.image_module_names[image_key]
+            token = self.image_projections[module_name](features)
+            if token.shape[-1] != self.token_dim:
+                raise RuntimeError(f"{image_key} projected dim {token.shape[-1]} != token_dim {self.token_dim}")
+            image_tokens.append(token.reshape(batch_size, num_chunks, 1, self.token_dim))
+        return image_tokens
 
     def _aggregate_image_features(self, features: torch.Tensor) -> torch.Tensor:
         if features.ndim == 3:

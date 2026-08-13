@@ -1,11 +1,11 @@
 {
     "dataset": {
-        "type": "tbot_bp",
+        "type": "bpva",
         "repo_id": "robotwin_clean",
         "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_clean_ids.txt",
         "action_mode": "delta",
-        "use_external_stats": false,
-        "external_stats_path": null,
+        "use_external_stats": true,
+        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/aloha/delta/stats.json",
         "external_stats_root": null,
         "use_imagenet_stats": true,
         "video_backend": "pyav",
@@ -18,7 +18,7 @@
         "max_action_dim": 32,
         "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
 
-        // tbot_bp 数据侧：决定每个 sample 取多少个 BP chunk；必须和 policy.bp_num_chunks 对齐。
+        // BPVA 数据侧：决定每个 sample 取多少个 BP chunk；必须和 policy.bp_num_chunks 对齐。
         "bp_num_chunks": 10,
         "bp_same_episode_policy": "avoid",
         "bp_seed": 0,
@@ -36,8 +36,8 @@
 
     "env": null,
     "policy": {
-        "type": "tbot_bp",
-        "pretrained_path": "/vla/workspace/models/tbot_bp_init_v0.2_c10",
+        "type": "bpva",
+        "pretrained_path": "/vla/workspace/models/bpva_init_c10_a50",
         "push_to_hub": false,
         "device": null,
 
@@ -58,7 +58,7 @@
         "image_delta_indices": [-15, 0, 15],
         "tokenizer_max_length": 48,
 
-        // tbot_bp 核心：BPObsEncoder 结构配置。保存/加载 checkpoint 时这些字段必须可复现。
+        // BPVA 核心：BPObsEncoder 结构配置。保存/加载 checkpoint 时这些字段必须可复现。
         "bp_num_chunks": 10,
         "bp_action_chunk_size": 50,
         "bp_camera_keys": [
@@ -67,11 +67,12 @@
             "observation.images.image2"
         ],
         "bp_vision_model_name": "vit_base_patch16_clip_224.openai",
+        "bp_vision_pretrained": true,
         "bp_token_dim": 768, // bp encoder 中间维度，后续统一为2048
         "bp_image_feature_aggregation": "cls",
         "bp_share_rgb_model": true,
         "bp_use_vision_norm": true,
-        "bp_freeze_vision_encoder": false,
+        "bp_freeze_vision_encoder": true, // 冻结vit部分不训练 已经从预训练的vit中加载了
         "bp_use_action_step_embedding": true,
         "bp_use_modality_type_embedding": true,
         "bp_use_chunk_position_embedding": true,
@@ -82,19 +83,19 @@
             "ACTION": "IDENTITY"
         },
 
-        "gradient_checkpointing": true,
+        "gradient_checkpointing": false, 
         "freeze_vision_encoder": false,
         "train_expert_only": false,
         "train_vlm_only": false,
 
-        "optimizer_lr": 5e-5,
+        "optimizer_lr": 1e-4, // 4 卡有效 batch=32，按平方根缩放规则：5e-5 × sqrt(4)
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 500,
-        "scheduler_decay_steps": 70000,
-        "scheduler_decay_lr": 5e-6,
+        "scheduler_warmup_steps": 100, // 500 ÷ 4，保持 warmup 样本量不变
+        "scheduler_decay_steps": 8750, // 70000 ÷ 4，保持衰减覆盖的样本量不变
+        "scheduler_decay_lr": 1e-5, // 末端学习率同样按平方根缩放
 
         "scale_factor": 8,
         "lambda_gen": 0.01,
@@ -122,18 +123,18 @@
         "action_loss_valid_dim": 14 // 截断计算loss
     },
 
-    "output_dir": "outputs/tbot_bp/SFT-rand",
-    "job_name": "tbot_bp_test",
+    "output_dir": "outputs/BPVA/SFT-pro6k-submit",
+    "job_name": "bpva_train",
     "resume": false,
     "seed": 42,
     "num_workers": 8,
-    "batch_size": 8,
+    "batch_size": 8, // 每卡 batch；4 卡有效 batch = 8 × 4 = 32
     "gradient_accumulation_steps": 1,
-    "steps": 70000,
-    "eval_freq": 100,
-    "log_freq": 100,
+    "steps": 8750,
+    "eval_freq": 100, 
+    "log_freq": 50, 
     "save_checkpoint": true,
-    "save_freq": 2000,
+    "save_freq": 1750, 
     "use_policy_training_preset": true,
 
     "eval": {
@@ -144,7 +145,7 @@
 
     "wandb": {
         "enable": true,
-        "project": "tbot_bp",
+        "project": "BPVA",
         "mode": "offline"
     },
 

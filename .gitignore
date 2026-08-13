@@ -25,7 +25,7 @@ venv.bak/
 .python-version
 __pypackages__/
 node_modules/
-norm_stats*
+/norm_stats*
 # Lock files
 poetry.lock
 uv.lock
@@ -191,3 +191,5 @@ evaluation/RoboTwin/**/*.mp4
 *.part
 
 rjob*
+norm_stats_cache/
+/norm_stats/

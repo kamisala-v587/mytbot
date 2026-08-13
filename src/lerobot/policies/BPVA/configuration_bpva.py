@@ -21,7 +21,6 @@ from lerobot.transforms.core import (
 from lerobot.transforms.core_bp import (
     BPComposeFieldsTransform,
     BPDeltaActionTransformFn,
-    BPImgOnlyQwen3VLTransformFn,
     BPNormalizeTransformFn,
     BPPadOrSampleChunksFn,
     BPPadStateAndActionTransformFn,
@@ -31,20 +30,23 @@ from lerobot.transforms.core_bp import (
     UnifyBPInputsTransformFn,
 )
 
-BP_TBOT = "BP_TBot"
+BPVA = "bpva"
 
 
-@DatasetConfig.register_subclass(BP_TBOT)
-@DatasetConfig.register_subclass("bp_tbot")
+@DatasetConfig.register_subclass("BP_TBot_v2")
+@DatasetConfig.register_subclass("BPVA")
+@DatasetConfig.register_subclass("bp_tbot_v2")
+@DatasetConfig.register_subclass("tbot_bp")
+@DatasetConfig.register_subclass(BPVA)
 @dataclass
-class BPTBotDatasetConfig(TBotSA1DatasetConfig):
-    """Dataset config for Behavior-Prompted TBot.
+class BPVADatasetConfig(TBotSA1DatasetConfig):
+    """Dataset config for Behavior Prompting for Vision-Action (BPVA).
 
     The current sample follows the TBot image-only input path, while a nested
     `behavior_prompt` branch is processed by BP-specific transforms.
     """
 
-    _canonical_type: ClassVar[str] = BP_TBOT
+    _canonical_type: ClassVar[str] = BPVA
     bp_num_chunks: int = 4
     bp_same_episode_policy: str = "avoid"
     bp_seed: int = 0
@@ -60,27 +62,26 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
     data_transforms: TransformGroup = field(
         default_factory=lambda: TransformGroup(
             inputs=[
-                # BP-only branch: image remap/selection, fixed K, state/action processing, Qwen image-only pixels.
+                # BP-only branch：只保留 BPObsEncoder 需要的图像、state、action，不再生成 Qwen pixel_values。
                 BPRemapImageKeyTransformFn(),
-                BPPadOrSampleChunksFn(num_chunks=BPTBotDatasetConfig.bp_num_chunks),
-                BPResizeImagesWithPadFn(height=BPTBotDatasetConfig.height, width=BPTBotDatasetConfig.width),
+                BPPadOrSampleChunksFn(num_chunks=BPVADatasetConfig.bp_num_chunks),
+                BPResizeImagesWithPadFn(height=BPVADatasetConfig.height, width=BPVADatasetConfig.width),
                 BPComposeFieldsTransform(),
                 BPDeltaActionTransformFn(),
                 BPNormalizeTransformFn(),
                 BPPadStateAndActionTransformFn(
-                    max_state_dim=BPTBotDatasetConfig.max_state_dim,
-                    max_action_dim=BPTBotDatasetConfig.max_action_dim,
+                    max_state_dim=BPVADatasetConfig.max_state_dim,
+                    max_action_dim=BPVADatasetConfig.max_action_dim,
                 ),
-                BPImgOnlyQwen3VLTransformFn(),
                 # Current branch: mirror TBot transforms, but Qwen input is image-only.
                 InjectMissingStateActionTransformFn(),
-                ResizeImagesWithPadFn(height=BPTBotDatasetConfig.height, width=BPTBotDatasetConfig.width),
+                ResizeImagesWithPadFn(height=BPVADatasetConfig.height, width=BPVADatasetConfig.width),
                 RemapImageKeyTransformFn(),
                 NormalizeTransformFn(),
                 ComposeFieldsTransform(),
                 PadStateAndActionTransformFn(
-                    max_state_dim=BPTBotDatasetConfig.max_state_dim,
-                    max_action_dim=BPTBotDatasetConfig.max_action_dim,
+                    max_state_dim=BPVADatasetConfig.max_state_dim,
+                    max_action_dim=BPVADatasetConfig.max_action_dim,
                 ),
                 ImgOnlyQwen3VLTransformFn(),
                 UnifyBPInputsTransformFn(),
@@ -93,7 +94,7 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
         """Propagate local BP camera, Qwen processor, and delta-action settings to transforms."""
         original_action_mode = self.action_mode
         if str(original_action_mode).lower() == "obs":
-            # Parent configs only validate abs/delta; BP_TBot treats obs as an input-only path.
+            # Parent configs only validate abs/delta; BPVA treats obs as an input-only path.
             self.action_mode = "abs"
         super().__post_init__()
         self.action_mode = original_action_mode
@@ -111,36 +112,33 @@ class BPTBotDatasetConfig(TBotSA1DatasetConfig):
                 inputs[idx] = replace(transform, bp_camera_keys=list(self.bp_camera_keys))
             elif isinstance(transform, BPPadOrSampleChunksFn):
                 inputs[idx] = replace(transform, num_chunks=self.bp_num_chunks)
-            elif isinstance(transform, BPImgOnlyQwen3VLTransformFn):
-                inputs[idx] = replace(
-                    transform,
-                    pretrained_model_name_or_path=self.qwen3_vl_processor_path,
-                    bp_camera_keys=list(self.bp_camera_keys),
-                )
             elif isinstance(transform, ImgOnlyQwen3VLTransformFn):
                 inputs[idx] = replace(transform, pretrained_model_name_or_path=self.qwen3_vl_processor_path)
         self.data_transforms = replace(self.data_transforms, inputs=inputs)
 
 
-@PreTrainedConfig.register_subclass(BP_TBOT)
-@PreTrainedConfig.register_subclass("bp_tbot")
+@PreTrainedConfig.register_subclass("BP_TBot_v2")
+@PreTrainedConfig.register_subclass("BPVA")
+@PreTrainedConfig.register_subclass("bp_tbot_v2")
+@PreTrainedConfig.register_subclass("tbot_bp")
+@PreTrainedConfig.register_subclass(BPVA)
 @dataclass
-class BPTBotConfig(TBotSA1Config):
-    """Policy config for Behavior-Prompted TBot.
+class BPVAConfig(TBotSA1Config):
+    """Policy config for Behavior Prompting for Vision-Action (BPVA).
 
     BP-specific fields describe the prefix extension added on top of TBot's
     original middle/suffix and loss computation.
     """
 
-    _canonical_type: ClassVar[str] = BP_TBOT
+    _canonical_type: ClassVar[str] = BPVA
 
-    # Temporary BP_TBot bootstrap: reuse the released TBot-SA1 base checkpoint and
+    # Temporary BPVA bootstrap: reuse the released TBot-SA1 base checkpoint and
     # randomly initialize BP-only prefix modules that do not exist in that checkpoint.
-    pretrained_path: str | None = "/vla/workspace/models/tbot_base"
+    pretrained_path: str | None = None
     qwen3_vl_variant: str = "qwen3_vl_28l"
     action_expert_variant: str = "qwen3_28l"
-    qwen3_vl_pretrained_path: str = "/vla/.models/Qwen3-VL-2B-Instruct"
-    cosmos_tokenizer_path_or_name: str = "/vla/.models/Cosmos-Tokenizer-CI8x8"
+    qwen3_vl_pretrained_path: str = "/vla/workspace/models/Qwen3-VL-2B-Instruct"
+    cosmos_tokenizer_path_or_name: str = "/vla/workspace/models/Cosmos-Tokenizer-CI8x8"
     enable_3d_queries: bool = True
     num_3d_query_tokens: int = 432
     lambda_3d: float = 0.01
@@ -149,11 +147,23 @@ class BPTBotConfig(TBotSA1Config):
 
     bp_num_chunks: int = 4
     bp_action_chunk_size: int = 50
+    bp_camera_keys: list[str] = field(
+        default_factory=lambda: [
+            f"{OBS_IMAGES}.image0",
+            f"{OBS_IMAGES}.image1",
+            f"{OBS_IMAGES}.image2",
+        ]
+    )
+    bp_vision_model_name: str = "vit_base_patch16_clip_224.openai"
+    bp_vision_pretrained: bool = True
+    bp_token_dim: int = 768
+    bp_image_feature_aggregation: str = "cls"
+    bp_share_rgb_model: bool = True
+    bp_use_vision_norm: bool = True
+    bp_freeze_vision_encoder: bool = True
     bp_use_action_step_embedding: bool = True
-    bp_fusion_mode: str = "condition_embedding"
-    bp_condition_num_tokens: int = 4
-    bp_condition_num_heads: int = 8
-    bp_condition_dropout: float = 0.0
+    bp_use_modality_type_embedding: bool = True
+    bp_use_chunk_position_embedding: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -161,14 +171,12 @@ class BPTBotConfig(TBotSA1Config):
             raise ValueError("bp_num_chunks must be positive")
         if self.bp_action_chunk_size <= 0:
             raise ValueError("bp_action_chunk_size must be positive")
-        if self.bp_fusion_mode not in {"prefix", "condition_embedding"}:
-            raise ValueError("bp_fusion_mode must be one of {'prefix', 'condition_embedding'}")
-        if self.bp_condition_num_tokens <= 0:
-            raise ValueError("bp_condition_num_tokens must be positive")
-        if self.bp_condition_num_heads <= 0:
-            raise ValueError("bp_condition_num_heads must be positive")
-        if not 0.0 <= self.bp_condition_dropout < 1.0:
-            raise ValueError("bp_condition_dropout must be in [0, 1)")
+        if len(self.bp_camera_keys) != 3:
+            raise ValueError("bp_camera_keys must contain exactly 3 camera keys")
+        if self.bp_token_dim <= 0:
+            raise ValueError("bp_token_dim must be positive")
+        if self.bp_image_feature_aggregation not in {"cls", "mean"}:
+            raise ValueError("bp_image_feature_aggregation must be one of {'cls', 'mean'}")
 
     def resolve_da3_backbone_defaults(self) -> None:
         """Keep DA3 default resolution behavior identical to TBotSA1Config."""
