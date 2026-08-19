@@ -5,7 +5,7 @@
         "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_clean_ids.txt",
         "action_mode": "delta",
         "use_external_stats": true,
-        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/aloha/delta/stats.json",
+        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/robotwin_clean/stats.json",
         "external_stats_root": null,
         "use_imagenet_stats": true,
         "video_backend": "pyav",

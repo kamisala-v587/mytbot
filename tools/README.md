@@ -18,7 +18,7 @@ python tools/run_norm_stats.py \
   --output-root /path/to/norm_stats \
   --action-mode delta \
   --chunk-size 50 \
-  --num-workers 8
+  --num-workers 16
 ```
 
 它按 `infer_embodiment_variant` 的 `resolved_robot_type` 分组，写入：
@@ -42,9 +42,9 @@ python tools/run_norm_stats.py \
 
 ```bash
 python tools/run_norm_stats.py \
-  --repo-id-file repos.txt \
+  --repo-id-file/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_ids.txt \
   --output-format default \
-  --output-path /path/to/stats.json
+  --output-path /vla/workspace/my_tbot/norm_stats/robotwin_delta/stats.json --num-workers 16
 ```
 
 `default` 不按机械臂分组，只写 `--output-path` 指定的单个 `stats.json`，不会在旁边

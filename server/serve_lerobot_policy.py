@@ -21,7 +21,7 @@ TBot_SA1 使用 checkpoint 内 ``stats.json`` + Qwen3-VL processor，不依赖 `
    export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false
    export DISABLE_DA3_TEACHER_FOR_EVAL=true
 
-   python .code/serve_lerobot_policy.py \\
+   python server/serve_lerobot_policy.py \\
        --ckpt_path outputs/TBot_SA1/2026-06-26/06-19-44_TBot_SFT_robotwin_v0/checkpoints/110000 \\
        --host 0.0.0.0 --port 8000 \\
        --default_prompt "adjust the bottle" \\
@@ -479,7 +479,7 @@ class TBotSA1PolicyService:
             "omit_visual_tokens_in_causal_inference": bool(args.omit_visual_tokens_in_causal_inference),
             "camera_aliases": {k: list(v) for k, v in CAMERA_ALIASES.items()},
             "notes": {
-                "client_payload": "images dict + state + prompt/task",
+                "client_payload": "images dict or flat observation.images.* keys + state + prompt/task",
                 "protocol": "compatible with myvla serve_lerobot_policy.py",
             },
         }
@@ -529,6 +529,23 @@ class TBotSA1PolicyService:
             raise KeyError("请求缺少 state / qpos / observation.state。")
         return np.ascontiguousarray(np.asarray(state, dtype=np.float32).reshape(-1))
 
+    def _resolve_images(self, obs: dict[str, Any]) -> dict[str, Any]:
+        images = obs.get("images")
+        if isinstance(images, dict):
+            return images
+
+        # RoboTwin's My_LeRobot client sends camera frames as flat observation.images.* keys.
+        flat_images: dict[str, Any] = {}
+        for aliases in CAMERA_ALIASES.values():
+            for alias in aliases:
+                if alias in obs:
+                    flat_images[alias] = obs[alias]
+        if flat_images:
+            return flat_images
+
+        expected = sorted({alias for aliases in CAMERA_ALIASES.values() for alias in aliases})
+        raise KeyError(f"请求缺少 images 字典或顶层图像键。可用图像键示例: {expected}")
+
     def _resolve_image_history(self, images: dict[str, Any], standardized_key: str) -> tuple[np.ndarray, bool]:
         aliases = CAMERA_ALIASES[standardized_key]
         value = None
@@ -545,9 +562,7 @@ class TBotSA1PolicyService:
         return coerce_history(value), True
 
     def _obs_to_inputs(self, obs: dict[str, Any]) -> tuple[dict[str, torch.Tensor], np.ndarray]:
-        images = obs.get("images")
-        if not isinstance(images, dict):
-            raise KeyError("请求缺少 images 字典。")
+        images = self._resolve_images(obs)
 
         head_history, head_mask = self._resolve_image_history(images, f"{OBS_IMAGES}.image0")
         left_history, left_mask = self._resolve_image_history(images, f"{OBS_IMAGES}.image1")

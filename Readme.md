@@ -80,7 +80,8 @@ export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export LEROBOT_PARALLEL_DATASET_LOAD=0
 
-CUDA_VISIBLE_DEVICES=0 accelerate launch --num_processes=1 \
+CUDA_VISIBLE_DEVICES=0 
+accelerate launch --num_processes=4 \
   -m lerobot.scripts.lerobot_train \
   --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc
 ```
@@ -152,23 +153,25 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch --num_processes=2 \
   -m lerobot.scripts.lerobot_train \
   --config_path=/vla/workspace/my_tbot/configs/tbot_sft_h100.jsonc
 
-### 守护进程
-```bash
+
+### P6k bpva的 多卡训练命令
 cd /vla/workspace/my_tbot
-mkdir -p logs
 source /vla/.conda/miniconda3/etc/profile.d/conda.sh
-conda activate mytbot
+conda activate bptbot
+unset NCCL_DEBUG
+unset NCCL_SOCKET_IFNAME
+unset NCCL_IB_DISABLE
 
-nohup bash launch/bpva_train_watchdog2.sh > logs/bpva_watchdog.nohup.log 2>&1 &
+accelerate launch --num_processes=8 \
+  -m lerobot.scripts.lerobot_train \
+  --config_path=/vla/workspace/my_tbot/configs/bpva_sft_robotwin.jsonc
 
-tail -f /vla/workspace/my_tbot/logs/bpva_watchdog.nohup.log
-```
+**需要配置的环境变量**
 
-如需查看单次训练进程的详细日志，按守护日志里打印的 `bpva_train_attempt_*.log` 文件名打开，例如：
-
-```bash
-tail -f /vla/workspace/my_tbot/logs/bpva_train_attempt_001_2026-08-12_18-18-07.log
-```
-
-### P6000的使用
-
++ HF_HOME /vla/.cache/huggingface
++ HF_HUB_OFFLINE 1
++ LEROBOT_PARALLEL_DATASET_LOAD 0
++ PYTHONUNBUFFERED 1
++ TOKENIZERS_PARALLELISM false
++ TRANSFORMERS_OFFLINE 1
++ WANDB_MODE offline

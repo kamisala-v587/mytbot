@@ -1,12 +1,10 @@
 {
     "dataset": {
         "type": "bpva",
-        //"repo_id": "/vla/workspace/data/robotwin2.0/adjust_bottle/aloha-agilex_clean_50",
-        "repo_id": "robotwin_clean",
-        "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_clean_ids.txt",
-        "action_mode": "delta",
-        "use_external_stats": true,
-        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/aloha/delta/stats.json",
+        "repo_id": "/vla/workspace/data/robotwin2.0/adjust_bottle/aloha-agilex_clean_50",
+        "action_mode": "abs",
+        "use_external_stats": false,
+        // "external_stats_path": "/vla/workspace/my_tbot/norm_stats/robotwin_clean/stats.json",
         "external_stats_root": null,
         "use_imagenet_stats": true,
         "video_backend": "pyav",
@@ -45,7 +43,7 @@
         "dtype": "bfloat16",
         "qwen3_vl_variant": "qwen3_vl_28l",
         "action_expert_variant": "qwen3_28l",
-        "qwen3_vl_pretrained_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
+        "qwen3_vl_pretrained_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct", // 这个值决定qwen部分最初的随机初始化还是加载了权重，后续根据pretrained_path被覆盖
 
         "n_obs_steps": 1,
         "chunk_size": 50, // 模型预测步数
@@ -89,14 +87,14 @@
         "train_expert_only": false,
         "train_vlm_only": false,
 
-        "optimizer_lr": 5e-5, // 4 卡有效 batch=32，按平方根缩放规则：5e-5 × sqrt(4)
+        "optimizer_lr": 1e-4, // 4 卡有效 batch=32，按平方根缩放规则：5e-5 × sqrt(4)
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 125, // 500 ÷ 4，保持 warmup 样本量不变
-        "scheduler_decay_steps": 35000, // 70000 ÷ 4，保持衰减覆盖的样本量不变
-        "scheduler_decay_lr": 6e-6, // 末端学习率同样按平方根缩放
+        "scheduler_warmup_steps": 100, // 500 ÷ 4，保持 warmup 样本量不变
+        "scheduler_decay_steps": 8750, // 70000 ÷ 4，保持衰减覆盖的样本量不变
+        "scheduler_decay_lr": 1e-5, // 末端学习率同样按平方根缩放
 
         "scale_factor": 8,
         "lambda_gen": 0.01,
@@ -124,18 +122,18 @@
         "action_loss_valid_dim": 14 // 截断计算loss
     },
 
-    "output_dir": "outputs/BPVA/SFT-rand2",
+    "output_dir": "outputs/BPVA/SFT-pro6k-submit",
     "job_name": "bpva_train",
     "resume": false,
     "seed": 42,
-    "num_workers": 4,
-    "batch_size": 8, // 每卡 batch；4 卡有效 batch = 8 × 4 = 32
+    "num_workers": 2,
+    "batch_size": 2, // 每卡 batch；4 卡有效 batch = 8 × 4 = 32
     "gradient_accumulation_steps": 1,
-    "steps": 35000, // 70000 ÷ 4，保持总训练样本量不变
-    "eval_freq": 100, // 100 ÷ 4，保持按样本数计算的评估频率不变
-    "log_freq": 50, // 100 ÷ 4，保持按样本数计算的日志频率不变
+    "steps": 200,
+    "eval_freq": 100, 
+    "log_freq": 50, 
     "save_checkpoint": true,
-    "save_freq": 2000, // 2000 ÷ 4，仍约每 16000 个样本保存一次
+    "save_freq": 100, 
     "use_policy_training_preset": true,
 
     "eval": {
