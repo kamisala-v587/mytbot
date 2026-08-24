@@ -20,7 +20,19 @@ python tools/run_norm_stats.py \
   --chunk-size 50 \
   --num-workers 16
 ```
+python tools/run_norm_stats.py \
+  --repo-id-file /vla/workspace/my_tbot/configs/ds_ids/Baidunyun/pretrain_data_ids_baiduyun.txt \
+  --output-root /vla/workspace/my_tbot/norm_stats \
+  --action-mode delta \
+  --chunk-size 50 \
+  --num-workers 16
 
+python tools/run_norm_stats.py \
+  --repo-id-file /vla/workspace/my_tbot/configs/ds_ids/Baidunyun/pretrain_data_ids_baiduyun.txt \
+  --output-root /vla/workspace/my_tbot/norm_stats \
+  --action-mode delta \
+  --chunk-size 50 \
+  --num-workers 48
 它按 `infer_embodiment_variant` 的 `resolved_robot_type` 分组，写入：
 
 ```text

@@ -16,6 +16,7 @@
 import re
 import os
 import logging
+import time
 from pprint import pformat
 from pathlib import Path
 from collections import defaultdict
@@ -729,6 +730,7 @@ def _build_single_dataset(
             # tolerance_s=0.2, 
             image_transforms=image_transforms,
             revision=cfg.dataset.revision,
+            skip_video_file_validation=cfg.dataset.skip_video_file_validation,
             video_backend=cfg.dataset.video_backend,
         )
         _configure_vision_only_dataset(base_ds, cfg.policy)
@@ -971,12 +973,102 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
     if isinstance(cfg.dataset, BPVADatasetConfig):
         if cfg.dataset.streaming:
             raise ValueError("BPVA dataset currently supports non-streaming LeRobot datasets only.")
-        repo_ids = resolve_repo_ids(cfg)
+
+        all_repo_ids = resolve_repo_ids(cfg)
+        repo_ids = all_repo_ids
+        rank, world_size = get_rank_and_world_size()
+        frames_map = None
+        episodes_map = None
+        repo_weights_map = None
+        weight_cfg = None
+
+        if cfg.dataset.dist_loading and world_size <= 1:
+            raise ValueError("BPVA dataset.dist_loading=true requires world_size > 1.")
+
+        # Metadata is loaded once and reused for assignment, weighting, and concise logging.
+        if cfg.dataset.dist_loading or cfg.dataset.weight_rules_path is not None:
+            frames_map, episodes_map = load_info_for_repos(cfg, all_repo_ids)
+
+        if cfg.dataset.weight_rules_path is not None:
+            weight_cfg = OmegaConf.load(cfg.dataset.weight_rules_path)
+            repo_weights_map = compute_repo_weights(
+                all_repo_ids,
+                frames_map,
+                episodes_map,
+                weight_cfg,
+            )
+
+        if cfg.dataset.dist_loading:
+            try:
+                if len(all_repo_ids) < world_size:
+                    # Mutual exclusion is impossible here; preserve the helper's non-empty strategy.
+                    repo_ids = assign_repo_ids_for_rank(all_repo_ids, rank, world_size)
+                    logging.warning(
+                        "[make_dataset] BPVA has fewer repos (%d) than ranks (%d); "
+                        "using non-empty round-robin assignment.",
+                        len(all_repo_ids),
+                        world_size,
+                    )
+                else:
+                    if weight_cfg is not None:
+                        rank_to_repos = compute_group_balanced_repo_assignment(
+                            all_repo_ids,
+                            frames_map,
+                            world_size,
+                            weight_cfg,
+                        )
+                        assignment_kind = "source-aware total_frames-balanced"
+                    else:
+                        rank_to_repos = compute_balanced_repo_assignment(
+                            all_repo_ids,
+                            frames_map,
+                            world_size,
+                        )
+                        assignment_kind = "total_frames-balanced"
+
+                    flattened_repo_ids = [rid for assigned in rank_to_repos for rid in assigned]
+                    if (
+                        any(not assigned for assigned in rank_to_repos)
+                        or len(flattened_repo_ids) != len(all_repo_ids)
+                        or set(flattened_repo_ids) != set(all_repo_ids)
+                    ):
+                        raise ValueError("assignment was not a non-empty, exhaustive, mutually exclusive partition")
+                    repo_ids = rank_to_repos[rank]
+                    logging.info("[make_dataset] BPVA dist_loading=True, using %s assignment.", assignment_kind)
+            except Exception as e:
+                logging.warning(
+                    "[make_dataset] BPVA balanced assignment failed with error: %s. "
+                    "Falling back to simple rank-based assignment.",
+                    e,
+                )
+                repo_ids = assign_repo_ids_for_rank(all_repo_ids, rank, world_size)
+
+        log_repo_assignment(
+            rank=rank,
+            world_size=world_size,
+            repo_ids=repo_ids,
+            frames_map=frames_map,
+            episodes_map=episodes_map,
+            repo_weights_map=repo_weights_map,
+            groups_cfg=weight_cfg,
+            label="BPVA",
+        )
+
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 
         bp_datasets = []
         data_stats = {}
-        for repo_id in repo_ids:
+        num_local_repos = len(repo_ids)
+        for dataset_idx, repo_id in enumerate(repo_ids, start=1):
+            build_started_at = time.perf_counter()
+            logging.info(
+                "[rank %d/%d] BPVA dataset %d/%d repo_id=%s build started",
+                rank,
+                world_size,
+                dataset_idx,
+                num_local_repos,
+                _short_repo_id_for_log(repo_id),
+            )
             ds_meta = LeRobotDatasetMetadata(repo_id, root=cfg.dataset.root, revision=cfg.dataset.revision)
             delta_timestamps = resolve_delta_timestamps(cfg.policy, ds_meta)
             current_ds = LeRobotDataset(
@@ -986,6 +1078,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 delta_timestamps=delta_timestamps,
                 image_transforms=image_transforms,
                 revision=cfg.dataset.revision,
+                skip_video_file_validation=cfg.dataset.skip_video_file_validation,
                 video_backend=cfg.dataset.video_backend,
             )
             bp_action_chunk_size = int(getattr(cfg.policy, "bp_action_chunk_size", cfg.policy.chunk_size))
@@ -1003,6 +1096,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 delta_timestamps=prompt_delta_timestamps or None,
                 image_transforms=image_transforms,
                 revision=cfg.dataset.revision,
+                skip_video_file_validation=cfg.dataset.skip_video_file_validation,
                 video_backend=cfg.dataset.video_backend,
             )
             _configure_vision_only_dataset(current_ds, cfg.policy)
@@ -1025,10 +1119,25 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             bp_datasets.append(bp_dataset)
             resolved_robot_type = infer_embodiment_variant(current_ds.meta.robot_type, current_ds.meta.features)
             data_stats[resolved_robot_type] = current_ds.meta.stats
+            logging.info(
+                "[rank %d/%d] BPVA dataset %d/%d repo_id=%s build finished elapsed=%.2fs",
+                rank,
+                world_size,
+                dataset_idx,
+                num_local_repos,
+                _short_repo_id_for_log(repo_id),
+                time.perf_counter() - build_started_at,
+            )
 
+        # A single repo needs no cross-dataset sampler weight.
         if len(bp_datasets) == 1:
             return bp_datasets[0], data_stats
-        return MultiLeRobotDataset(bp_datasets), data_stats
+        dataset_weights = (
+            [repo_weights_map[repo_id] for repo_id in repo_ids]
+            if repo_weights_map is not None
+            else None
+        )
+        return MultiLeRobotDataset(bp_datasets, dataset_weights=dataset_weights), data_stats
 
     if isinstance(cfg.dataset, RoboChallengeRawW1DatasetConfig):
         if not is_tbot_sa1(cfg.policy.type):

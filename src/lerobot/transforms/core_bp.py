@@ -6,7 +6,12 @@ from typing import Any, Optional
 
 import torch
 import torch.nn.functional as F
-from transformers.models.qwen3_vl import Qwen3VLProcessor
+from transformers import AutoConfig, AutoImageProcessor
+
+try:
+    from transformers import Qwen2VLImageProcessorFast
+except ImportError:  # Older compatible Transformers releases may expose only the auto class.
+    Qwen2VLImageProcessorFast = None
 
 from lerobot.datasets.transforms import ImageTransforms
 from lerobot.transforms.core import DataDict, DataTransformFn
@@ -53,13 +58,25 @@ class BPPadOrSampleChunksFn(DataTransformFn):
                 dim=0,
             )
 
-        for key in ["state", "action", "action_is_pad", "chunk_indices", "source_time_ratio"]:
+        for key in [
+            "state",
+            "action",
+            "action_is_pad",
+            "state_is_available",
+            "chunk_indices",
+            "source_time_ratio",
+        ]:
             if key in prompt:
                 prompt[key] = prompt[key].index_select(0, select.to(prompt[key].device))
         if "images" in prompt:
             prompt["images"] = {
                 key: value.index_select(0, select.to(value.device))
                 for key, value in prompt["images"].items()
+            }
+        if "image_masks" in prompt:
+            prompt["image_masks"] = {
+                key: value.index_select(0, select.to(value.device))
+                for key, value in prompt["image_masks"].items()
             }
         prompt["mask"] = valid_mask
         prompt["chunk_indices"] = torch.arange(self.num_chunks, dtype=torch.long, device=valid_mask.device)
@@ -111,12 +128,23 @@ class BPRemapImageKeyTransformFn(DataTransformFn):
             allowed = ", ".join(DEFAULT_BP_CAMERA_KEYS)
             raise KeyError(f"[BPRemapImageKeyTransformFn] unsupported bp_camera_keys={unknown}; allowed [{allowed}]")
 
-        missing = [key for key in self.bp_camera_keys if key not in remapped]
-        if missing:
-            available = ", ".join(sorted(remapped.keys()))
-            raise KeyError(f"[BPRemapImageKeyTransformFn] missing configured BP cameras {missing}; available [{available}]")
+        fallback_key = (
+            f"{OBS_IMAGES}.image0"
+            if f"{OBS_IMAGES}.image0" in remapped
+            else next(iter(remapped))
+        )
+        fallback_image = remapped[fallback_key]
+        image_masks: dict[str, torch.Tensor] = {}
+        for key in self.bp_camera_keys:
+            is_valid = key in remapped
+            if not is_valid:
+                remapped[key] = torch.ones_like(fallback_image)
+            image_masks[key] = torch.full(
+                (remapped[key].shape[0],), is_valid, dtype=torch.bool, device=remapped[key].device
+            )
 
         prompt["images"] = {key: remapped[key] for key in self.bp_camera_keys}
+        prompt["image_masks"] = image_masks
         data[BP_PREFIX] = prompt
         return data
 
@@ -127,28 +155,32 @@ class BPNormalizeTransformFn(DataTransformFn):
     """Normalize behavior_prompt state/action using the same stats as current samples."""
 
     selected_keys: list[str] | None = None
+    mapping: dict[str, list[str]] = field(default_factory=dict)
     mode: str = "mean_std"
     norm_stats: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def __call__(self, data: DataDict) -> DataDict:
         prompt = data[BP_PREFIX]
         eps = 1e-6
-        keys = self.selected_keys if self.selected_keys is not None else list(self.norm_stats.keys())
-        for key in keys:
-            if key not in {OBS_STATE, ACTION}:
+        for canonical_key, prompt_key in ((OBS_STATE, "state"), (ACTION, "action")):
+            if prompt_key not in prompt:
                 continue
-            prompt_key = "state" if key == OBS_STATE else "action"
-            if prompt_key not in prompt or key not in self.norm_stats:
+            source_keys = self.mapping.get(canonical_key, [canonical_key])
+            if not source_keys or any(key not in self.norm_stats for key in source_keys):
                 continue
             x = prompt[prompt_key]
-            stats = self.norm_stats[key]
+
+            def joined_stat(name: str) -> torch.Tensor:
+                parts = [torch.as_tensor(self.norm_stats[key][name], device=x.device, dtype=x.dtype) for key in source_keys]
+                return torch.cat(parts, dim=-1) if len(parts) > 1 else parts[0]
+
             if self.mode == "mean_std":
-                mean = torch.from_numpy(stats["mean"]).to(x)
-                std = torch.from_numpy(stats["std"]).to(x)
+                mean = joined_stat("mean")
+                std = joined_stat("std")
                 prompt[prompt_key] = (x - mean) / (std + eps)
             elif self.mode == "min_max":
-                min_v = torch.from_numpy(stats["min"]).to(x)
-                max_v = torch.from_numpy(stats["max"]).to(x)
+                min_v = joined_stat("min")
+                max_v = joined_stat("max")
                 prompt[prompt_key] = (x - min_v) / (max_v - min_v + eps)
             else:
                 raise ValueError(f"Unknown normalization mode: {self.mode}")
@@ -188,6 +220,9 @@ class BPDeltaActionTransformFn(DataTransformFn):
 
         state = prompt["state"]
         action = prompt["action"]
+        state_is_available = prompt.get("state_is_available")
+        if state_is_available is not None and not bool(torch.as_tensor(state_is_available).any()):
+            return data
         if state.shape[-1] == 0 or action.shape[-1] == 0:
             return data
 
@@ -234,35 +269,66 @@ class BPPadStateAndActionTransformFn(DataTransformFn):
 @DataTransformFn.register_subclass("img_only_qwen3_vl")
 @dataclass
 class ImgOnlyQwen3VLTransformFn(DataTransformFn):
-    """Process current images for Qwen3-VL without appending task text tokens."""
+    """Process current images and build Qwen3-VL vision placeholder IDs without a language tokenizer."""
 
     pretrained_model_name_or_path: str = "Qwen/Qwen3-VL-2B-Instruct"
-    spatial_merge_size: int = 2
-    processor: Any = field(default=None, init=False, repr=False)
-    _processor_source: str | None = field(default=None, init=False, repr=False)
+    image_processor: Any = field(default=None, init=False, repr=False)
+    vision_start_token_id: int | None = field(default=None, init=False, repr=False)
+    vision_end_token_id: int | None = field(default=None, init=False, repr=False)
+    image_token_id: int | None = field(default=None, init=False, repr=False)
+    spatial_merge_size: int = field(default=2, init=False, repr=False)
+    _image_processor_source: str | None = field(default=None, init=False, repr=False)
 
-    def _ensure_processor(self) -> None:
-        if self.processor is not None and self._processor_source == self.pretrained_model_name_or_path:
+    def _ensure_image_processor(self) -> None:
+        if (
+            self.image_processor is not None
+            and self._image_processor_source == self.pretrained_model_name_or_path
+        ):
             return
-        self.processor = Qwen3VLProcessor.from_pretrained(self.pretrained_model_name_or_path)
-        self._processor_source = self.pretrained_model_name_or_path
+
+        try:
+            config = AutoConfig.from_pretrained(self.pretrained_model_name_or_path)
+        except ValueError:
+            # Some Transformers builds contain Qwen3-VL but have not registered it with AutoConfig.
+            from transformers import Qwen3VLConfig
+
+            config = Qwen3VLConfig.from_pretrained(self.pretrained_model_name_or_path)
+
+        try:
+            image_processor = AutoImageProcessor.from_pretrained(
+                self.pretrained_model_name_or_path,
+                use_fast=True,
+            )
+        except (ImportError, KeyError, ValueError):
+            if Qwen2VLImageProcessorFast is None:
+                raise
+            image_processor = Qwen2VLImageProcessorFast.from_pretrained(
+                self.pretrained_model_name_or_path
+            )
+
+        self.image_processor = image_processor
+        self.vision_start_token_id = config.vision_start_token_id
+        self.vision_end_token_id = config.vision_end_token_id
+        self.image_token_id = config.image_token_id
+        self.spatial_merge_size = config.vision_config.spatial_merge_size
+        self._image_processor_source = self.pretrained_model_name_or_path
 
     def __call__(self, data: DataDict) -> DataDict:
-        self._ensure_processor()
+        self._ensure_image_processor()
         input_ids: list[int] = []
         attention_mask: list[int] = []
         pixel_values = []
         image_grid_thw = []
         for camera_idx in range(3):
             image_key = f"{OBS_IMAGES}.image{camera_idx}"
-            img_inputs = self.processor.image_processor(data[image_key][1], do_rescale=False)
+            img_inputs = self.image_processor(data[image_key][1], do_rescale=False)
             token_count = torch.prod(img_inputs.image_grid_thw) // self.spatial_merge_size**2
             pixel_values.append(img_inputs.pixel_values)
             image_grid_thw.append(img_inputs.image_grid_thw)
             is_valid = bool(data.get(f"{image_key}_mask", torch.tensor(True)))
-            input_ids += [self.processor.vision_start_token_id]
-            input_ids += [self.processor.image_token_id] * int(token_count.item())
-            input_ids += [self.processor.vision_end_token_id]
+            input_ids += [self.vision_start_token_id]
+            input_ids += [self.image_token_id] * int(token_count.item())
+            input_ids += [self.vision_end_token_id]
             attention_mask += [1 if is_valid else 0] * (int(token_count.item()) + 2)
         data[f"{OBS_STR}.pixel_values"] = torch.cat(pixel_values, dim=0)
         data[f"{OBS_STR}.image_grid_thw"] = torch.cat(image_grid_thw, dim=0)
@@ -282,6 +348,17 @@ class UnifyBPInputsTransformFn(DataTransformFn):
     def __call__(self, data: DataDict) -> DataDict:
         default_action_loss_mask = 0.0 if data.get("robot_type") == "egodex_v" else 1.0
         prompt = data[BP_PREFIX]
+        model_prompt = {
+            "mask": prompt["mask"],
+            "chunk_indices": prompt["chunk_indices"],
+            "state": prompt["state"],
+            "action": prompt["action"],
+            "action_is_pad": prompt["action_is_pad"],
+            "images": prompt["images"],
+        }
+        for optional_key in ("state_is_available", "image_masks"):
+            if optional_key in prompt:
+                model_prompt[optional_key] = prompt[optional_key]
         data = {
             OBS_STATE: data[OBS_STATE],
             ACTION: data[ACTION],
@@ -299,13 +376,6 @@ class UnifyBPInputsTransformFn(DataTransformFn):
             f"{OBS_STR}.image_grid_thw": data[f"{OBS_STR}.image_grid_thw"],
             f"{OBS_STR}.input_ids": data[f"{OBS_STR}.input_ids"],
             f"{OBS_STR}.attention_mask": data[f"{OBS_STR}.attention_mask"],
-            BP_PREFIX: {
-                "mask": prompt["mask"],
-                "chunk_indices": prompt["chunk_indices"],
-                "state": prompt["state"],
-                "action": prompt["action"],
-                "action_is_pad": prompt["action_is_pad"],
-                "images": prompt["images"],
-            },
+            BP_PREFIX: model_prompt,
         }
         return data

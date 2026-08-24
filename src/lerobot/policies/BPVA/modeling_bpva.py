@@ -764,6 +764,7 @@ class BPVAModel(nn.Module):
             image_keys=list(config.bp_camera_keys),
             vision_model_name=config.bp_vision_model_name,
             pretrained=config.bp_vision_pretrained,
+            vision_checkpoint_path=config.bp_vision_checkpoint_path,
             token_dim=config.bp_token_dim,
             output_dim=prefix_dim,
             state_dim=config.max_state_dim,

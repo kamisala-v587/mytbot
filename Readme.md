@@ -158,13 +158,18 @@ CUDA_VISIBLE_DEVICES=2,3 accelerate launch --num_processes=2 \
 cd /vla/workspace/my_tbot
 source /vla/.conda/miniconda3/etc/profile.d/conda.sh
 conda activate bptbot
+
+export LEROBOT_PARALLEL_DATASET_LOAD=1
+export LEROBOT_DDP_TIMEOUT_SEC=1800
+export LEROBOT_LOG_RANK_DEVICE_MAP=1
+
 unset NCCL_DEBUG
 unset NCCL_SOCKET_IFNAME
 unset NCCL_IB_DISABLE
 
-accelerate launch --num_processes=8 \
+accelerate launch --num_processes=4 \
   -m lerobot.scripts.lerobot_train \
-  --config_path=/vla/workspace/my_tbot/configs/bpva_sft_robotwin.jsonc
+  --config_path=/vla/workspace/my_tbot/configs/baiduyun/bpva_pretrain.jsonc
 
 **需要配置的环境变量**
 

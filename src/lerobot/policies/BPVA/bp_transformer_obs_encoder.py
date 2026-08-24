@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from importlib.abc import MetaPathFinder
-from contextlib import contextmanager
+import logging
+from pathlib import Path
 from typing import Any
 
 import torch
 from torch import nn
 
 from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE
+
+
+logger = logging.getLogger(__name__)
 
 
 class _BlockWandbImport(MetaPathFinder):
@@ -105,6 +110,7 @@ class BPTransformerObsEncoder(nn.Module):
         image_keys: list[str] | None = None,
         vision_model_name: str = "vit_base_patch16_clip_224.openai",
         pretrained: bool = False,
+        vision_checkpoint_path: str | None = None,
         token_dim: int = 768,
         output_dim: int = 2048,
         state_dim: int = 32,
@@ -136,13 +142,45 @@ class BPTransformerObsEncoder(nn.Module):
         self.use_action_step_embedding = bool(use_action_step_embedding)
         self.use_modality_type_embedding = bool(use_modality_type_embedding)
 
+        local_checkpoint_path: str | None = None
+        if vision_checkpoint_path:
+            checkpoint_file = Path(vision_checkpoint_path).expanduser()
+            if not checkpoint_file.exists():
+                raise FileNotFoundError(
+                    f"BP vision checkpoint file does not exist: {checkpoint_file}"
+                )
+            if not checkpoint_file.is_file():
+                raise ValueError(
+                    "BP vision checkpoint path must point to a checkpoint file "
+                    f"(for example model.safetensors), got: {checkpoint_file}"
+                )
+            local_checkpoint_path = str(checkpoint_file)
+            logger.info(
+                "Loading BP vision pretrained weights from local checkpoint via timm's "
+                "registered checkpoint filter (OpenCLIP visual conversion, network disabled): %s",
+                local_checkpoint_path,
+            )
+        else:
+            logger.info(
+                "Creating BP vision encoder with timm pretrained=%s (no local checkpoint configured)",
+                pretrained,
+            )
+
+        create_model_kwargs = {
+            "model_name": vision_model_name,
+            "pretrained": True if local_checkpoint_path is not None else pretrained,
+            "global_pool": "",
+            "num_classes": 0,
+        }
+        if local_checkpoint_path is not None:
+            create_model_kwargs["pretrained_cfg_overlay"] = {
+                "file": local_checkpoint_path,
+                "hf_hub_id": None,
+                "url": "",
+            }
+
         timm = _import_timm()
-        base_model = timm.create_model(
-            model_name=vision_model_name,
-            pretrained=pretrained,
-            global_pool="",
-            num_classes=0,
-        )
+        base_model = timm.create_model(**create_model_kwargs)
         model_data_config = timm.data.resolve_data_config(base_model.pretrained_cfg)
         mean = torch.tensor(model_data_config["mean"], dtype=torch.float32).view(1, 3, 1, 1)
         std = torch.tensor(model_data_config["std"], dtype=torch.float32).view(1, 3, 1, 1)
@@ -151,14 +189,13 @@ class BPTransformerObsEncoder(nn.Module):
 
         self.image_module_names = {image_key: f"image_{idx}" for idx, image_key in enumerate(self.image_keys)}
         self.key_model_map = nn.ModuleDict()
-        for image_key in self.image_keys:
+        for index, image_key in enumerate(self.image_keys):
             module_name = self.image_module_names[image_key]
-            self.key_model_map[module_name] = base_model if share_rgb_model else timm.create_model(
-                model_name=vision_model_name,
-                pretrained=pretrained,
-                global_pool="",
-                num_classes=0,
-            )
+            if share_rgb_model or index == 0:
+                vision_model = base_model
+            else:
+                vision_model = timm.create_model(**create_model_kwargs)
+            self.key_model_map[module_name] = vision_model
 
         image_feature_dim = self._infer_image_feature_dim()
         self.image_projections = nn.ModuleDict(
@@ -228,7 +265,10 @@ class BPTransformerObsEncoder(nn.Module):
             raise ValueError(f"Expected state dim {self.state_dim}, got {state.shape[-1]}")
 
         # 1. 每个 chunk 得到 3 个图像 token。共享 backbone 时合并相机维，只执行一次 ViT forward。
-        image_tokens = self._encode_images(images, batch_size, num_chunks)
+        image_validity = self._prepare_image_validity(
+            behavior_prompt.get("image_masks"), batch_size, num_chunks, state.device
+        )
+        image_tokens = self._encode_images(images, batch_size, num_chunks, image_validity)
         # 2. action 先加入 chunk 内 step 位置编码，再将完整动作序列压成一个 token。
         action_for_encoding = action
         if self.action_step_embedding is not None:
@@ -251,7 +291,22 @@ class BPTransformerObsEncoder(nn.Module):
 
         # 3. state 和 action 经投影后各形成一个 token，维度与图像 token 相同。
         state_token = self.state_proj(state).unsqueeze(2)
+        state_is_available = behavior_prompt.get("state_is_available")
+        if state_is_available is not None:
+            state_is_available = self._ensure_batch_mask(state_is_available, added_batch).to(
+                device=state_token.device, dtype=torch.bool
+            )
+            if state_is_available.shape != (batch_size, num_chunks):
+                raise ValueError(
+                    f"state_is_available shape {tuple(state_is_available.shape)} does not match "
+                    f"{(batch_size, num_chunks)}"
+                )
+            state_token = state_token.masked_fill(~state_is_available.unsqueeze(-1).unsqueeze(-1), 0)
         action_token = self.action_proj(action_for_encoding.flatten(start_dim=2)).unsqueeze(2)
+        action_is_available = None
+        if action_is_pad is not None:
+            action_is_available = ~action_is_pad.all(dim=-1)
+            action_token = action_token.masked_fill(~action_is_available.unsqueeze(-1).unsqueeze(-1), 0)
 
         # 4. 3 个图像 token + 1 个 state token + 1 个 action token：(B, K, 5, 768)。
         modality_tokens = torch.cat([*image_tokens, state_token, action_token], dim=2)
@@ -259,6 +314,17 @@ class BPTransformerObsEncoder(nn.Module):
             modality_ids = torch.arange(5, device=modality_tokens.device)
             modality_pos = self.modality_type_embedding(modality_ids).to(dtype=modality_tokens.dtype) # 加入类型编码
             modality_tokens = modality_tokens + modality_pos.view(1, 1, 5, self.token_dim)
+        modality_tokens[:, :, :3] = modality_tokens[:, :, :3].masked_fill(
+            ~image_validity.unsqueeze(-1), 0
+        )
+        if state_is_available is not None:
+            modality_tokens[:, :, 3] = modality_tokens[:, :, 3].masked_fill(
+                ~state_is_available.unsqueeze(-1), 0
+            )
+        if action_is_available is not None:
+            modality_tokens[:, :, 4] = modality_tokens[:, :, 4].masked_fill(
+                ~action_is_available.unsqueeze(-1), 0
+            )
         # 当前代码必定每个chunk这里处理为5个token 后续映射为一个token 输出
         if modality_tokens.shape[2] != 5:
             raise RuntimeError(f"Expected 5 modality tokens per chunk, got {modality_tokens.shape[2]}")
@@ -349,11 +415,45 @@ class BPTransformerObsEncoder(nn.Module):
             flat = (flat - self.image_mean.to(flat)) / self.image_std.to(flat)
         return flat
 
+    def _prepare_image_validity(
+        self,
+        image_masks: dict[str, torch.Tensor] | None,
+        batch_size: int,
+        num_chunks: int,
+        device: torch.device,
+    ) -> torch.Tensor:
+        if image_masks is None:
+            return torch.ones(batch_size, num_chunks, len(self.image_keys), dtype=torch.bool, device=device)
+        unknown = sorted(set(image_masks) - set(self.image_keys))
+        if unknown:
+            raise KeyError(f"image_masks contains unsupported camera keys: {unknown}")
+        per_camera = []
+        for image_key in self.image_keys:
+            if image_key not in image_masks:
+                raise KeyError(f"image_masks is missing configured camera {image_key!r}")
+            mask = torch.as_tensor(image_masks[image_key], dtype=torch.bool, device=device)
+            if mask.ndim == 1:
+                mask = mask.unsqueeze(0)
+            elif mask.ndim != 2:
+                raise ValueError(
+                    f"image_masks[{image_key!r}] must be (K,) or (B, K), got {tuple(mask.shape)}"
+                )
+            if mask.shape == (1, num_chunks) and batch_size > 1:
+                mask = mask.expand(batch_size, -1)
+            if mask.shape != (batch_size, num_chunks):
+                raise ValueError(
+                    f"image_masks[{image_key!r}] shape {tuple(mask.shape)} does not match "
+                    f"{(batch_size, num_chunks)}"
+                )
+            per_camera.append(mask)
+        return torch.stack(per_camera, dim=-1)
+
     def _encode_images(
         self,
         images: dict[str, torch.Tensor],
         batch_size: int,
         num_chunks: int,
+        image_validity: torch.Tensor,
     ) -> list[torch.Tensor]:
         """编码三路 BP 图像；共享 backbone 时将三路相机合并为一次 ViT 调用。"""
         flat_by_camera = [
@@ -383,7 +483,10 @@ class BPTransformerObsEncoder(nn.Module):
             token = self.image_projections[module_name](features)
             if token.shape[-1] != self.token_dim:
                 raise RuntimeError(f"{image_key} projected dim {token.shape[-1]} != token_dim {self.token_dim}")
-            image_tokens.append(token.reshape(batch_size, num_chunks, 1, self.token_dim))
+            token = token.reshape(batch_size, num_chunks, 1, self.token_dim)
+            camera_index = self.image_keys.index(image_key)
+            token = token.masked_fill(~image_validity[:, :, camera_index, None, None], 0)
+            image_tokens.append(token)
         return image_tokens
 
     def _aggregate_image_features(self, features: torch.Tensor) -> torch.Tensor:

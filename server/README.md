@@ -14,7 +14,7 @@ python server/serve_lerobot_policy.py \
   --host 0.0.0.0 \
   --port 8000
 
-CKPT=/vla/workspace/my_tbot/outputs/ckpts/tbots/robotwin-clean-e9/pretrained_model/
+CKPT=/vla/workspace/models/tbot_ckpts/sftByOfficial/clean-e9/pretrained_model
 python server/serve_lerobot_policy_batch.py \
   --ckpt_path $CKPT \
   --max_batch_size 4 \
@@ -25,7 +25,6 @@ python server/serve_lerobot_policy_batch.py \
 ```
 
 ## BPVA
-
 ```bash
 python server/bpva_serve.py \
   --ckpt_path /path/to/bpva/checkpoint \

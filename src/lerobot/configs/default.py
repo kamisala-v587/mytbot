@@ -43,6 +43,8 @@ class DatasetConfig(draccus.ChoiceRegistry, abc.ABC):
     external_stats_root: str | None = None
     weight_rules_path: str | None = None
     video_backend: str = field(default_factory=get_safe_default_codec)
+    # Only skip per-video existence checks during dataset initialization.
+    skip_video_file_validation: bool = False
     streaming: bool = False
     dist_loading: bool = False
     buffer_size: int = 1024

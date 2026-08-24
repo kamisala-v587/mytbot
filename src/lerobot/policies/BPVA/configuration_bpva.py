@@ -156,6 +156,7 @@ class BPVAConfig(TBotSA1Config):
     )
     bp_vision_model_name: str = "vit_base_patch16_clip_224.openai"
     bp_vision_pretrained: bool = True
+    bp_vision_checkpoint_path: str | None = None
     bp_token_dim: int = 768
     bp_image_feature_aggregation: str = "cls"
     bp_share_rgb_model: bool = True
@@ -175,6 +176,8 @@ class BPVAConfig(TBotSA1Config):
             raise ValueError("bp_camera_keys must contain exactly 3 camera keys")
         if self.bp_token_dim <= 0:
             raise ValueError("bp_token_dim must be positive")
+        if self.bp_vision_checkpoint_path is not None and not isinstance(self.bp_vision_checkpoint_path, str):
+            raise TypeError("bp_vision_checkpoint_path must be a string or None")
         if self.bp_image_feature_aggregation not in {"cls", "mean"}:
             raise ValueError("bp_image_feature_aggregation must be one of {'cls', 'mean'}")
 

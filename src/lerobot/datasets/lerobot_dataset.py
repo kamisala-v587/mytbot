@@ -561,6 +561,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         revision: str | None = None,
         force_cache_sync: bool = False,
         download_videos: bool = True,
+        skip_video_file_validation: bool = False,
         video_backend: str | None = None,
         batch_encoding_size: int = 1,
     ):
@@ -671,6 +672,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
             download_videos (bool, optional): Flag to download the videos. Note that when set to True but the
                 video files are already present on local disk, they won't be downloaded again. Defaults to
                 True.
+            skip_video_file_validation (bool, optional): Skip per-video existence checks during initialization.
+                This does not change video download behavior. Defaults to False.
             video_backend (str | None, optional): Video backend to use for decoding videos. Defaults to torchcodec when available int the platform; otherwise, defaults to 'pyav'.
                 You can also use the 'pyav' decoder used by Torchvision, which used to be the default option, or 'video_reader' which is another decoder of Torchvision.
             batch_encoding_size (int, optional): Number of episodes to accumulate before batch encoding videos.
@@ -684,6 +687,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         self.episodes = episodes
         self.tolerance_s = tolerance_s
         self.revision = revision if revision else CODEBASE_VERSION
+        self.skip_video_file_validation = skip_video_file_validation
         self.video_backend = video_backend if video_backend else get_safe_default_codec()
         self.delta_indices = None
         self.batch_encoding_size = batch_encoding_size
@@ -874,8 +878,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
         if not requested_episodes.issubset(available_episodes):
             return False
 
-        # Check if all required video files exist
-        if len(self.meta.video_keys) > 0:
+        # Check if all required video files exist unless explicitly skipped.
+        if not self.skip_video_file_validation and len(self.meta.video_keys) > 0:
             for ep_idx in requested_episodes:
                 for vid_key in self.meta.video_keys:
                     video_path = self.root / self.meta.get_video_file_path(ep_idx, vid_key)
@@ -1037,7 +1041,10 @@ class LeRobotDataset(torch.utils.data.Dataset):
 
         query_indices = None
         if self.delta_indices is not None:
-            query_indices, padding = self._get_query_indices(idx, ep_idx)
+            # `idx` addresses the loaded HF table and is local when an episode subset is selected.
+            # Episode metadata and delta queries use global dataset indices.
+            absolute_idx = item["index"].item()
+            query_indices, padding = self._get_query_indices(absolute_idx, ep_idx)
             query_result = self._query_hf_dataset(query_indices)
             item = {**item, **padding}
             for key, val in query_result.items():
@@ -1624,6 +1631,7 @@ class MultiLeRobotDataset(torch.utils.data.Dataset):
         delta_timestamps: dict[str, list[float]] | None = None,
         tolerances_s: dict | None = None,
         download_videos: bool = True,
+        skip_video_file_validation: bool = False,
         video_backend: str | None = None,
     ):
         super().__init__()
@@ -1641,6 +1649,7 @@ class MultiLeRobotDataset(torch.utils.data.Dataset):
                 delta_timestamps=delta_timestamps,
                 tolerance_s=self.tolerances_s[repo_id],
                 download_videos=download_videos,
+                skip_video_file_validation=skip_video_file_validation,
                 video_backend=video_backend,
             )
             for repo_id in repo_ids
