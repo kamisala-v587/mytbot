@@ -1647,3 +1647,4 @@
 /vla/workspace/data/robochallenge/turn_on_light_switch
 /vla/workspace/data/robochallenge/water_potted_plant
 /vla/workspace/data/robochallenge/wipe_the_table
+
