@@ -517,7 +517,7 @@ def hydrate_inject_missing_state_action_transform(
             if placeholder_dim <= 0:
                 mask = get_mask_mapping(robot_type, dataset.meta.features)
                 placeholder_dim = int(len(mask)) if len(mask) > 0 else 1
-            print(
+            logging.debug(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"(robot_type={robot_type}, resolved={resolved_robot_type}, "
                 f"action_seq_len={seq_lens.get('action', t.action_seq_len)}, "
@@ -547,7 +547,7 @@ def hydrate_normalize_transform(
             embodiment_spec = get_feature_mapping(robot_type, dataset.meta.features)
             resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
             selected_keys = embodiment_spec[OBS_STATE] + embodiment_spec[ACTION]
-            print(
+            logging.debug(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"with dataset.meta.stats (robot_type={robot_type}, resolved={resolved_robot_type}) "
                 f"and selected_keys (selected_keys={selected_keys})"
@@ -566,7 +566,7 @@ def hydrate_compose_field_transform(
         # if hasattr(t, "mapping"):
         if isinstance(t, ComposeFieldsTransform):
             resolved_robot_type = infer_embodiment_variant(dataset.meta.robot_type, dataset.meta.features)
-            print(
+            logging.debug(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"with mapping (robot_type={dataset.meta.robot_type}, resolved={resolved_robot_type})"
             )
@@ -585,7 +585,7 @@ def hydrate_delta_action_transform(
         if isinstance(t, DeltaActionTransformFn):
             robot_type = dataset.meta.robot_type
             resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
-            print(
+            logging.debug(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"with mapping and mask (robot_type={robot_type}, resolved={resolved_robot_type})"
             )
@@ -608,7 +608,7 @@ def hydrate_remap_image_key_transform(
         if isinstance(t, RemapImageKeyTransformFn):
             robot_type = dataset.meta.robot_type
             resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
-            print(
+            logging.debug(
                 f"Hydrating transform {t.__class__.__name__} "
                 f"with mapping (robot_type={robot_type}, resolved={resolved_robot_type})"
             )
