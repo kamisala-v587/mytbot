@@ -148,6 +148,12 @@ def _load_external_stats_for_dataset(cfg: TrainPipelineConfig, dataset: LeRobotD
     if not cfg.dataset.use_external_stats:
         return None
     robot_type = dataset.meta.robot_type
+    if robot_type == "egodex_v":
+        logging.info(
+            "Skipping external stats for vision-only robot_type=%s; using identity placeholder stats",
+            robot_type,
+        )
+        return None
     resolved_robot_type = infer_embodiment_variant(robot_type, dataset.meta.features)
     candidates: list[Path] = []
     if cfg.dataset.external_stats_path is not None:
@@ -1071,6 +1077,16 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             )
             ds_meta = LeRobotDatasetMetadata(repo_id, root=cfg.dataset.root, revision=cfg.dataset.revision)
             delta_timestamps = resolve_delta_timestamps(cfg.policy, ds_meta)
+            parquet_columns = None
+            if ds_meta.robot_type == "egodex_v":
+                # EgoDex is vision-only in BPVA. Its 69 body-pose matrix columns account for
+                # nearly all Parquet I/O but are replaced by state/action placeholders.
+                parquet_columns = ["timestamp", "frame_index", "episode_index", "index", "task_index"]
+                delta_timestamps = {
+                    key: value
+                    for key, value in (delta_timestamps or {}).items()
+                    if key in ds_meta.video_keys
+                } or None
             current_ds = LeRobotDataset(
                 repo_id,
                 root=cfg.dataset.root,
@@ -1080,6 +1096,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 revision=cfg.dataset.revision,
                 skip_video_file_validation=cfg.dataset.skip_video_file_validation,
                 video_backend=cfg.dataset.video_backend,
+                parquet_columns=parquet_columns,
             )
             bp_action_chunk_size = int(getattr(cfg.policy, "bp_action_chunk_size", cfg.policy.chunk_size))
             # BP prompt 每个关键帧只需要三路当前图像，但 action 仍需未来 T 步。
@@ -1098,6 +1115,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 revision=cfg.dataset.revision,
                 skip_video_file_validation=cfg.dataset.skip_video_file_validation,
                 video_backend=cfg.dataset.video_backend,
+                parquet_columns=parquet_columns,
             )
             _configure_vision_only_dataset(current_ds, cfg.policy)
             _load_external_stats_for_dataset(cfg, current_ds)

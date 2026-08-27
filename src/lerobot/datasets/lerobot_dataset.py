@@ -564,6 +564,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         skip_video_file_validation: bool = False,
         video_backend: str | None = None,
         batch_encoding_size: int = 1,
+        parquet_columns: list[str] | None = None,
     ):
         """
         2 modes are available for instantiating this class, depending on 2 different use cases:
@@ -678,6 +679,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
                 You can also use the 'pyav' decoder used by Torchvision, which used to be the default option, or 'video_reader' which is another decoder of Torchvision.
             batch_encoding_size (int, optional): Number of episodes to accumulate before batch encoding videos.
                 Set to 1 for immediate encoding (default), or higher for batched encoding. Defaults to 1.
+            parquet_columns (list[str] | None, optional): Restrict tabular Parquet loading to these columns.
+                Metadata and MP4 video decoding remain available through ``self.meta``. Defaults to all columns.
         """
         super().__init__()
         self.repo_id = repo_id
@@ -691,6 +694,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         self.video_backend = video_backend if video_backend else get_safe_default_codec()
         self.delta_indices = None
         self.batch_encoding_size = batch_encoding_size
+        self.parquet_columns = list(parquet_columns) if parquet_columns is not None else None
         self.episodes_since_last_encoding = 0
 
         # Unused attributes
@@ -851,9 +855,22 @@ class LeRobotDataset(torch.utils.data.Dataset):
         return fpaths
 
     def load_hf_dataset(self) -> datasets.Dataset:
-        """hf_dataset contains all the observations, states, actions, rewards, etc."""
-        features = get_hf_features_from_features(self.features)
-        hf_dataset = load_nested_dataset(self.root / "data", features=features, episodes=self.episodes)
+        """Load tabular observations, optionally projecting a subset of Parquet columns."""
+        selected_features = self.features
+        if self.parquet_columns is not None:
+            selected_features = {
+                key: value for key, value in self.features.items() if key in self.parquet_columns
+            }
+            missing = set(self.parquet_columns).difference(selected_features)
+            if missing:
+                raise ValueError(f"Requested Parquet columns are absent from dataset features: {sorted(missing)}")
+        features = get_hf_features_from_features(selected_features)
+        hf_dataset = load_nested_dataset(
+            self.root / "data",
+            features=features,
+            episodes=self.episodes,
+            columns=self.parquet_columns,
+        )
         hf_dataset.set_transform(hf_transform_to_torch)
         return hf_dataset
 
