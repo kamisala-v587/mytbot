@@ -2,16 +2,16 @@
     "dataset": {
         "type": "bpva",
         "repo_id": "robotwin2.0",
-        // "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_clean_ids.txt",
-        "repo_id_file":"/vla/workspace/my_tbot/.config/ds_ids/robotwin_h100_ids.txt",
+        "repo_id_file":"/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/robotwin_clean_ids.txt",
         "action_mode": "delta",
         "use_external_stats": true,
-        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/robotwin_delta/stats.json",
+        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/robotwin_clean/stats.json",
         "external_stats_root": null,
         "use_imagenet_stats": true,
         "video_backend": "pyav",
         "streaming": false,
         "dist_loading": true,
+        "skip_video_file_validation": true, // 仅在确认本地视频完整时启用
         "weight_rules_path": null,
         "height": 224,
         "width": 224,
@@ -37,7 +37,7 @@
     "env": null,
     "policy": {
         "type": "bpva",
-        "pretrained_path": "/vla/workspace/models/bpva_init_c10_a50",
+        "pretrained_path": "/vla/workspace/models/BPVA/pretrain-v1-4w",
         "push_to_hub": false,
         "device": null,
 
@@ -67,12 +67,13 @@
             "observation.images.image2"
         ],
         "bp_vision_model_name": "vit_base_patch16_clip_224.openai",
+        "bp_vision_checkpoint_path": "/vla/workspace/models/timm-vit_base_patch16_clip_224.openai/open_clip_model.safetensors",
         "bp_vision_pretrained": true,
         "bp_token_dim": 768, // bp encoder 中间维度，后续统一为2048
         "bp_image_feature_aggregation": "cls",
         "bp_share_rgb_model": true,
         "bp_use_vision_norm": true,
-        "bp_freeze_vision_encoder": true, // 冻结vit部分不训练 已经从预训练的vit中加载了
+        "bp_freeze_vision_encoder": false, // 是否冻结vit
         "bp_use_action_step_embedding": true,
         "bp_use_modality_type_embedding": true,
         "bp_use_chunk_position_embedding": true,
@@ -88,13 +89,13 @@
         "train_expert_only": false,
         "train_vlm_only": false,
 
-        "optimizer_lr": 5e-5, // 4 卡有效 batch=32，按平方根缩放规则：5e-5 × sqrt(4)
+        "optimizer_lr": 5e-5,
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
         "scheduler_warmup_steps": 125,
-        "scheduler_decay_steps": 200000, 
+        "scheduler_decay_steps": 110000, 
         "scheduler_decay_lr": 5e-6, 
 
         "scale_factor": 8,
@@ -124,15 +125,15 @@
     },
 
     "output_dir": "outputs/BPVA/SFT-Robotwin",
-    "job_name": "bpva_train",
+    "job_name": "bpva_train_clean_e9",
     "resume": false,
     "seed": 42,
-    "num_workers": 8,
-    "batch_size": 8,
+    "num_workers": 12,
+    "batch_size": 6,
     "gradient_accumulation_steps": 1,
-    "steps": 200000,
+    "steps": 110000,
     "eval_freq": 100, 
-    "log_freq": 100, 
+    "log_freq": 10, 
     "save_checkpoint": true,
     "save_freq": 5000, 
     "use_policy_training_preset": true,

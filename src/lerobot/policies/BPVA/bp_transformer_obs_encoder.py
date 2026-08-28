@@ -192,9 +192,9 @@ class BPTransformerObsEncoder(nn.Module):
         for index, image_key in enumerate(self.image_keys):
             module_name = self.image_module_names[image_key]
             if share_rgb_model or index == 0:
-                vision_model = base_model
+                vision_model = base_model # timm创建vit backbone
             else:
-                vision_model = timm.create_model(**create_model_kwargs)
+                vision_model = timm.create_model(**create_model_kwargs) # timm创建vit backbone
             self.key_model_map[module_name] = vision_model
 
         image_feature_dim = self._infer_image_feature_dim()
@@ -268,7 +268,7 @@ class BPTransformerObsEncoder(nn.Module):
         image_validity = self._prepare_image_validity(
             behavior_prompt.get("image_masks"), batch_size, num_chunks, state.device
         )
-        image_tokens = self._encode_images(images, batch_size, num_chunks, image_validity)
+        image_tokens = self._encode_images(images, batch_size, num_chunks, image_validity) # 编码图像
         # 2. action 先加入 chunk 内 step 位置编码，再将完整动作序列压成一个 token。
         action_for_encoding = action
         if self.action_step_embedding is not None:
@@ -463,7 +463,7 @@ class BPTransformerObsEncoder(nn.Module):
         items_per_camera = batch_size * num_chunks
 
         if self.share_rgb_model:
-            shared_model = self.key_model_map[self.image_module_names[self.image_keys[0]]]
+            shared_model = self.key_model_map[self.image_module_names[self.image_keys[0]]] # 共享 vit backbone
             merged = self._normalize_image_batch(torch.cat(flat_by_camera, dim=0), shared_model)
             merged_features = self._aggregate_image_features(shared_model(merged))
             features_by_camera = merged_features.split(items_per_camera, dim=0)
@@ -556,6 +556,7 @@ class BPObsEncoder(nn.Module):
         return_dict: bool = False,
     ) -> torch.Tensor | BPObsEncoderOutput:
         behavior_prompt = sample_or_behavior_prompt.get("behavior_prompt", sample_or_behavior_prompt)
+        # 实际执行编码
         encoded = self.chunk_encoder(behavior_prompt, return_dict=True)
         chunk_tokens = encoded.chunk_tokens
         mask = encoded.mask
