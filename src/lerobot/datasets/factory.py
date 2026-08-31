@@ -1132,6 +1132,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 qwen3_vl_processor_path=cfg.dataset.qwen3_vl_processor_path,
                 bp_camera_keys=list(cfg.dataset.bp_camera_keys),
                 action_mode=cfg.dataset.action_mode,
+                batch_prompt_video_decode=cfg.dataset.batch_prompt_video_decode,
             )
             bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, prompt_ds, prompt_cfg)
             bp_datasets.append(bp_dataset)

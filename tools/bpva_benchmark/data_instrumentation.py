@@ -167,6 +167,8 @@ class EventCollector:
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._serial = 0
+        self._lock = threading.RLock()
+        self._stopped = False
 
     def start(self):
         if self._thread is None:
@@ -184,6 +186,10 @@ class EventCollector:
                 return
 
     def _accept(self, event: dict[str, Any]):
+        with self._lock:
+            self._accept_locked(event)
+
+    def _accept_locked(self, event: dict[str, Any]):
         kind = str(event.get("kind", "unknown"))
         self._seen[kind] = self._seen.get(kind, 0) + 1
         self._serial += 1
@@ -200,7 +206,22 @@ class EventCollector:
         elif item[0] > heap[0][0]:
             heapq.heapreplace(heap, item)
 
+    def snapshot(self) -> dict[str, Any]:
+        """Copy retained events and counters without stopping collection."""
+        with self._lock:
+            events = [dict(item[2]) for kind in sorted(self._heaps) for item in sorted(self._heaps[kind], reverse=True)]
+            retained = {kind: len(heap) for kind, heap in self._heaps.items()}
+            seen = dict(self._seen)
+        return {"top_events": events, "stats": {"seen": seen, "retained": retained, "dropped": {kind: max(0, count - retained.get(kind, 0)) for kind, count in seen.items()}}}
+
+    @property
+    def stopped(self) -> bool:
+        return self._stopped
+
     def stop(self) -> list[dict[str, Any]]:
+        if self._stopped:
+            return self.snapshot()["top_events"]
+        self._stopped = True
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=2)
@@ -218,23 +239,11 @@ class EventCollector:
 
     @property
     def top_events(self) -> list[dict[str, Any]]:
-        return [
-            item[2]
-            for kind in sorted(self._heaps)
-            for item in sorted(self._heaps[kind], reverse=True)
-        ]
+        return self.snapshot()["top_events"]
 
     @property
     def stats(self) -> dict[str, Any]:
-        retained = {kind: len(heap) for kind, heap in self._heaps.items()}
-        return {
-            "seen": dict(self._seen),
-            "retained": retained,
-            "dropped": {
-                kind: max(0, count - retained.get(kind, 0))
-                for kind, count in self._seen.items()
-            },
-        }
+        return self.snapshot()["stats"]
 
 
 class DataInstrumentation(AbstractContextManager):
@@ -263,6 +272,13 @@ class DataInstrumentation(AbstractContextManager):
             setattr(owner, name, replacement(old))
 
     def install(self):
+        try:
+            return self._install()
+        except BaseException:
+            self.uninstall()
+            raise
+
+    def _install(self):
         from lerobot.datasets.behavior_prompt_dataset import (
             BehaviorPromptLeRobotDataset,
         )

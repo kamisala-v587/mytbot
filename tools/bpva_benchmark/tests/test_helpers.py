@@ -5,6 +5,7 @@ import pytest
 
 from tools.bpva_benchmark.data_benchmark import (
     build_parser as build_data_parser,
+    _effective_num_workers,
     disable_dist_loading_for_single_process,
 )
 from tools.bpva_benchmark.reporting import resolve_output_dir
@@ -68,3 +69,36 @@ def test_data_parser_sample_rate_validation():
     parser = build_data_parser()
     with pytest.raises(SystemExit):
         parser.parse_args(["--config-path", "x", "--sample-rate", "1.1"])
+
+
+def test_effective_num_workers():
+    streaming = SimpleNamespace(dataset=SimpleNamespace(streaming=True), num_workers=8)
+    regular = SimpleNamespace(dataset=SimpleNamespace(streaming=False), num_workers=8)
+    assert _effective_num_workers(streaming) == 1
+    assert _effective_num_workers(regular) == 8
+
+
+def test_data_finalize_parser_defaults_and_positive_validation():
+    parser = build_data_parser()
+    args = parser.parse_args(["--config-path", "x"])
+    assert args.finalize_timeout == 300.0
+    assert args.finalize_poll_interval == 0.2
+
+    for option in ("--finalize-timeout", "--finalize-poll-interval"):
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--config-path", "x", option, "0"])
+
+
+def test_data_partial_merge_is_collective_free(monkeypatch):
+    from tools.bpva_benchmark import data_benchmark
+
+    # The final merge helper consumes JSON payloads only; distributed APIs are
+    # deliberately absent from its dependency surface.
+    partial = {
+        "records": [],
+        "collector": {"top_events": [], "stats": {}},
+        "monitor": {"samples": [], "errors": []},
+    }
+    assert data_benchmark.merge_data_partials([partial])["records"] == []
+    assert not hasattr(data_benchmark, "gather_object")
+    assert not hasattr(data_benchmark, "gather_records")

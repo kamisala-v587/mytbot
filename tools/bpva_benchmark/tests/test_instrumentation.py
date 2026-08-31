@@ -1,4 +1,5 @@
 import time
+import threading
 
 import torch
 
@@ -129,3 +130,28 @@ def test_bp_vit_hooks_actual_shared_child_once():
     records = inst.resolve(0)
     inst.uninstall()
     assert [record.stage for record in records].count("bp_vit") == 1
+
+
+def test_collector_concurrent_snapshot():
+    collector = EventCollector(max_queue=256, top_k=5).start()
+    def produce():
+        for index in range(100):
+            collector._accept({"kind": "sample", "elapsed_s": index, "rank": 0, "pid": 1})
+    thread = threading.Thread(target=produce); thread.start()
+    snapshots = [collector.snapshot() for _ in range(20)]
+    thread.join(); final = collector.snapshot(); collector.stop()
+    assert all("top_events" in item and "stats" in item for item in snapshots)
+    assert final["stats"]["seen"]["sample"] == 100
+
+
+def test_monitor_concurrent_snapshot(monkeypatch):
+    from tools.bpva_benchmark.system_monitor import SystemMonitor
+    monitor = SystemMonitor(.1)
+    def append():
+        for index in range(100):
+            with monitor._lock: monitor.samples.append({"index": index})
+    thread = threading.Thread(target=append); thread.start()
+    snapshots = [monitor.snapshot() for _ in range(20)]
+    thread.join(); monitor.stop()
+    assert all("samples" in item and "errors" in item for item in snapshots)
+    assert len(monitor.snapshot()["samples"]) == 100

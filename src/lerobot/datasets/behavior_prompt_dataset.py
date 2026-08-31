@@ -9,9 +9,9 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, get_worker_info
 
-from lerobot.datasets.lerobot_dataset import LeRobotDataset
+from lerobot.datasets.lerobot_dataset import BatchedVideoDecodeError, LeRobotDataset
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping
 from lerobot.transforms.core import (
     ComposeFieldsTransform,
@@ -74,6 +74,7 @@ class BehaviorPromptConfig:
     qwen3_vl_processor_path: str = "Qwen/Qwen3-VL-2B-Instruct"
     bp_camera_keys: list[str] | None = None
     action_mode: str = ""
+    batch_prompt_video_decode: bool = False
 
     def __post_init__(self) -> None:
         if self.bp_camera_keys is None:
@@ -147,6 +148,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
         self.prompt_cfg = prompt_cfg
         self.transform = transform or IdentityTransformFn()
         self.rng = random.Random(prompt_cfg.seed)
+        self._batch_decode_warned_workers: set[int | None] = set()
 
         started_at = time.perf_counter()
         self._episode_ranges = self._build_episode_ranges()
@@ -496,7 +498,45 @@ class BehaviorPromptLeRobotDataset(Dataset):
         )
 
         # LeRobotDataset.__getitem__ indexes the loaded hf_dataset, so subset datasets require local indices.
-        prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
+        get_items = getattr(self.prompt_ds, "get_items", None)
+        if not self.prompt_cfg.batch_prompt_video_decode or not callable(get_items):
+            prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
+        else:
+            try:
+                prompt_samples = get_items(prompt_local_indices, batch_video_decode=True)
+            except BatchedVideoDecodeError:
+                worker = get_worker_info()
+                worker_id = None if worker is None else worker.id
+                if worker_id not in self._batch_decode_warned_workers:
+                    logger.warning(
+                        "Batched behavior-prompt video decode failed; falling back to item-wise decode",
+                        exc_info=True,
+                    )
+                    self._batch_decode_warned_workers.add(worker_id)
+                prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
+            else:
+                if len(prompt_samples) != len(prompt_local_indices):
+                    raise ValueError(
+                        f"Batch prompt API returned {len(prompt_samples)} samples for "
+                        f"{len(prompt_local_indices)} requested rows"
+                    )
+                expected_indices = [
+                    self._to_int(self.prompt_ds.hf_dataset[idx]["index"]) for idx in prompt_local_indices
+                ]
+                for local_idx, expected_index, sample in zip(
+                    prompt_local_indices, expected_indices, prompt_samples, strict=True
+                ):
+                    actual_index = self._to_int(sample["index"])
+                    if actual_index != expected_index:
+                        raise ValueError(
+                            f"Batch prompt sample for local row {local_idx} has index={actual_index}, "
+                            f"expected {expected_index}"
+                        )
+                    missing_cameras = set(self.prompt_ds.meta.camera_keys).difference(sample)
+                    if missing_cameras:
+                        raise ValueError(
+                            f"Batch prompt sample is missing camera keys: {sorted(missing_cameras)}"
+                        )
         image_keys = list(self.prompt_ds.meta.camera_keys)
         prompt_images = {
             key: torch.stack([sample[key] for sample in prompt_samples], dim=0)

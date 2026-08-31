@@ -6,7 +6,6 @@ import argparse
 import copy
 import os
 import time
-from contextlib import nullcontext
 from datetime import timedelta
 from typing import Any
 
@@ -16,7 +15,18 @@ from .model_instrumentation import (
     ModelInstrumentation,
     resolve_pending,
 )
-from .reporting import format_terminal_summary, resolve_output_dir, write_report
+from .reporting import (
+    PhaseProgress,
+    create_run_session,
+    format_terminal_summary,
+    load_local_complete_partials,
+    log_phase,
+    log_progress,
+    record_failure,
+    write_manifest,
+    write_partial,
+    write_report,
+)
 from .system_monitor import SystemMonitor, memory_snapshot
 
 
@@ -59,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--measure-steps", type=positive_int, default=10)
     parser.add_argument("--num-workers", type=nonnegative_int)
     parser.add_argument("--monitor-interval", type=positive_float, default=1.0)
+    parser.add_argument("--finalize-timeout", type=positive_float, default=300.0)
+    parser.add_argument("--finalize-poll-interval", type=positive_float, default=0.2)
     return parser
 
 
@@ -144,17 +156,25 @@ def _loader(dataset: Any, cfg: Any, device: Any):
     )
 
 
-def _gather_object(value: Any, accelerator: Any):
-    if accelerator.num_processes == 1:
-        return [value]
-    from lerobot.utils.utils import gather_object
-
-    return gather_object(value, accelerator)
-
-
 def _optimizer_parameters(optimizer: Any):
     for group in optimizer.param_groups:
         yield from group["params"]
+
+
+def merge_train_partials(partials: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge per-rank train partials without a final distributed collective."""
+    records = merge_rank_records(partial["records"] for partial in partials)
+    gpu_samples: list[dict[str, Any]] = []
+    monitor_errors: list[Any] = []
+    for partial in partials:
+        monitor = partial.get("monitor") or {}
+        gpu_samples.extend(monitor.get("samples") or [])
+        monitor_errors.extend(monitor.get("errors") or [])
+    return {
+        "records": records,
+        "gpu_samples": gpu_samples,
+        "monitor_errors": monitor_errors,
+    }
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -171,48 +191,99 @@ def main(argv: list[str] | None = None) -> None:
     if args.num_workers is not None:
         cfg.num_workers = args.num_workers
     accelerator = _make_accelerator(cfg)
-    if cfg.dataset.dist_loading and accelerator.num_processes <= 1:
-        raise ValueError("训练 benchmark 的 dist_loading 需要多 rank")
-    if cfg.seed is not None:
-        set_seed(cfg.seed, accelerator=accelerator)
-    cfg.policy.device = str(accelerator.device)
-    torch.backends.cudnn.benchmark = True
-    torch.backends.cuda.matmul.allow_tf32 = True
+    session = create_run_session(
+        args.output_dir, accelerator, exact=args.exact_output_dir
+    )
+    if accelerator.is_main_process:
+        print(f"[bpva-benchmark] 输出目录: {session.output_dir}", flush=True)
 
     memory_start = memory_snapshot()
-    dataset, _ = make_dataset(cfg)
-    memory_after_dataset = memory_snapshot()
-    policy = make_policy(cfg.policy)
-    optimizer, scheduler = make_optimizer_and_scheduler(cfg, policy)
-    loader = _loader(dataset, cfg, accelerator.device)
-    if cfg.dataset.dist_loading:
-        policy, optimizer, scheduler = accelerator.prepare(policy, optimizer, scheduler)
-    else:
-        policy, optimizer, loader, scheduler = accelerator.prepare(
-            policy, optimizer, loader, scheduler
+    memory_after_dataset = None
+    records: list[StageRecord] = []
+    instrument = None
+    monitor = None
+    microstep = 0
+    optimizer_step = 0
+    progress = PhaseProgress("initialization", 0, time.perf_counter())
+
+    def snapshot(error: dict[str, Any] | None = None):
+        monitor_state = monitor.snapshot() if monitor is not None else None
+        return write_partial(
+            session,
+            kind="train",
+            phase=progress.phase,
+            completed=progress.completed,
+            total=progress.total,
+            records=records,
+            collector={"top_events": [], "stats": {}},
+            memory={
+                "start": memory_start,
+                "after_dataset": memory_after_dataset,
+                "current": memory_snapshot(),
+            },
+            monitor=monitor_state,
+            error=error,
+            metadata={
+                "config_path": args.config_path,
+                "microsteps": microstep,
+                "optimizer_steps": optimizer_step,
+                "gradient_accumulation_steps": (
+                    cfg.gradient_accumulation_steps
+                ),
+            },
         )
 
-    raw = accelerator.unwrap_model(policy)
-    instrument = ModelInstrumentation(
-        getattr(raw, "model", raw), accelerator.process_index
-    ).install()
-    monitor = (
-        SystemMonitor(args.monitor_interval).start()
-        if accelerator.is_main_process
-        else None
-    )
-    records: list[StageRecord] = []
-    iterator = iter(loader)
-    policy.train()
-    optimizer.zero_grad(set_to_none=True)
-    microstep = 0
-    real_step = 0
-    target_steps = args.warmup_steps + args.measure_steps
-
     try:
-        while real_step < target_steps:
-            measured = real_step >= args.warmup_steps
-            report_step = real_step - args.warmup_steps
+        snapshot()
+        if cfg.dataset.dist_loading and accelerator.num_processes <= 1:
+            raise ValueError("训练 benchmark 的 dist_loading 需要多 rank")
+        if cfg.seed is not None:
+            set_seed(cfg.seed, accelerator=accelerator)
+        cfg.policy.device = str(accelerator.device)
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+
+        progress = PhaseProgress("dataset_init", 0, time.perf_counter())
+        log_phase(accelerator, progress.phase)
+        dataset, _ = make_dataset(cfg)
+        memory_after_dataset = memory_snapshot()
+        policy = make_policy(cfg.policy)
+        optimizer, scheduler = make_optimizer_and_scheduler(cfg, policy)
+        loader = _loader(dataset, cfg, accelerator.device)
+        if cfg.dataset.dist_loading:
+            policy, optimizer, scheduler = accelerator.prepare(
+                policy, optimizer, scheduler
+            )
+        else:
+            policy, optimizer, loader, scheduler = accelerator.prepare(
+                policy, optimizer, loader, scheduler
+            )
+
+        raw = accelerator.unwrap_model(policy)
+        instrument = ModelInstrumentation(
+            getattr(raw, "model", raw), accelerator.process_index
+        )
+        instrument.install()
+        if accelerator.is_main_process:
+            monitor = SystemMonitor(args.monitor_interval).start()
+        iterator = iter(loader)
+        policy.train()
+        optimizer.zero_grad(set_to_none=True)
+
+        progress = PhaseProgress(
+            "warmup", args.warmup_steps, time.perf_counter()
+        )
+        log_phase(accelerator, progress.phase, f"0/{progress.total}")
+        target_steps = args.warmup_steps + args.measure_steps
+        while optimizer_step < target_steps:
+            measured = optimizer_step >= args.warmup_steps
+            if measured and progress.phase != "measure":
+                progress = PhaseProgress(
+                    "measure", args.measure_steps, time.perf_counter()
+                )
+                log_phase(accelerator, progress.phase, f"0/{progress.total}")
+
+            report_step = optimizer_step - args.warmup_steps
             instrument.step = report_step if measured else None
             began = time.perf_counter()
             try:
@@ -228,12 +299,17 @@ def main(argv: list[str] | None = None) -> None:
                         accelerator.process_index,
                         report_step,
                         pid=os.getpid(),
-                        metadata={"microstep": microstep, "optimizer_step": real_step},
+                        metadata={
+                            "microstep": microstep,
+                            "optimizer_step": optimizer_step,
+                        },
                     )
                 )
             if cfg.dataset.dist_loading:
                 began = time.perf_counter()
-                batch = send_to_device(batch, accelerator.device, non_blocking=True)
+                batch = send_to_device(
+                    batch, accelerator.device, non_blocking=True
+                )
                 if measured:
                     records.append(
                         StageRecord(
@@ -244,12 +320,13 @@ def main(argv: list[str] | None = None) -> None:
                             pid=os.getpid(),
                             metadata={
                                 "microstep": microstep,
-                                "optimizer_step": real_step,
+                                "optimizer_step": optimizer_step,
                             },
                         )
                     )
 
             stage_timers: list[DeviceStageTimer] = []
+            optimizer_step_began = time.perf_counter()
             with accelerator.accumulate(policy):
                 with DeviceStageTimer(
                     "forward", accelerator.process_index, report_step
@@ -257,7 +334,9 @@ def main(argv: list[str] | None = None) -> None:
                     with accelerator.autocast():
                         output = policy(batch)
                         loss = (
-                            output[0] if isinstance(output, (tuple, list)) else output
+                            output[0]
+                            if isinstance(output, (tuple, list))
+                            else output
                         )
                 stage_timers.append(timer)
 
@@ -271,9 +350,9 @@ def main(argv: list[str] | None = None) -> None:
                     with DeviceStageTimer(
                         "grad_clip", accelerator.process_index, report_step
                     ) as timer:
-                        grad_params = _optimizer_parameters(optimizer)
                         accelerator.clip_grad_norm_(
-                            grad_params, cfg.optimizer.grad_clip_norm
+                            _optimizer_parameters(optimizer),
+                            cfg.optimizer.grad_clip_norm,
                         )
                     stage_timers.append(timer)
 
@@ -295,15 +374,17 @@ def main(argv: list[str] | None = None) -> None:
                 ) as timer:
                     optimizer.zero_grad(set_to_none=True)
                 stage_timers.append(timer)
-
                 did_step = accelerator.sync_gradients
-                if did_step and has_method(
-                    accelerator.unwrap_model(policy, keep_fp32_wrapper=True), "update"
-                ):
-                    accelerator.unwrap_model(policy, keep_fp32_wrapper=True).update()
+                unwrapped = accelerator.unwrap_model(
+                    policy, keep_fp32_wrapper=True
+                )
+                if did_step and has_method(unwrapped, "update"):
+                    unwrapped.update()
 
             pending = [
-                timer.pending for timer in stage_timers if timer.pending is not None
+                timer.pending
+                for timer in stage_timers
+                if timer.pending is not None
             ]
             pending.extend(instrument.pop_pending(report_step))
             resolved = resolve_pending(pending)
@@ -312,53 +393,112 @@ def main(argv: list[str] | None = None) -> None:
                     record.metadata.update(
                         {
                             "microstep": microstep,
-                            "optimizer_step": real_step,
+                            "optimizer_step": optimizer_step,
                             "sync_gradients": did_step,
                         }
                     )
                 records.extend(resolved)
             microstep += 1
-            if did_step:
-                real_step += 1
-    finally:
-        instrument.uninstall()
-        gpu = monitor.stop() if monitor is not None else []
 
-    accelerator.wait_for_everyone()
-    all_records = merge_rank_records(
-        _gather_object([record.to_dict() for record in records], accelerator)
-    )
-    gathered_gpu = _gather_object(gpu, accelerator)
-    if accelerator.is_main_process:
-        output_dir = resolve_output_dir(args.output_dir, exact=args.exact_output_dir)
+            if did_step:
+                optimizer_step += 1
+                phase_completed = (
+                    optimizer_step - args.warmup_steps
+                    if measured
+                    else optimizer_step
+                )
+                if progress.advance(phase_completed):
+                    path = snapshot()
+                    log_progress(
+                        accelerator,
+                        phase=progress.phase,
+                        completed=progress.completed,
+                        total=progress.total,
+                        last_elapsed_s=(
+                            time.perf_counter() - optimizer_step_began
+                        ),
+                        started=progress.started,
+                        path=path,
+                    )
+
+        if monitor is not None:
+            monitor.stop()
+
+        progress = PhaseProgress("local_finalize", 1, time.perf_counter())
+        progress.completed = 1
+        log_phase(accelerator, progress.phase)
+        snapshot(status="local_complete")
+
+        if not accelerator.is_main_process:
+            return
+
+        progress = PhaseProgress("filesystem_merge", 0, time.perf_counter())
+        log_phase(accelerator, progress.phase)
+        partials = load_local_complete_partials(
+            session.output_dir,
+            generation=session.generation,
+            world_size=session.world_size,
+            timeout_s=args.finalize_timeout,
+            poll_interval_s=args.finalize_poll_interval,
+        )
+        merged = merge_train_partials(partials)
+
+        progress = PhaseProgress("report", 0, time.perf_counter())
+        log_phase(accelerator, progress.phase)
+        metadata = {
+            "kind": "train",
+            "completion": "completed",
+            "world_size": accelerator.num_processes,
+            "config_path": args.config_path,
+            "output_dir": str(session.output_dir),
+            "generation": session.generation,
+            "warmup_optimizer_steps": args.warmup_steps,
+            "measure_optimizer_steps": args.measure_steps,
+            "gradient_accumulation_steps": (
+                cfg.gradient_accumulation_steps
+            ),
+            "measured_microsteps": sum(
+                1 for record in merged["records"] if record.stage == "forward"
+            ),
+            "memory_start": memory_start,
+            "memory_after_dataset": memory_after_dataset,
+            "memory_end": memory_snapshot(),
+            "monitor_errors": merged["monitor_errors"],
+            "compile_model": getattr(cfg.policy, "compile_model", None),
+            "gradient_checkpointing": getattr(
+                cfg.policy, "gradient_checkpointing", None
+            ),
+            "log_da3_teacher_timing": False,
+            "cuda_event_resolution": "once_per_microstep",
+        }
         summary = write_report(
-            output_dir,
-            all_records,
-            gpu_samples=[item for rows in gathered_gpu for item in rows],
+            session.output_dir,
+            merged["records"],
+            gpu_samples=merged["gpu_samples"],
+            metadata=metadata,
+        )
+        write_manifest(
+            session,
+            "completed",
             metadata={
-                "kind": "train",
-                "world_size": accelerator.num_processes,
-                "config_path": args.config_path,
-                "output_dir": str(output_dir),
-                "warmup_optimizer_steps": args.warmup_steps,
-                "measure_optimizer_steps": args.measure_steps,
-                "gradient_accumulation_steps": cfg.gradient_accumulation_steps,
-                "measured_microsteps": sum(
-                    1 for record in records if record.stage == "forward"
-                ),
-                "memory_start": memory_start,
-                "memory_after_dataset": memory_after_dataset,
-                "memory_end": memory_snapshot(),
-                "compile_model": getattr(cfg.policy, "compile_model", None),
-                "gradient_checkpointing": getattr(
-                    cfg.policy, "gradient_checkpointing", None
-                ),
-                "log_da3_teacher_timing": False,
-                "cuda_event_resolution": "once_per_microstep",
+                "record_count": len(merged["records"]),
+                "monitor_errors": merged["monitor_errors"],
             },
         )
-        print(f"输出目录: {output_dir}")
-        print(format_terminal_summary(summary))
+        log_phase(
+            accelerator,
+            "completed",
+            f"output={session.output_dir}",
+        )
+        print(format_terminal_summary(summary), flush=True)
+    except BaseException as exc:
+        record_failure(session, accelerator, exc, snapshot)
+        raise
+    finally:
+        if instrument is not None:
+            instrument.uninstall()
+        if monitor is not None:
+            monitor.stop()
 
 
 if __name__ == "__main__":

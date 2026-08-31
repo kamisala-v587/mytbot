@@ -80,6 +80,10 @@ from lerobot.utils.constants import HF_LEROBOT_HOME
 CODEBASE_VERSION = "v3.0"
 
 
+class BatchedVideoDecodeError(RuntimeError):
+    """A pre-transform batch decode failure that callers may safely retry item by item."""
+
+
 class LeRobotDatasetMetadata:
     def __init__(
         self,
@@ -1049,6 +1053,91 @@ class LeRobotDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return self.num_frames
+
+    def get_items(self, indices: list[int], *, batch_video_decode: bool = False) -> list[dict]:
+        """Return samples in request order, optionally coalescing video reads by file."""
+        if not batch_video_decode:
+            return [self[idx] for idx in indices]
+
+        self._ensure_hf_dataset_loaded()
+        prepared: list[dict] = []
+        video_groups: dict[Path, dict[str, list]] = {}
+        try:
+            for local_idx in indices:
+                item = self.hf_dataset[local_idx]
+                ep_idx = item["episode_index"].item()
+                expected_index = item["index"].item()
+                query_indices = None
+                if self.delta_indices is not None:
+                    query_indices, padding = self._get_query_indices(expected_index, ep_idx)
+                    item = {**item, **padding, **self._query_hf_dataset(query_indices)}
+
+                destinations: dict[str, tuple[Path, int, int]] = {}
+                if len(self.meta.video_keys) > 0:
+                    query_timestamps = self._get_query_timestamps(item["timestamp"].item(), query_indices)
+                    episode = self.meta.episodes[ep_idx]
+                    for video_key, timestamps in query_timestamps.items():
+                        video_path = self.root / self.meta.get_video_file_path(ep_idx, video_key)
+                        shifted = [episode[f"videos/{video_key}/from_timestamp"] + ts for ts in timestamps]
+                        group = video_groups.setdefault(video_path, {"timestamps": []})
+                        start = len(group["timestamps"])
+                        group["timestamps"].extend(shifted)
+                        destinations[video_key] = (video_path, start, len(shifted))
+                prepared.append(
+                    {
+                        "item": item,
+                        "local_idx": local_idx,
+                        "expected_index": expected_index,
+                        "destinations": destinations,
+                    }
+                )
+
+            decoded: dict[Path, torch.Tensor] = {}
+            for video_path, group in video_groups.items():
+                frames = decode_video_frames(
+                    video_path, group["timestamps"], self.tolerance_s, self.video_backend
+                )
+                if not isinstance(frames, torch.Tensor) or frames.ndim != 4:
+                    raise ValueError(f"Expected decoded [T,C,H,W] tensor for {video_path}, got {type(frames)!r}")
+                if frames.shape[0] != len(group["timestamps"]):
+                    raise ValueError(
+                        f"Decoded {frames.shape[0]} frames for {video_path}, expected {len(group['timestamps'])}"
+                    )
+                decoded[video_path] = frames
+
+            for entry in prepared:
+                video_frames = {}
+                for video_key, (video_path, start, count) in entry["destinations"].items():
+                    frames = decoded[video_path][start : start + count]
+                    if frames.shape[0] != count:
+                        raise ValueError(f"Could not split {count} frames for {video_key}")
+                    video_frames[video_key] = frames.squeeze(0)
+                entry["item"] = {**video_frames, **entry["item"]}
+                actual_index = entry["item"]["index"].item()
+                if actual_index != entry["expected_index"]:
+                    raise ValueError(
+                        f"Batch sample for local row {entry['local_idx']} has index={actual_index}, "
+                        f"expected {entry['expected_index']}"
+                    )
+                missing = set(self.meta.camera_keys).difference(entry["item"])
+                if missing:
+                    raise ValueError(f"Batch sample is missing camera keys: {sorted(missing)}")
+        except Exception as exc:
+            raise BatchedVideoDecodeError("Failed to prepare or decode batched video samples") from exc
+
+        results = []
+        for entry in prepared:
+            item = entry["item"]
+            if self.image_transforms is not None:
+                for camera_key in self.meta.camera_keys:
+                    if hasattr(self.image_transforms, "set_current_key"):
+                        self.image_transforms.set_current_key(camera_key)
+                    item[camera_key] = self.image_transforms(item[camera_key])
+            task_idx = item["task_index"].item()
+            item["task"] = self.meta.tasks.iloc[task_idx].name
+            item["robot_type"] = self.meta.robot_type
+            results.append(item)
+        return results
 
     def __getitem__(self, idx) -> dict:
         # Ensure dataset is loaded when we actually need to read from it

@@ -89,7 +89,7 @@ from lerobot.transforms.core_bp import (  # noqa: E402
 )
 from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE  # noqa: E402
 
-DEFAULT_MAPPING_PATH = MYTBOT_ROOT / ".config" / "bpva_task_bps.yml"
+DEFAULT_MAPPING_PATH = SCRIPT_DIR / "bpva_task_bps.yml"
 DEFAULT_QWEN3_VL_PATH = Path("/vla/workspace/models/Qwen3-VL-2B-Instruct")
 BP_PREFIX = "behavior_prompt"
 

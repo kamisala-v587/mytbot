@@ -104,6 +104,8 @@ class SystemMonitor:
         self.errors: list[str] = []
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._lock = threading.RLock()
+        self._stopped = False
 
     def start(self) -> "SystemMonitor":
         if self._thread is None:
@@ -113,11 +115,22 @@ class SystemMonitor:
             self._thread.start()
         return self
 
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {"samples": [dict(sample) for sample in self.samples], "errors": list(self.errors), "stopped": self._stopped}
+
+    @property
+    def stopped(self) -> bool:
+        return self._stopped
+
     def stop(self) -> list[dict[str, Any]]:
+        if self._stopped:
+            return self.snapshot()["samples"]
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout=max(2.0, self.interval_s * 2))
-        return self.samples
+        self._stopped = True
+        return self.snapshot()["samples"]
 
     def __enter__(self):
         return self.start()
@@ -149,10 +162,12 @@ class SystemMonitor:
                     if len(row) >= len(self.FIELDS):
                         sample = dict(zip(self.FIELDS, (item.strip() for item in row)))
                         sample["sample_time"] = time.time()
-                        self.samples.append(sample)
+                        with self._lock:
+                            self.samples.append(sample)
             except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
-                if not self.errors:
-                    self.errors.append(str(exc))
+                with self._lock:
+                    if not self.errors:
+                        self.errors.append(str(exc))
                 if isinstance(exc, OSError):
                     return
             self._stop.wait(self.interval_s)

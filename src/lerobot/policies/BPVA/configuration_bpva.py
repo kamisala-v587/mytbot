@@ -50,6 +50,7 @@ class BPVADatasetConfig(TBotSA1DatasetConfig):
     bp_num_chunks: int = 4
     bp_same_episode_policy: str = "avoid"
     bp_seed: int = 0
+    batch_prompt_video_decode: bool = False
     bp_camera_keys: list[str] = field(
         default_factory=lambda: [
             f"{OBS_IMAGES}.image0",
