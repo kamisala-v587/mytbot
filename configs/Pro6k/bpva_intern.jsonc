@@ -2,7 +2,7 @@
     "dataset": {
         "type": "bpva",
         "repo_id": "robotwin2.0",
-        "repo_id_file":"/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/robotwin_clean_ids.txt",
+        "repo_id_file":"/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/interndata.txt",
         "action_mode": "delta",
         "use_external_stats": false,
   //      "external_stats_path": "/vla/workspace/my_tbot/norm_stats/robotwin_delta/stats.json",
