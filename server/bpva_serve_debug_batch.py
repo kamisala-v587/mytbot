@@ -69,7 +69,7 @@ class DebugBatchedBPVAPolicyService(BatchedBPVAPolicyService):
 
 
 def main(args: DebugBatchBPVAServeArgs) -> None:
-    run_id = datetime.now().astimezone().strftime("%Y%m%d_% H%M%S_%f_%z")
+    run_id = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S_%f_%z")
     run_log_dir = args.bplogs_dir / run_id
     run_log_dir.mkdir(parents=True, exist_ok=False)
     logging.info("启动参数:\n%s", json.dumps(asdict(args.serve), indent=2, ensure_ascii=False))
