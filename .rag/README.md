@@ -1,6 +1,6 @@
 # my_tbot 机器人策略知识库索引与维护协议
 
-> 截至/最后核验：2026-08-19
+> 截至/最后核验：2026-09-01
 >
 > 时效与代码优先声明：本知识库是截至上述日期的快照。涉及本仓库行为时，当前可执行代码、实际配置与 checkpoint 元数据优先于本文；如代码与文档不符，以当前代码为准，并在同一变更中更新 `.rag/`。公开论文只用于解释来源设计，不能覆盖本地实现事实。
 
@@ -8,7 +8,7 @@
 
 1. `01-internvla-a1.md`：InternVLA-A1 的论文与官方实现基础，明确区分 InternVL/InternVL3 与 InternVLA-A1。
 2. `02-tbot-sa1-architecture.md`：官方 TBot-SA1 与本地 TBot 主干源码架构。
-3. `03-bpva-current-implementation.md`：BP 数据、训练采样、推理缓存、编码与主干连接的当前代码事实。
+3. `03-bpva-current-implementation.md`：BPVA v1 与新 BPVAv2 的数据、编码、共享 Qwen visual、动态相机及 checkpoint 边界。
 4. `04-bpva-assessment-roadmap.md`：优势、风险、消融矩阵与分优先级路线。
 5. `05-lineage-audit.md`：TBot / 本地 InternVLA_A1_3B / BPVA 的逐行同构与溯源边界。
 6. `06-internvla-evolution.md`：A1.5、M1、N1 的定位、关系与不可混淆边界。
@@ -47,4 +47,5 @@
 - 【代码事实】训练 BP 是同任务优先、默认尽量避开同 episode 的轨迹采样：`src/lerobot/datasets/behavior_prompt_dataset.py:232-256`。
 - 【代码事实】每个 BP 块由三相机当前帧、state 与未来 action chunk 构成：`src/lerobot/datasets/behavior_prompt_dataset.py:278-337`。
 - 【代码事实】推理按 `task_type` 查映射，确定性扫描并缓存首个可读 episode：`server/bpva_serve.py:272-295`。
-- 【代码事实】每块压成一个 2048 维 token，K 块接到当前 Qwen prefix 后：`src/lerobot/policies/BPVA/bp_transformer_obs_encoder.py:252-282`；`src/lerobot/policies/BPVA/modeling_bpva.py:1097-1147`。
+- 【代码事实】BPVA v1 保持 timm/三相机/五模态实现；BPVAv2 独立注册为 `bpvav2`，共享 Qwen visual 并完整保留逐图 tokens，以固定 policy 相机槽位、512D memory 和每 chunk 5 个 learned queries 压缩为 KQ 个 2048D prefix tokens：`src/lerobot/policies/BPVAv2/configuration_bpva.py`；`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`。
+- 【代码事实】BPVAv2 dataset 相机必须是 policy 固定槽位的非空子集；缺失槽位在 Qwen 后按统一 N 补零 tokens/false mask。checkpoint 仅在 `query_compressor_v1` 且关键结构完全匹配时加载 BP encoder，旧版本或其他来源仅复用兼容主干：`src/lerobot/datasets/factory.py`；`src/lerobot/policies/BPVAv2/modeling_bpva.py`。

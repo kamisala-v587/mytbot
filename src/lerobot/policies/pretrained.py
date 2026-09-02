@@ -17,6 +17,7 @@ import logging
 import os
 from importlib.resources import files
 from pathlib import Path
+from types import SimpleNamespace
 from tempfile import TemporaryDirectory
 from typing import TypedDict, TypeVar
 
@@ -138,6 +139,34 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
             )
         except FileNotFoundError:
             source_config = None
+        except Exception:
+            # A legacy checkpoint may contain fields removed from its current config dataclass.
+            # Preserve its raw top-level metadata so policy-specific compatibility code can
+            # deliberately skip incompatible modules instead of failing before weight loading.
+            source_config_file = Path(pretrained_name_or_path) / "config.json"
+            if not source_config_file.is_file():
+                try:
+                    source_config_file = Path(
+                        hf_hub_download(
+                            repo_id=str(pretrained_name_or_path),
+                            filename="config.json",
+                            revision=revision,
+                            cache_dir=cache_dir,
+                            force_download=force_download,
+                            proxies=proxies,
+                            resume_download=resume_download,
+                            token=token,
+                            local_files_only=local_files_only,
+                        )
+                    )
+                except HfHubHTTPError:
+                    raise
+            with source_config_file.open() as source_file:
+                raw_source_config = json.load(source_file)
+            source_config = SimpleNamespace(
+                **raw_source_config,
+                _serialized_keys=frozenset(raw_source_config),
+            )
 
         if config is None:
             config = PreTrainedConfig.from_pretrained(

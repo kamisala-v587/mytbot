@@ -1,32 +1,30 @@
 {
     "dataset": {
-        "type": "bpva",
+        "type": "bpvav2",
         "repo_id": "bpva_pretrain_data",
-        "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-data.txt",
+        "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain_data_forbp.txt",
+        //"repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-test.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/home/jovyan/workspace/mytbot/norm_stats",
         "use_imagenet_stats": true,
         "video_backend": "pyav",
-        "skip_video_file_validation": true, // 仅在确认本地视频完整时启用
+        "skip_video_file_validation": true,
+        "batch_prompt_video_decode": true,
         "streaming": false,
         "dist_loading": true,
         "weight_rules_path": "/home/jovyan/workspace/mytbot/configs/ds_ids/weight_rules.yaml",
-        "batch_prompt_video_decode": true, // 加速bp的视频解码
-
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
         "max_action_dim": 32,
-        "qwen3_vl_processor_path": "/home/jovyan/workspace/models/Qwen3-vl-2b-instruct", // 仅加载图像处理器和视觉 token 配置，不加载语言 tokenizer
+        "qwen3_vl_processor_path": "/home/jovyan/workspace/models/Qwen3-vl-2b-instruct",
 
-        "bp_num_chunks": 10, //所需action chunk 会根据policy配置动态修改
+        "bp_num_chunks": 8,
         "bp_same_episode_policy": "avoid",
         "bp_seed": 0,
         "bp_camera_keys": [
-            "observation.images.image0",
-            "observation.images.image1",
-            "observation.images.image2"
+            "observation.images.image0"
         ],
 
         "image_transforms": {
@@ -37,7 +35,8 @@
 
     "env": null,
     "policy": {
-        "type": "bpva",
+        "type": "bpvav2",
+        "pretrained_path": "/home/jovyan/workspace/models/bpvas/bpvav2_ftv1_20w_init",
         "push_to_hub": false,
         "device": null,
 
@@ -47,35 +46,31 @@
         "qwen3_vl_pretrained_path": "/home/jovyan/workspace/models/Qwen3-vl-2b-instruct",
 
         "n_obs_steps": 1,
-        "chunk_size": 50, // 模型预测步数
-        "n_action_steps": 50, // 对外返回步数，推理用
+        "chunk_size": 50,
+        "n_action_steps": 50,
         "max_state_dim": 32,
         "max_action_dim": 32,
         "attention_mask_mode": "default",
-
         "num_inference_steps": 10,
         "image_resolution": [224, 224],
         "image_delta_indices": [-15, 0, 15],
 
-        // BPVA 核心：BPObsEncoder 结构配置。保存/加载 checkpoint 时这些字段必须可复现。
-        "bp_num_chunks": 10,
+        // 以下 BP 字段决定 checkpoint 参数结构，不能随意改变，否则 pretrained 加载会结构不兼容。
+        "bp_num_chunks": 8,
         "bp_action_chunk_size": 50,
         "bp_camera_keys": [
-            "observation.images.image0",
-            "observation.images.image1",
-            "observation.images.image2"
+            "observation.images.image0"
         ],
-        "bp_vision_model_name": "vit_base_patch16_clip_224.openai",
-        "bp_vision_pretrained": true,
-        // 需先用 hf download 下载到以下稳定路径；路径非空时仅加载本地 checkpoint，禁止联网。
-        "bp_vision_checkpoint_path": "/home/jovyan/workspace/models/timm-vit_base_patch16_clip_224.openai/open_clip_model.safetensors",
-        "bp_token_dim": 768, // bp encoder 中间维度，后续统一为2048
-        "bp_image_feature_aggregation": "cls",
-        "bp_share_rgb_model": true,
-        "bp_use_vision_norm": true,
-        "bp_freeze_vision_encoder": false, 
-        "bp_use_action_step_embedding": true,
+        "bp_encoder_version": "query_compressor_v1",
+        "bp_freeze_shared_visual": true, // bp部分不更新qwenvl权重
+        "bp_compressor_dim": 512,
+        "bp_state_action_hidden_dim": 256,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
         "bp_use_modality_type_embedding": true,
+        "bp_use_camera_embedding": true,
         "bp_use_chunk_position_embedding": true,
 
         "normalization_mapping": {
@@ -84,21 +79,22 @@
             "ACTION": "IDENTITY"
         },
 
-        "gradient_checkpointing": false, 
+        "gradient_checkpointing": false,
         "freeze_vision_encoder": false,
         "train_expert_only": false,
         "train_vlm_only": false,
 
-        "optimizer_lr": 5e-5, 
+        "optimizer_lr": 5e-5, // 二次确认：pretrained_path 仅初始化权重，当前训练入口大概率不恢复优化器；请确认是否需要续接原 20w 全局 scheduler。
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 125,
-        "scheduler_decay_steps": 300000, 
-        "scheduler_decay_lr": 5e-5, 
+        "scheduler_warmup_steps": 2000, // 二次确认：scheduler 将从头计步；请确认是否仍需 2000 步 warmup。
+        "scheduler_decay_steps": 100000, // 二次确认：按本次 10w 新训练衰减；请确认是否希望续接原 20w 全局 scheduler。
+        "scheduler_decay_lr": 5e-5, // 二次确认：按新 scheduler 从 5e-5 衰减至 5e-6；请确认续训目标学习率。
 
         "scale_factor": 8,
+        // 本轮保留 Cosmos 2D 指导；3D query 架构继续保留以兼容并继承前 20w 权重，但 lambda_3d=0，因此 DA3 teacher 不加载、不前向。
         "lambda_gen": 0.01,
         "cosmos_tokenizer_path_or_name": "/home/jovyan/workspace/models/nvidia-cosmos-tokwnizer-ci8x8",
 
@@ -113,29 +109,29 @@
         "da3_query_dim": 2048,
         "da3_tokens_per_view": 1296,
         "da3_num_views": 3,
-        "lambda_3d": 0.01,
+        "lambda_3d": 0.0, // 不会加载 DA3 模型 不收集中间结果
+        // 当前 lambda_3d=0，以下 teacher 路径与蒸馏配置不参与运行，仅保留用于结构记录或以后恢复。
         "da3_model_path_or_name": "/home/jovyan/workspace/models/DA3-LARGE-1.1",
         "da3_code_root": "/home/jovyan/workspace/mytbot/third_party/Depth-Anything-3",
         "da3_teacher_process_res": 504,
         "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
         "log_da3_teacher_timing": true
-
-        // "mask_action_dim_padding_loss": true, // 截断计算loss
-        // "action_loss_valid_dim": 14 // 截断计算loss
     },
 
-    "output_dir": "outputs/BPVA/pretrain",
-    "job_name": "v0.1",
+    "output_dir": "outputs/BPVAv2/pretrain_v0.1",
+    "job_name": "pretrain-v0.1-20+10w",
+    // pretrained_path 用于权重初始化；resume=false 只表示不恢复训练状态，不等于随机初始化。
     "resume": false,
     "seed": 42,
-    "num_workers": 12,
-    "batch_size": 12,
+    "num_workers": 16,
+    // 二次确认：共享 Qwen visual + 8x BP chunks 的实际显存需首轮观察；OOM 时优先降低 batch_size 或启用 gradient checkpointing。
+    "batch_size": 16,
     "gradient_accumulation_steps": 1,
-    "steps": 300000,
-    "eval_freq": 100, 
-    "log_freq": 1, 
+    "steps": 100000,
+    "eval_freq": 1000,
+    "log_freq": 10,
     "save_checkpoint": true,
-    "save_freq": 5000, 
+    "save_freq": 5000,
     "use_policy_training_preset": true,
 
     "eval": {

@@ -23,8 +23,10 @@ accelerate launch --num_processes=8 -m lerobot.scripts.lerobot_train \
   --config_path=/home/jovyan/workspace/mytbot/configs/B200/pretrain_config.jsonc
 
 
-
 ### BPVA 训练脚本
 accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpva_config.jsonc
 
 accelerate launch --num_processes=4   -m lerobot.scripts.lerobot_train   --config_path=/vla/workspace/my_tbot/configs/Pro6k/bpva_sft_robotwin.jsonc
+
+### BPVA V2 训练脚本
+accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpvav2_pretrain_v0.1.jsonc

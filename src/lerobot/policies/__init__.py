@@ -23,6 +23,7 @@ _CONFIG_IMPORTS = {
     "QwenActionConfig": ".qwenaction.configuration_qwenaction",
     "TBotSA1Config": ".TBot_SA1.configuration_tbot_sa1",
     "BPVAConfig": ".BPVA.configuration_bpva",
+    "BPVAv2Config": ".BPVAv2.configuration_bpva",
     "FastWAMConfig": ".fastwam.configuration_fastwam",
     "TBotSA1WanConfig": ".TBot_SA1_Wan.configuration_tbot_sa1_wan",
     "PI0Config": ".pi0.configuration_pi0",

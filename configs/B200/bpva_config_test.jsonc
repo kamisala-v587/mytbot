@@ -2,18 +2,17 @@
     "dataset": {
         "type": "bpva",
         "repo_id": "bpva_pretrain_data",
-        "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-data.txt",
+        "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-test.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/home/jovyan/workspace/mytbot/norm_stats",
         "use_imagenet_stats": true,
         "video_backend": "pyav",
         "skip_video_file_validation": true, // 仅在确认本地视频完整时启用
+        "batch_prompt_video_decode": false, // 加速bp的视频解码
         "streaming": false,
         "dist_loading": true,
         "weight_rules_path": "/home/jovyan/workspace/mytbot/configs/ds_ids/weight_rules.yaml",
-        "batch_prompt_video_decode": true, // 加速bp的视频解码
-
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
@@ -124,14 +123,14 @@
         // "action_loss_valid_dim": 14 // 截断计算loss
     },
 
-    "output_dir": "outputs/BPVA/pretrain",
-    "job_name": "v0.1",
+    "output_dir": "outputs/BPVA/train",
+    "job_name": "test-batch-prompt-video-decode-off",
     "resume": false,
     "seed": 42,
     "num_workers": 12,
     "batch_size": 12,
     "gradient_accumulation_steps": 1,
-    "steps": 300000,
+    "steps": 200,
     "eval_freq": 100, 
     "log_freq": 1, 
     "save_checkpoint": true,

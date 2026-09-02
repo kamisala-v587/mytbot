@@ -569,6 +569,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         video_backend: str | None = None,
         batch_encoding_size: int = 1,
         parquet_columns: list[str] | None = None,
+        active_camera_keys: list[str] | None = None,
     ):
         """
         2 modes are available for instantiating this class, depending on 2 different use cases:
@@ -685,6 +686,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
                 Set to 1 for immediate encoding (default), or higher for batched encoding. Defaults to 1.
             parquet_columns (list[str] | None, optional): Restrict tabular Parquet loading to these columns.
                 Metadata and MP4 video decoding remain available through ``self.meta``. Defaults to all columns.
+            active_camera_keys (list[str] | None, optional): Restrict image/video validation, decoding, and
+                image transforms to these camera keys without mutating metadata. Defaults to all cameras.
         """
         super().__init__()
         self.repo_id = repo_id
@@ -699,6 +702,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         self.delta_indices = None
         self.batch_encoding_size = batch_encoding_size
         self.parquet_columns = list(parquet_columns) if parquet_columns is not None else None
+        self.active_camera_keys = list(active_camera_keys) if active_camera_keys is not None else None
         self.episodes_since_last_encoding = 0
 
         # Unused attributes
@@ -714,6 +718,12 @@ class LeRobotDataset(torch.utils.data.Dataset):
         self.meta = LeRobotDatasetMetadata(
             self.repo_id, self.root, self.revision, force_cache_sync=force_cache_sync
         )
+        if self.active_camera_keys is not None:
+            if not self.active_camera_keys or len(set(self.active_camera_keys)) != len(self.active_camera_keys):
+                raise ValueError("active_camera_keys must be non-empty and unique when provided")
+            unknown = set(self.active_camera_keys).difference(self.meta.camera_keys)
+            if unknown:
+                raise ValueError(f"active_camera_keys are absent from dataset metadata: {sorted(unknown)}")
 
         # Track dataset state for efficient incremental writing
         self._lazy_loading = False
@@ -831,26 +841,31 @@ class LeRobotDataset(torch.utils.data.Dataset):
         )
 
     def download(self, download_videos: bool = True) -> None:
-        """Downloads the dataset from the given 'repo_id' at the provided version. If 'episodes' is given, this
-        will only download those episodes (selected by their episode_index). If 'episodes' is None, the whole
-        dataset will be downloaded. Thanks to the behavior of snapshot_download, if the files are already present
-        in 'local_dir', they won't be downloaded again.
+        """Download the requested episodes and cameras from the dataset repository.
+
+        With default camera selection and ``episodes=None`` this preserves the original full-snapshot
+        behavior. With ``active_camera_keys`` it selects all requested data files, active videos, and metadata.
+        Existing files in ``local_dir`` are reused by ``snapshot_download``.
         """
         # TODO(rcadene, aliberts): implement faster transfer
         # https://huggingface.co/docs/huggingface_hub/en/guides/download#faster-downloads
         ignore_patterns = None if download_videos else "videos/"
         files = None
-        if self.episodes is not None:
+        if self.episodes is not None or self.active_camera_keys is not None:
             files = self.get_episodes_file_paths()
+            if self.active_camera_keys is not None:
+                # Metadata was loaded before this download, but include it so a selective
+                # snapshot remains self-contained if the local cache is incomplete.
+                files.append("meta/**")
         self.pull_from_repo(allow_patterns=files, ignore_patterns=ignore_patterns)
 
     def get_episodes_file_paths(self) -> list[Path]:
         episodes = self.episodes if self.episodes is not None else list(range(self.meta.total_episodes))
         fpaths = [str(self.meta.get_data_file_path(ep_idx)) for ep_idx in episodes]
-        if len(self.meta.video_keys) > 0:
+        if len(self.active_video_keys) > 0:
             video_files = [
                 str(self.meta.get_video_file_path(ep_idx, vid_key))
-                for vid_key in self.meta.video_keys
+                for vid_key in self.active_video_keys
                 for ep_idx in episodes
             ]
             fpaths += video_files
@@ -859,21 +874,40 @@ class LeRobotDataset(torch.utils.data.Dataset):
         return fpaths
 
     def load_hf_dataset(self) -> datasets.Dataset:
-        """Load tabular observations, optionally projecting a subset of Parquet columns."""
-        selected_features = self.features
-        if self.parquet_columns is not None:
-            selected_features = {
-                key: value for key, value in self.features.items() if key in self.parquet_columns
-            }
-            missing = set(self.parquet_columns).difference(selected_features)
-            if missing:
-                raise ValueError(f"Requested Parquet columns are absent from dataset features: {sorted(missing)}")
-        features = get_hf_features_from_features(selected_features)
+        """Load tabular observations, optionally projecting columns and active image cameras."""
+        # Preserve the original unprojected loading path: load_nested_dataset handles the full
+        # metadata feature schema, including v3 video features that are backed by MP4 files.
+        if self.parquet_columns is None and self.active_camera_keys is None:
+            features = get_hf_features_from_features(self.features)
+            effective_columns = None
+        else:
+            requested_columns = (
+                list(self.parquet_columns) if self.parquet_columns is not None else list(self.features)
+            )
+            if self.parquet_columns is not None:
+                missing = set(requested_columns).difference(self.features)
+                if missing:
+                    raise ValueError(
+                        f"Requested Parquet columns are absent from dataset features: {sorted(missing)}"
+                    )
+
+            # Video features are metadata/MP4-backed in LeRobot v3 and must never be passed
+            # as Parquet columns. Embedded image features remain tabular and are projected
+            # according to active_camera_keys.
+            effective_columns = [
+                key
+                for key in requested_columns
+                if key not in self.meta.video_keys
+                and (key not in self.meta.image_keys or key in self.active_image_keys)
+            ]
+            selected_features = {key: self.features[key] for key in effective_columns}
+            features = get_hf_features_from_features(selected_features)
+
         hf_dataset = load_nested_dataset(
             self.root / "data",
             features=features,
             episodes=self.episodes,
-            columns=self.parquet_columns,
+            columns=effective_columns,
         )
         hf_dataset.set_transform(hf_transform_to_torch)
         return hf_dataset
@@ -900,9 +934,9 @@ class LeRobotDataset(torch.utils.data.Dataset):
             return False
 
         # Check if all required video files exist unless explicitly skipped.
-        if not self.skip_video_file_validation and len(self.meta.video_keys) > 0:
+        if not self.skip_video_file_validation and len(self.active_video_keys) > 0:
             for ep_idx in requested_episodes:
-                for vid_key in self.meta.video_keys:
+                for vid_key in self.active_video_keys:
                     video_path = self.root / self.meta.get_video_file_path(ep_idx, vid_key)
                     if not video_path.exists():
                         return False
@@ -939,6 +973,20 @@ class LeRobotDataset(torch.utils.data.Dataset):
         return len(self.episodes) if self.episodes is not None else self.meta.total_episodes
 
     @property
+    def active_video_keys(self) -> list[str]:
+        keys = self.meta.video_keys
+        return keys if self.active_camera_keys is None else [key for key in keys if key in self.active_camera_keys]
+
+    @property
+    def active_image_keys(self) -> list[str]:
+        keys = self.meta.image_keys
+        return keys if self.active_camera_keys is None else [key for key in keys if key in self.active_camera_keys]
+
+    @property
+    def active_visual_keys(self) -> list[str]:
+        return self.meta.camera_keys if self.active_camera_keys is None else list(self.active_camera_keys)
+
+    @property
     def features(self) -> dict[str, dict]:
         return self.meta.features
 
@@ -954,15 +1002,20 @@ class LeRobotDataset(torch.utils.data.Dataset):
         ep = self.meta.episodes[ep_idx]
         ep_start = ep["dataset_from_index"]
         ep_end = ep["dataset_to_index"]
+        active_delta_indices = {
+            key: delta_idx
+            for key, delta_idx in self.delta_indices.items()
+            if key not in self.meta.camera_keys or key in self.active_visual_keys
+        }
         query_indices = {
             key: [max(ep_start, min(ep_end - 1, idx + delta)) for delta in delta_idx]
-            for key, delta_idx in self.delta_indices.items()
+            for key, delta_idx in active_delta_indices.items()
         }
         padding = {  # Pad values outside of current episode range
             f"{key}_is_pad": torch.BoolTensor(
                 [(idx + delta < ep_start) | (idx + delta >= ep_end) for delta in delta_idx]
             )
-            for key, delta_idx in self.delta_indices.items()
+            for key, delta_idx in active_delta_indices.items()
         }
         return query_indices, padding
 
@@ -972,7 +1025,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         query_indices: dict[str, list[int]] | None = None,
     ) -> dict[str, list[float]]:
         query_timestamps = {}
-        for key in self.meta.video_keys:
+        for key in self.active_video_keys:
             if query_indices is not None and key in query_indices:
                 if self._absolute_to_relative_idx is not None:
                     relative_indices = [self._absolute_to_relative_idx[idx] for idx in query_indices[key]]
@@ -999,7 +1052,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         """
         result: dict = {}
         for key, q_idx in query_indices.items():
-            if key in self.meta.video_keys:
+            if key in self.active_video_keys:
                 continue
             # Map absolute indices to relative indices if needed
             relative_indices = (
@@ -1065,6 +1118,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
         try:
             for local_idx in indices:
                 item = self.hf_dataset[local_idx]
+                if self.active_camera_keys is not None:
+                    item = {key: value for key, value in item.items() if key not in self.meta.camera_keys or key in self.active_visual_keys}
                 ep_idx = item["episode_index"].item()
                 expected_index = item["index"].item()
                 query_indices = None
@@ -1073,7 +1128,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
                     item = {**item, **padding, **self._query_hf_dataset(query_indices)}
 
                 destinations: dict[str, tuple[Path, int, int]] = {}
-                if len(self.meta.video_keys) > 0:
+                if len(self.active_video_keys) > 0:
                     query_timestamps = self._get_query_timestamps(item["timestamp"].item(), query_indices)
                     episode = self.meta.episodes[ep_idx]
                     for video_key, timestamps in query_timestamps.items():
@@ -1119,7 +1174,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
                         f"Batch sample for local row {entry['local_idx']} has index={actual_index}, "
                         f"expected {entry['expected_index']}"
                     )
-                missing = set(self.meta.camera_keys).difference(entry["item"])
+                missing = set(self.active_visual_keys).difference(entry["item"])
                 if missing:
                     raise ValueError(f"Batch sample is missing camera keys: {sorted(missing)}")
         except Exception as exc:
@@ -1129,7 +1184,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         for entry in prepared:
             item = entry["item"]
             if self.image_transforms is not None:
-                for camera_key in self.meta.camera_keys:
+                for camera_key in self.active_visual_keys:
                     if hasattr(self.image_transforms, "set_current_key"):
                         self.image_transforms.set_current_key(camera_key)
                     item[camera_key] = self.image_transforms(item[camera_key])
@@ -1143,6 +1198,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
         # Ensure dataset is loaded when we actually need to read from it
         self._ensure_hf_dataset_loaded()
         item = self.hf_dataset[idx]
+        if self.active_camera_keys is not None:
+            item = {key: value for key, value in item.items() if key not in self.meta.camera_keys or key in self.active_visual_keys}
         ep_idx = item["episode_index"].item()
 
         query_indices = None
@@ -1156,14 +1213,14 @@ class LeRobotDataset(torch.utils.data.Dataset):
             for key, val in query_result.items():
                 item[key] = val
 
-        if len(self.meta.video_keys) > 0:
+        if len(self.active_video_keys) > 0:
             current_ts = item["timestamp"].item()
             query_timestamps = self._get_query_timestamps(current_ts, query_indices)
             video_frames = self._query_videos(query_timestamps, ep_idx)
             item = {**video_frames, **item}
 
         if self.image_transforms is not None:
-            image_keys = self.meta.camera_keys
+            image_keys = self.active_visual_keys
             for cam in image_keys:
                 if hasattr(self.image_transforms, "set_current_key"):
                     self.image_transforms.set_current_key(cam)

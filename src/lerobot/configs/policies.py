@@ -215,6 +215,9 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):  # type: igno
             json.dump(config, f)
             config_file = f.name
 
+        serialized_keys = frozenset(config)
         cli_overrides = policy_kwargs.pop("cli_overrides", [])
         with draccus.config_type("json"):
-            return draccus.parse(orig_config.__class__, config_file, args=cli_overrides)
+            parsed_config = draccus.parse(orig_config.__class__, config_file, args=cli_overrides)
+        setattr(parsed_config, "_serialized_keys", serialized_keys)
+        return parsed_config

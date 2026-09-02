@@ -1,6 +1,6 @@
 # BPVA 当前实现
 
-> 截至/最后核验：2026-08-19
+> 截至/最后核验：2026-09-01
 >
 > 时效与代码优先声明：本文描述当前仓库静态代码。checkpoint、启动参数与数据可能改变实际行为；如与本文不符，以当前代码和实际运行配置为准，并更新本文；如代码与文档不符，以当前代码为准并更新本文。
 
@@ -54,3 +54,45 @@
 - 错：“BPVA 没有语言/VLM。” 正：当前变换不注入 instruction 文本，但 `task_type` 选择 BP，当前图像经 Qwen VLM 视觉编码，understanding expert 仍是 Qwen 模型。
 - 错：“BPVA 只训练 BP encoder。” 正：按当前 v3 配置，TBot 的 und/gen/act 与视觉、世界、动作路径仍参与训练；仅外部 Cosmos/DA3 teacher 与 BP ViT 有明确冻结。
 - 错：“训练和推理 prompt 选择一致。” 正：训练是同任务候选上的 seeded 随机选择；推理是映射数据集中首个可读 episode 的确定性缓存。
+
+## BPVAv2 Query Compressor（2026-09-01）
+
+- 【代码事实】`policy.bp_camera_keys` 定义训练后固定的相机槽位与顺序；`dataset.bp_camera_keys` 必须是其非空子集。数据集出现未知槽位会报错，子集会 warning；transform 仍只处理 active dataset keys，不生成空白图：`src/lerobot/datasets/factory.py:980-1000`；`src/lerobot/policies/BPVAv2/configuration_bpva.py:29-86`。
+- 【代码事实】每个 active 相机的 `[B,K,patches,patchdim]` 经共享 Qwen visual 编码，按 `grid.prod / spatial_merge_size²` 恢复每图完整 `[N,D_visual]` tokens；同一次 forward 的全部有效图必须有相同 N。编码器不再执行图内 mean 或跨相机 mean，也不配置固定 N：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`。
+- 【代码事实】视觉 tokens 逐 token 经 `LayerNorm + Linear(D_visual→512)`；state 每 chunk 由 `32→256→512 + LN` 形成 1 token，action 每 step 由同形 MLP 形成 T tokens并叠加 learned position。可选 visual/state/action type embedding 与固定 camera-slot embedding 默认开启：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`；`src/lerobot/policies/BPVAv2/configuration_bpva.py`。
+- 【代码事实】每 chunk memory 为 `[C*N + 1 + T,512]`。缺失 policy 相机槽位由 active 图像推导出的 N 个零 tokens 与 false mask 补齐；state availability、`action_is_pad` 与 image masks 决定有效性，embedding 后无效项再次清零。active chunk 若全部 memory 无效会明确报错，padding chunk 为避免 MHA 全 mask NaN 临时保留一个零 key，最终输出仍清零：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`。
+- 【代码事实】5 个 learned queries 经 2 层 pre-norm CrossSelfBlock：cross-attention(query,memory)、query self-attention、`512→2048→512` FFN，均为 residual；输出 `LN+Linear(512→2048)`，每 chunk 得到 `[5,2048]`：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`。
+- 【代码事实】K chunks 先得到 `[B,K,5,2048]`，按 chunk 加 learned position，再 flatten 为 `[B,K*5,2048]`；chunk mask 和 indices 各扩展 5 次，无效 chunk tokens 清零。model prefix 直接拼接 current Qwen tokens 与 KQ BP query tokens：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`；`src/lerobot/policies/BPVAv2/modeling_bpva.py:1086-1140`。
+- 【代码事实】`bp_freeze_shared_visual=true` 只让 BP 路径的 shared visual 调用处于 `no_grad`，projection、compressor 和 embeddings 仍训练；Qwen visual 仍只在主干注册一次：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py`；`src/lerobot/policies/BPVAv2/modeling_bpva.py`。
+- 【checkpoint 边界】新配置写入 `bp_encoder_version="query_compressor_v1"`。非 BPVAv2 来源与缺失/旧版本 BPVAv2 来源均跳过整个 BP encoder，只加载兼容主干；同版本仅在 camera keys、query/layer/head/compressor/hidden、action chunk、state/action max dims 全匹配时加载，否则抛 `ValueError`：`src/lerobot/policies/BPVAv2/modeling_bpva.py:2336-2560`。
+- 【配置事实】B200 示例固定 policy 三槽 `image0/1/2`，dataset 只 active `image0`，用于展示 Qwen 编码后两槽 zero-token/false-mask padding：`configs/B200/bpvav2_config_test.jsonc`。
+
+## BPVAv2 初始化 checkpoint 工具（2026-09-01）
+
+- 【代码事实】`--num-policy-camera-slots`（默认 3）决定 checkpoint 固定槽位，`--num-bp-cameras` 只决定随机输入 active 子集且必须不超过 slots；transform 只看到 active 图像字典，config 始终保留完整 policy slots：`tools/generate_bpvav2_init_checkpoint.py`。
+- 【代码事实】保存验证要求 `query_compressor_v1`，并检查 query tokens、state/action MLP、action position、compressor layers、output projection，以及启用时的 type/camera embedding 权重；仍拒绝 BP encoder 下重复保存 Qwen visual：`tools/generate_bpvav2_init_checkpoint.py`。
+- 【使用方式】`python tools/generate_bpvav2_init_checkpoint.py --tbot-checkpoint /path/to/tbot --output-root /path/to/output --qwen3-vl-dir /path/to/Qwen3-VL --cosmos-dir /path/to/Cosmos --num-policy-camera-slots 3 --num-bp-cameras 1`。
+- 【边界/历史记录】初始化 checkpoint 工具本身仍包含由用户显式执行的随机 forward 门禁；下节记录的是随后使用独立 smoke 工具完成的真实数据 schema/runtime 验证，不能回溯解释为该初始化工具的训练或质量验证。
+
+## BPVAv2 真实数据 schema/runtime smoke（2026-09-01）
+
+### 执行条件与结果
+
+- 【运行证据】在真实 repo `/share/RoboTwin-LeRobot-v3.0/beat_block_hammer/aloha-agilex_randomized_500` 上固定读取 current sample 0（episode 0、task_index 0）；数据映射后的真实 state/action 维度为 14/14，BP active 相机仅 canonical `observation.images.image0`。执行摘要为 `python tools/smoke_test_bpvav2.py --repo-id <上述repo> --sample-index 0 --skip-inference`，以及去掉 `--skip-inference` 并指定 `--num-inference-steps 1` 的 forward+inference 命令。smoke 工具的真实数据构建、样本选择和输出字段见 `tools/smoke_test_bpvav2.py:108-162`、`208-265`。
+- 【运行证据】实际运行配置为 BP K=4（来自 source config/default，而非 `configs/B200/bpvav2_config_test.jsonc` 中的示例 K=10）、action chunk=50、compressor dim=512、每 chunk 5 queries、2 层 compressor，`lambda_gen=0`、`lambda_3d=0`，inference step=1。对应 BPVAv2 默认结构定义见 `src/lerobot/policies/BPVAv2/configuration_bpva.py:102-116`；smoke 对 source config 的复制及 loss/inference 覆盖见 `tools/smoke_test_bpvav2.py:82-104`。
+- 【运行证据】TBot checkpoint `/home/jovyan/workspace/models/tbot-pretrain-v2` 中匹配 `model.bp_obs_encoder.*` 的 tensor 数为 0，因此本次 BP encoder 是随机初始化；其参数量为 10,835,456，参数统计 mean=0.000683585、std=0.0680857。checkpoint key 计数与参数统计实现见 `tools/smoke_test_bpvav2.py:189-194`、`222-249`。
+- 【运行证据】真实 forward 成功且 finite：总 loss/action loss 均为 0.548722，gen/3d loss 均为 0；1-step inference 成功且 finite，actions shape 为 `[1,50,14]`。finite 门禁和 forward/inference 调用见 `tools/smoke_test_bpvav2.py:203-205`、`251-265`。
+
+### 实际 shape trace
+
+- 【运行证据】processor BP pixels 为 `[1,4,256,1536]`，grid 为 `[1,4,3]`；Qwen visual concat 为 `[256,2048]`，即每 image `N=64`；projected active image 为 `[1,4,64,512]`。代码在 processor/Qwen/projection 边界记录这些 shape，并依据 grid 与 spatial merge 恢复每图 token 数：`src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py:285-365`。
+- 【运行证据】固定 policy camera slots 为 `[1,4,1,64,512]`；state tokens `[1,4,1,512]`，action tokens `[1,4,50,512]`，因此 chunk memory `[1,4,115,512]`。memory 的拼接和 trace 位置见 `src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py:193-242`。
+- 【运行证据】flatten 前 learned queries 为 `[4,5,512]`，compressor layer 0/1 输出均为 `[4,5,512]`；output projection 为 `[1,4,5,2048]`，最终 flattened tokens `[1,20,2048]`、mask `[1,20]`。query/layer/output trace 见 `src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py:256-269`，chunk position 与 flatten 见 `src/lerobot/policies/BPVAv2/bp_transformer_obs_encoder.py:460-500`。
+- 【代码事实】`tools/smoke_test_bpvav2.py` 是可复用的真实样本 smoke 入口，默认启用 shape trace，可选择跳过 inference，并显式检查 loss 与 actions 的 finite 性：`tools/smoke_test_bpvav2.py:32-52`、`203-265`。
+
+### 本次暴露的问题、warning 与证据边界
+
+- 【运行证据】初次真实执行暴露 `LeRobotDataset.active_camera_keys` 的 Parquet projection bug：MP4-backed video keys 被错误送入 Parquet columns。该问题已修复；投影路径现在明确排除 `meta.video_keys`，video frame 仍在后续 decode 阶段注入：`src/lerobot/datasets/lerobot_dataset.py:876-910`、`src/lerobot/datasets/lerobot_dataset.py:1069-1092`。
+- 【运行证据】两次单次环境观测耗时分别约 45.8 秒（forward-only）与 47.8 秒（forward + 1-step inference）。【边界】这些值没有 warmup、重复次数、同步/分段计时或环境控制，只能作为本次 smoke 的运行记录，不能作为性能 benchmark。
+- 【运行证据】加载时出现 missing tied `embed_tokens` weight warning，但本次 forward 与 inference 均成功且 finite。【边界】该 warning 尚待解释、当前为非阻断项；不能据此宣称 checkpoint 加载“完全无问题”。torchvision video deprecation/future warning 同样不是本次功能失败，但应在依赖升级时处理。
+- 【边界】这是一次真实数据的 schema/runtime smoke，仅证明该固定样本、配置和环境下数据路径、forward 与单步 inference 可运行且数值 finite；它不是训练效果、任务成功率或泛化能力证据。BP encoder 本次随机初始化且未训练，0.548722 loss 没有模型质量意义。

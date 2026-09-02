@@ -337,6 +337,54 @@ class ImgOnlyQwen3VLTransformFn(DataTransformFn):
         return data
 
 
+@DataTransformFn.register_subclass("bpvav2_remap_image_key")
+@dataclass
+class BPVAv2RemapImageKeyTransformFn(DataTransformFn):
+    """Remap and retain only the configured BPVAv2 cameras without legacy three-slot padding."""
+
+    mapping: dict[str, str] = field(default_factory=dict)
+    bp_camera_keys: list[str] = field(default_factory=lambda: [f"{OBS_IMAGES}.image0"])
+
+    def __call__(self, data: DataDict) -> DataDict:
+        prompt = data[BP_PREFIX]
+        remapped = {new: prompt["images"][old] for old, new in self.mapping.items() if old in prompt["images"]}
+        missing = [key for key in self.bp_camera_keys if key not in remapped]
+        if missing:
+            raise KeyError(f"BPVAv2 configured cameras are unavailable after remapping: {missing}")
+        prompt["images"] = {key: remapped[key] for key in self.bp_camera_keys}
+        prompt["image_masks"] = {
+            key: torch.ones(prompt["images"][key].shape[0], dtype=torch.bool, device=prompt["images"][key].device)
+            for key in self.bp_camera_keys
+        }
+        data[BP_PREFIX] = prompt
+        return data
+
+
+@DataTransformFn.register_subclass("bpvav2_qwen_image")
+@dataclass
+class BPVAv2QwenImageTransformFn(ImgOnlyQwen3VLTransformFn):
+    """Create fixed-shape Qwen pixel patches and per-image grids for each BP camera."""
+
+    def __call__(self, data: DataDict) -> DataDict:
+        self._ensure_image_processor()
+        prompt = data[BP_PREFIX]
+        processed_pixels: dict[str, torch.Tensor] = {}
+        processed_grids: dict[str, torch.Tensor] = {}
+        for key, images in prompt["images"].items():
+            outputs = self.image_processor(list(images), do_rescale=False)
+            grids = torch.as_tensor(outputs.image_grid_thw, dtype=torch.long)
+            pixels = torch.as_tensor(outputs.pixel_values)
+            patch_counts = grids.prod(dim=-1)
+            if not torch.all(patch_counts == patch_counts[0]):
+                raise ValueError(f"BPVAv2 requires fixed processed image shape within camera {key!r}")
+            processed_pixels[key] = pixels.reshape(images.shape[0], int(patch_counts[0]), pixels.shape[-1])
+            processed_grids[key] = grids
+        prompt["bp_pixel_values"] = processed_pixels
+        prompt["bp_image_grid_thw"] = processed_grids
+        data[BP_PREFIX] = prompt
+        return data
+
+
 @DataTransformFn.register_subclass("unify_bp_inputs")
 @dataclass
 class UnifyBPInputsTransformFn(DataTransformFn):
@@ -356,7 +404,7 @@ class UnifyBPInputsTransformFn(DataTransformFn):
             "action_is_pad": prompt["action_is_pad"],
             "images": prompt["images"],
         }
-        for optional_key in ("state_is_available", "image_masks"):
+        for optional_key in ("state_is_available", "image_masks", "bp_pixel_values", "bp_image_grid_thw"):
             if optional_key in prompt:
                 model_prompt[optional_key] = prompt[optional_key]
         data = {

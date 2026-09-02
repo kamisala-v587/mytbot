@@ -39,6 +39,8 @@ from lerobot.transforms.core_bp import (
     BPPadStateAndActionTransformFn,
     BPRemapImageKeyTransformFn,
     BPResizeImagesWithPadFn,
+    BPVAv2QwenImageTransformFn,
+    BPVAv2RemapImageKeyTransformFn,
     ImgOnlyQwen3VLTransformFn,
     UnifyBPInputsTransformFn,
 )
@@ -75,6 +77,7 @@ class BehaviorPromptConfig:
     bp_camera_keys: list[str] | None = None
     action_mode: str = ""
     batch_prompt_video_decode: bool = False
+    dynamic_bp_cameras: bool = False
 
     def __post_init__(self) -> None:
         if self.bp_camera_keys is None:
@@ -89,9 +92,13 @@ def _make_bpva_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTrans
     """构造 BPVA 数据变换链，不依赖 DatasetConfig 实例。"""
     transforms: list[DataTransformFn] = [
         # BP 分支：固定 K 个 chunk，并处理图像、状态和动作。
-        BPRemapImageKeyTransformFn(bp_camera_keys=list(prompt_cfg.bp_camera_keys or [])),
+        (BPVAv2RemapImageKeyTransformFn(bp_camera_keys=list(prompt_cfg.bp_camera_keys or []))
+         if prompt_cfg.dynamic_bp_cameras
+         else BPRemapImageKeyTransformFn(bp_camera_keys=list(prompt_cfg.bp_camera_keys or []))),
         BPPadOrSampleChunksFn(num_chunks=prompt_cfg.num_chunks),
         BPResizeImagesWithPadFn(height=prompt_cfg.height, width=prompt_cfg.width),
+        *( [BPVAv2QwenImageTransformFn(pretrained_model_name_or_path=prompt_cfg.qwen3_vl_processor_path)]
+           if prompt_cfg.dynamic_bp_cameras else [] ),
         BPComposeFieldsTransform(),
         BPDeltaActionTransformFn(),
         BPNormalizeTransformFn(),
@@ -199,7 +206,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 transforms[idx] = replace(transform, mapping=feature_mapping)
             elif isinstance(transform, BPDeltaActionTransformFn):
                 transforms[idx] = replace(transform, mask=get_mask_mapping(robot_type, current_ds.meta.features))
-            elif isinstance(transform, BPRemapImageKeyTransformFn):
+            elif isinstance(transform, (BPRemapImageKeyTransformFn, BPVAv2RemapImageKeyTransformFn)):
                 transforms[idx] = replace(transform, mapping=image_mapping)
 
         return cls(
@@ -532,12 +539,12 @@ class BehaviorPromptLeRobotDataset(Dataset):
                             f"Batch prompt sample for local row {local_idx} has index={actual_index}, "
                             f"expected {expected_index}"
                         )
-                    missing_cameras = set(self.prompt_ds.meta.camera_keys).difference(sample)
+                    missing_cameras = set(self.prompt_ds.active_visual_keys).difference(sample)
                     if missing_cameras:
                         raise ValueError(
                             f"Batch prompt sample is missing camera keys: {sorted(missing_cameras)}"
                         )
-        image_keys = list(self.prompt_ds.meta.camera_keys)
+        image_keys = list(self.prompt_ds.active_visual_keys)
         prompt_images = {
             key: torch.stack([sample[key] for sample in prompt_samples], dim=0)
             for key in image_keys
