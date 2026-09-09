@@ -155,3 +155,93 @@ def test_monitor_concurrent_snapshot(monkeypatch):
     thread.join(); monitor.stop()
     assert all("samples" in item and "errors" in item for item in snapshots)
     assert len(monitor.snapshot()["samples"]) == 100
+
+
+def test_recursive_strip_and_sample_batch_association():
+    import json
+    from tools.bpva_benchmark.data_instrumentation import (
+        BENCHMARK_METADATA_KEY,
+        sample_records_from_batch,
+        strip_benchmark_metadata,
+    )
+
+    metadata = {
+        "load_id": "load-1", "worker_id": 2, "pid": 42,
+        "start_ns": 100, "end_ns": 350, "elapsed_s": 2.5e-7,
+        "repo_id": "repo", "events": [],
+    }
+    batch = {
+        "x": torch.ones(1),
+        BENCHMARK_METADATA_KEY: [json.dumps(metadata)],
+        "nested": {"__benchmark_secret": 1, "keep": 2},
+    }
+    samples, workers = sample_records_from_batch(
+        batch, rank=3, step=7, optimizer_step=5, microstep=9
+    )
+    stripped = strip_benchmark_metadata(batch)
+
+    assert BENCHMARK_METADATA_KEY not in stripped
+    assert stripped["nested"] == {"keep": 2}
+    assert samples[0]["report_step"] == 7
+    assert samples[0]["delivery_rank"] == 3
+    assert workers == [{"worker_id": 2, "pid": 42, "elapsed_s": 2.5e-07,
+                        "sample_count": 1, "start_ns": 100, "end_ns": 350}]
+
+
+def test_context_and_backend_fallback_are_attributed():
+    import queue
+    from tools.bpva_benchmark.data_instrumentation import (
+        _backend_wrapper, _context_wrapper, _video_wrapper,
+    )
+
+    events = queue.Queue()
+    def torchcodec(*_args):
+        return "frames"
+    backend = _backend_wrapper(torchcodec, "torchcodec")
+    def decode(path, timestamps, tolerance, requested):
+        return backend(path, timestamps, tolerance)
+    wrapped = _context_wrapper(
+        _video_wrapper(decode, events, 1.0, 0.0, "decode_video_frames"),
+        "bp_prompt",
+    )
+
+    assert wrapped("v.mp4", [1.0], 0.01, "pyav") == "frames"
+    event = events.get_nowait()
+    assert event["context"] == "bp_prompt"
+    assert event["requested_backend"] == "pyav"
+    assert event["effective_backend"] == "torchcodec"
+    assert event["fallback"] is True
+
+
+def test_compose_worker_init_calls_original_first():
+    from tools.bpva_benchmark.data_instrumentation import compose_worker_init
+    calls = []
+    composed = compose_worker_init(lambda worker: calls.append(("original", worker)),
+                                   lambda worker: calls.append(("instrument", worker)))
+    composed(4)
+    assert calls == [("original", 4), ("instrument", 4)]
+
+
+def test_iterable_instrumentation_preserves_type_and_metadata():
+    import json
+    from torch.utils.data import DataLoader, IterableDataset
+    from tools.bpva_benchmark.data_instrumentation import (
+        BENCHMARK_METADATA_KEY,
+        InstrumentedIterableDataset,
+        wrap_dataset_for_instrumentation,
+    )
+
+    class Stream(IterableDataset):
+        repo_id = "stream/repo"
+        def __iter__(self):
+            yield {"value": torch.tensor(1)}
+            yield {"value": torch.tensor(2)}
+
+    wrapped = wrap_dataset_for_instrumentation(Stream())
+    assert isinstance(wrapped, InstrumentedIterableDataset)
+    assert isinstance(wrapped, IterableDataset)
+    batch = next(iter(DataLoader(wrapped, batch_size=2, num_workers=0)))
+    metadata = [json.loads(value) for value in batch[BENCHMARK_METADATA_KEY]]
+    assert batch["value"].tolist() == [1, 2]
+    assert [row["index"] for row in metadata] == [0, 1]
+    assert {row["repo_id"] for row in metadata} == {"stream/repo"}

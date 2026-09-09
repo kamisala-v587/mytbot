@@ -113,3 +113,35 @@ def merge_rank_records(
         for row in rows:
             merged.append(row if isinstance(row, StageRecord) else StageRecord(**row))
     return merged
+
+
+def aggregate_step_stragglers(
+    records: Iterable[StageRecord],
+    *,
+    stages: Sequence[str] = (
+        "microstep_wall", "optimizer_step_wall", "data_wait", "train_compute_wall"
+    ),
+) -> list[dict[str, Any]]:
+    """Aggregate equal report-step/stage rows across ranks without losing raw rows."""
+    grouped: dict[tuple[str, int], list[StageRecord]] = {}
+    allowed = set(stages)
+    for record in records:
+        if record.stage in allowed and record.step is not None:
+            grouped.setdefault((record.stage, record.step), []).append(record)
+    result = []
+    for (stage, step), rows in sorted(grouped.items()):
+        ordered = sorted(rows, key=lambda row: row.elapsed_s)
+        values = [row.elapsed_s for row in ordered]
+        maximum = ordered[-1]
+        median = percentile(values, 50)
+        result.append(_json_safe({
+            "stage": stage, "step": step, "rank_count": len(rows),
+            "rank_max_s": maximum.elapsed_s, "straggler_rank": maximum.rank,
+            "rank_median_s": median,
+            "rank_spread_s": maximum.elapsed_s - ordered[0].elapsed_s,
+            "max_over_median_s": maximum.elapsed_s - median if median is not None else None,
+            "optimizer_step": maximum.metadata.get("optimizer_step"),
+            "microstep": maximum.metadata.get("microstep"),
+            "ranks": [{"rank": row.rank, "elapsed_s": row.elapsed_s} for row in sorted(rows, key=lambda row: row.rank)],
+        }))
+    return result

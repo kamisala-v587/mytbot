@@ -32,14 +32,9 @@ from .train_benchmark import (
     nonnegative_int,
     positive_float,
     positive_int,
+    probability,
 )
 
-
-def probability(value: str) -> float:
-    parsed = float(value)
-    if not 0.0 <= parsed <= 1.0:
-        raise argparse.ArgumentTypeError("必须位于 [0, 1]")
-    return parsed
 
 
 def build_parser() -> argparse.ArgumentParser:

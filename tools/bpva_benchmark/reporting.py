@@ -406,13 +406,18 @@ def write_report(
     gpu_samples: Iterable[dict[str, Any]] = (),
     slow_samples: Iterable[dict[str, Any]] = (),
     slow_videos: Iterable[dict[str, Any]] = (),
+    sample_loads: Iterable[dict[str, Any]] = (),
+    step_stragglers: Iterable[dict[str, Any]] = (),
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     output = Path(output_dir)
     rows = list(records)
     gpu = list(gpu_samples)
+    samples = list(sample_loads)
+    stragglers = list(step_stragglers)
     summary = summarize_records(rows)
     summary["metadata"] = metadata or {}
+    summary["global_step_stragglers"] = stragglers
     atomic_json(output / "summary.json", summary)
 
     stage_rows = [record.to_dict() for record in rows]
@@ -435,9 +440,19 @@ def write_report(
 
     gpu_fields = sorted({key for row in gpu for key in row}) or ["sample_time", "index"]
     _atomic_text(output / "gpu_samples.csv", _csv_text(gpu, gpu_fields))
+    straggler_fields = sorted({key for row in stragglers for key in row}) or ["stage", "step"]
+    csv_stragglers = []
+    for row in stragglers:
+        row = dict(row)
+        if "ranks" in row:
+            row["ranks"] = json.dumps(row["ranks"], ensure_ascii=False, sort_keys=True)
+        csv_stragglers.append(row)
+    _atomic_text(output / "step_stragglers.csv", _csv_text(csv_stragglers, straggler_fields))
+    atomic_json(output / "step_stragglers.json", stragglers)
     for name, values in (
         ("slow_samples.jsonl", slow_samples),
         ("slow_videos.jsonl", slow_videos),
+        ("sample_loads.jsonl", samples),
     ):
         text = "".join(
             json.dumps(value, ensure_ascii=False, sort_keys=True, default=str) + "\n"

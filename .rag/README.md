@@ -1,6 +1,6 @@
 # my_tbot 机器人策略知识库索引与维护协议
 
-> 截至/最后核验：2026-09-01
+> 截至/最后核验：2026-09-03
 >
 > 时效与代码优先声明：本知识库是截至上述日期的快照。涉及本仓库行为时，当前可执行代码、实际配置与 checkpoint 元数据优先于本文；如代码与文档不符，以当前代码为准，并在同一变更中更新 `.rag/`。公开论文只用于解释来源设计，不能覆盖本地实现事实。
 
@@ -14,7 +14,8 @@
 6. `06-internvla-evolution.md`：A1.5、M1、N1 的定位、关系与不可混淆边界。
 7. `07-experiment-evidence.md`：用户实验原始值、证据边界与最小复现实验。
 8. [`07-session-handoff-2026-08-19.md`](07-session-handoff-2026-08-19.md)：本次会话截至 2026-08-19 的完整可恢复交接快照（不是实验结果）。
-9. `AI_PROMPT.md`：供后续 Agent 复制使用的短提示词。
+9. [`08-bpva-data-training-benchmark.md`](08-bpva-data-training-benchmark.md)：BPVA dataloader/训练性能事实、指标、缺口与四卡 A/B 协议。
+10. `AI_PROMPT.md`：供后续 Agent 复制使用的短提示词。
 
 ## 证据等级
 
@@ -41,6 +42,7 @@
 4. 新增公开资料优先级：论文/arXiv → 作者官方仓库/项目页 → 模型卡；二手文章只能作为线索。
 5. 评估结论必须记录数据划分、BP 来源 episode、task 映射、随机种子、checkpoint 与无/错配 BP 对照。
 6. 发现文档与代码冲突：以当前代码为准，先标记冲突，再立即更新滞后文档；不得通过修改模型源码来“迁就文档”。
+7. 涉及 dataloader、视频解码、训练吞吐、worker/rank 拖尾或 backend/cache 时，先读 `08-bpva-data-training-benchmark.md`；历史运行条件与当前配置快照必须分栏记录。
 
 ## 当前最重要的事实锚点
 

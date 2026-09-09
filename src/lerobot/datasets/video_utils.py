@@ -16,9 +16,12 @@
 import glob
 import importlib
 import logging
+import os
+import re
 import shutil
 import tempfile
 import warnings
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Lock
@@ -185,14 +188,41 @@ def decode_video_frames_torchvision(
 
 
 class VideoDecoderCache:
-    """Thread-safe cache for video decoders to avoid expensive re-initialization."""
+    """Thread-safe, bounded LRU cache for video decoders."""
 
-    def __init__(self):
-        self._cache: dict[str, tuple[Any, Any]] = {}
+    _CACHE_SIZE_ENV_VAR = "LEROBOT_TORCHCODEC_CACHE_SIZE"
+    _DEFAULT_MAX_SIZE = 4
+
+    def __init__(self, max_size: int | None = None):
+        """Create a cache, preferring an explicit limit over the environment."""
+        self._max_size = self._resolve_max_size(max_size)
+        self._cache: OrderedDict[str, tuple[Any, Any]] = OrderedDict()
         self._lock = Lock()
 
+    @classmethod
+    def _resolve_max_size(cls, max_size: int | None) -> int:
+        if max_size is not None:
+            if isinstance(max_size, bool) or not isinstance(max_size, int) or max_size <= 0:
+                raise ValueError(f"max_size must be an integer greater than 0; got {max_size!r}")
+            return max_size
+
+        raw_value = os.environ.get(cls._CACHE_SIZE_ENV_VAR)
+        if raw_value is None:
+            return cls._DEFAULT_MAX_SIZE
+        if re.fullmatch(r"[+-]?[0-9]+", raw_value) is None:
+            raise ValueError(
+                f"{cls._CACHE_SIZE_ENV_VAR} must be a decimal integer greater than 0; got {raw_value!r}"
+            )
+
+        value = int(raw_value, 10)
+        if value <= 0:
+            raise ValueError(
+                f"{cls._CACHE_SIZE_ENV_VAR} must be a decimal integer greater than 0; got {raw_value!r}"
+            )
+        return value
+
     def get_decoder(self, video_path: str):
-        """Get a cached decoder or create a new one."""
+        """Return a decoder and mark it as the most recently used entry."""
         if importlib.util.find_spec("torchcodec"):
             from torchcodec.decoders import VideoDecoder
         else:
@@ -201,20 +231,34 @@ class VideoDecoderCache:
         video_path = str(video_path)
 
         with self._lock:
-            if video_path not in self._cache:
-                file_handle = fsspec.open(video_path).__enter__()
-                # decoder = VideoDecoder(file_handle, seek_mode="approximate")
-                decoder = VideoDecoder(file_handle, seek_mode="exact")
-                self._cache[video_path] = (decoder, file_handle)
+            cached = self._cache.get(video_path)
+            if cached is not None:
+                self._cache.move_to_end(video_path)
+                return cached[0]
 
-            return self._cache[video_path][0]
+            file_handle = fsspec.open(video_path).__enter__()
+            try:
+                decoder = VideoDecoder(file_handle, seek_mode="exact")
+            except BaseException:
+                file_handle.close()
+                raise
+
+            self._cache[video_path] = (decoder, file_handle)
+            if len(self._cache) > self._max_size:
+                # The first entry is the least recently used one.
+                _, (evicted_decoder, evicted_file_handle) = self._cache.popitem(last=False)
+                evicted_file_handle.close()
+                del evicted_decoder
+
+            return decoder
 
     def clear(self):
-        """Clear the cache and close file handles."""
+        """Clear all entries and close their handles while holding the cache lock."""
         with self._lock:
-            for _, file_handle in self._cache.values():
+            while self._cache:
+                _, (decoder, file_handle) = self._cache.popitem(last=False)
                 file_handle.close()
-            self._cache.clear()
+                del decoder
 
     def size(self) -> int:
         """Return the number of cached decoders."""

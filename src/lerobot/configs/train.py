@@ -55,6 +55,8 @@ class TrainPipelineConfig(HubMixin):
     seed: int | None = 1000
     # Number of workers for the dataloader.
     num_workers: int = 4
+    # Keep PyTorch DataLoader batches in sampler order. Set false to allow workers to return ready batches first.
+    dataloader_in_order: bool = True
     batch_size: int = 8
     gradient_accumulation_steps: int = 1
     steps: int = 100_000

@@ -20,6 +20,9 @@ def test_output_schema(tmp_path):
         "gpu_samples.csv",
         "slow_samples.jsonl",
         "slow_videos.jsonl",
+        "sample_loads.jsonl",
+        "step_stragglers.csv",
+        "step_stragglers.json",
     }
     assert {p.name for p in tmp_path.iterdir()} == expected
     data = json.loads((tmp_path / "summary.json").read_text())

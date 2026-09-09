@@ -2,16 +2,29 @@
 
 from __future__ import annotations
 
+import contextvars
 import functools
 import heapq
+import itertools
+import json
 import multiprocessing as mp
 import os
 import queue
 import threading
 import time
+
+from torch.utils.data import IterableDataset
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
+
+
+BENCHMARK_PREFIX = "__benchmark_"
+BENCHMARK_METADATA_KEY = "__benchmark_metadata_json"
+_CONTEXT = contextvars.ContextVar("bpva_benchmark_context", default=())
+_SAMPLE_EVENTS = contextvars.ContextVar("bpva_benchmark_sample_events", default=None)
+_DECODE_CALL = contextvars.ContextVar("bpva_benchmark_decode_call", default=None)
+_LOAD_COUNTER = itertools.count()
 
 
 def _worker_id() -> int | None:
@@ -70,6 +83,51 @@ def _safe_index(value: Any) -> Any:
     return f"<{type(value).__name__}>"
 
 
+
+def _context_name() -> str:
+    stack = _CONTEXT.get()
+    return stack[-1] if stack else "unknown"
+
+
+def _context_wrapper(original: Callable[..., Any], context: str, *, only_if_empty: bool = False):
+    @functools.wraps(original)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        stack = _CONTEXT.get()
+        if only_if_empty and stack:
+            return original(*args, **kwargs)
+        token = _CONTEXT.set((*stack, context))
+        try:
+            return original(*args, **kwargs)
+        finally:
+            _CONTEXT.reset(token)
+
+    wrapped.__bpva_instrumented__ = True
+    return wrapped
+
+
+def _append_sample_event(event: dict[str, Any]) -> None:
+    events = _SAMPLE_EVENTS.get()
+    if events is not None:
+        events.append(dict(event))
+
+
+def _backend_wrapper(original: Callable[..., Any], backend_name: str):
+    @functools.wraps(original)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        call = _DECODE_CALL.get()
+        began = time.perf_counter()
+        try:
+            return original(*args, **kwargs)
+        finally:
+            if call is not None:
+                call.setdefault("backend_spans", []).append({
+                    "backend": backend_name, "elapsed_s": time.perf_counter() - began
+                })
+
+    wrapped.__bpva_instrumented__ = True
+    return wrapped
+
+
 def _dataset_wrapper(
     original: Callable[..., Any],
     event_queue: Any,
@@ -85,72 +143,180 @@ def _dataset_wrapper(
         finally:
             elapsed = time.perf_counter() - start
             if _sampled(sample_rate) or elapsed >= threshold_s:
-                _safe_put(
-                    event_queue,
-                    {
-                        "kind": "sample",
-                        "stage": stage,
-                        "elapsed_s": elapsed,
-                        "rank": _rank(),
-                        "worker_id": _worker_id(),
-                        "pid": os.getpid(),
-                        "index": _safe_index(args[0]) if args else None,
-                        "slow": elapsed >= threshold_s,
-                        **_extract_dataset_meta(self),
-                    },
-                )
+                event = {
+                    "kind": "sample", "stage": stage, "elapsed_s": elapsed,
+                    "rank": _rank(), "worker_id": _worker_id(), "pid": os.getpid(),
+                    "index": _safe_index(args[0]) if args else None,
+                    "slow": elapsed >= threshold_s, "context": _context_name(),
+                    **_extract_dataset_meta(self),
+                }
+                _append_sample_event(event)
+                _safe_put(event_queue, event)
 
     wrapped.__bpva_instrumented__ = True
     return wrapped
 
 
 def _video_wrapper(
-    original: Callable[..., Any],
-    event_queue: Any,
-    sample_rate: float,
-    threshold_s: float,
-    stage: str,
+    original: Callable[..., Any], event_queue: Any, sample_rate: float,
+    threshold_s: float, stage: str,
 ) -> Callable[..., Any]:
     @functools.wraps(original)
-    def wrapped(
-        video_path: Any,
-        timestamps: Any,
-        tolerance_s: Any,
-        backend: Any = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Any:
-        start = time.perf_counter()
+    def wrapped(video_path: Any, timestamps: Any, tolerance_s: Any, backend: Any = None,
+                *args: Any, **kwargs: Any) -> Any:
+        began = time.perf_counter()
+        call: dict[str, Any] = {"backend_spans": []}
+        token = _DECODE_CALL.set(call)
+        error = None
         try:
-            return original(
-                video_path, timestamps, tolerance_s, backend, *args, **kwargs
-            )
+            return original(video_path, timestamps, tolerance_s, backend, *args, **kwargs)
+        except BaseException as exc:
+            error = type(exc).__name__
+            raise
         finally:
-            elapsed = time.perf_counter() - start
+            _DECODE_CALL.reset(token)
+            elapsed = time.perf_counter() - began
+            spans = call["backend_spans"]
+            requested = str(backend)
+            event = {
+                "kind": "video", "stage": stage, "elapsed_s": elapsed,
+                "rank": _rank(), "worker_id": _worker_id(), "pid": os.getpid(),
+                "video_path": str(video_path), "requested_backend": requested,
+                "effective_backend": spans[-1]["backend"] if spans else requested,
+                "fallback": requested in {"pyav", "video_reader"} and any(
+                    span["backend"] == "torchcodec" for span in spans
+                ),
+                "backend_spans": spans, "timestamp_count": len(timestamps),
+                "slow": elapsed >= threshold_s, "error": error,
+                "context": _context_name(),
+            }
+            _append_sample_event(event)
             if _sampled(sample_rate) or elapsed >= threshold_s:
-                try:
-                    requested = [float(value) for value in timestamps]
-                except (TypeError, ValueError):
-                    requested = str(timestamps)
-                _safe_put(
-                    event_queue,
-                    {
-                        "kind": "video",
-                        "stage": stage,
-                        "elapsed_s": elapsed,
-                        "rank": _rank(),
-                        "worker_id": _worker_id(),
-                        "pid": os.getpid(),
-                        "video_path": str(video_path),
-                        "backend": str(backend),
-                        "requested_timestamps": requested,
-                        "slow": elapsed >= threshold_s,
-                        "capability": "whole_decode_call_only",
-                    },
-                )
+                _safe_put(event_queue, event)
 
     wrapped.__bpva_instrumented__ = True
     return wrapped
+
+
+def _instrument_sample(dataset: Any, sample_factory: Callable[[], Any], index: Any) -> Any:
+    start_ns = time.perf_counter_ns()
+    events: list[dict[str, Any]] = []
+    token = _SAMPLE_EVENTS.set(events)
+    try:
+        sample = sample_factory()
+    finally:
+        _SAMPLE_EVENTS.reset(token)
+    end_ns = time.perf_counter_ns()
+    sample = dict(sample) if isinstance(sample, dict) else {"sample": sample}
+    metadata = {
+        "load_id": f"r{_rank()}-p{os.getpid()}-{next(_LOAD_COUNTER)}",
+        "rank": _rank(), "worker_id": _worker_id(), "pid": os.getpid(),
+        "index": _safe_index(index),
+        "repo_id": _extract_dataset_meta(dataset)["repo_id"],
+        "start_ns": start_ns, "end_ns": end_ns,
+        "elapsed_s": (end_ns - start_ns) / 1e9, "events": events,
+    }
+    sample[BENCHMARK_METADATA_KEY] = json.dumps(metadata, separators=(",", ":"))
+    return sample
+
+
+class InstrumentedMapDataset:
+    """Return collatable metadata that can be assigned a step after next()."""
+
+    def __init__(self, dataset: Any):
+        self.dataset = dataset
+        for name in ("dataset_weights", "num_frames", "num_episodes", "meta", "datasets", "_lengths", "_cum_lengths"):
+            if hasattr(dataset, name):
+                setattr(self, name, getattr(dataset, name))
+
+    def __len__(self) -> int:
+        return len(self.dataset)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.dataset, name)
+
+    def __getitem__(self, index: Any) -> Any:
+        return _instrument_sample(self.dataset, lambda: self.dataset[index], index)
+
+
+class InstrumentedIterableDataset(IterableDataset):
+    """Preserve IterableDataset recognition and instrument each yielded sample."""
+
+    def __init__(self, dataset: IterableDataset):
+        super().__init__()
+        self.dataset = dataset
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.dataset, name)
+
+    def __iter__(self) -> Iterator[Any]:
+        iterator = iter(self.dataset)
+        sequence = 0
+        while True:
+            try:
+                yield _instrument_iterable_sample(self.dataset, iterator, sequence)
+            except StopIteration:
+                return
+            sequence += 1
+
+    def __len__(self) -> int:
+        length = getattr(self.dataset, "__len__", None)
+        if not callable(length):
+            raise TypeError(f"{type(self.dataset).__name__} has no length")
+        return len(self.dataset)
+
+
+def _iter_next(iterator: Iterator[Any]) -> Any:
+    return next(iterator)
+
+
+def _instrument_iterable_sample(dataset: Any, iterator: Iterator[Any], sequence: int) -> Any:
+    return _instrument_sample(dataset, lambda: _iter_next(iterator), sequence)
+
+
+def wrap_dataset_for_instrumentation(dataset: Any) -> Any:
+    if isinstance(dataset, IterableDataset):
+        return InstrumentedIterableDataset(dataset)
+    return InstrumentedMapDataset(dataset)
+
+
+def strip_benchmark_metadata(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: strip_benchmark_metadata(item) for key, item in value.items()
+                if not str(key).startswith(BENCHMARK_PREFIX)}
+    if isinstance(value, list):
+        return [strip_benchmark_metadata(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(strip_benchmark_metadata(item) for item in value)
+    return value
+
+
+def sample_records_from_batch(batch: Any, *, rank: int, step: int,
+                              optimizer_step: int, microstep: int):
+    if not isinstance(batch, dict) or BENCHMARK_METADATA_KEY not in batch:
+        return [], []
+    raw = batch[BENCHMARK_METADATA_KEY]
+    values = list(raw) if isinstance(raw, (list, tuple)) else [raw]
+    rows = []
+    for position, value in enumerate(values):
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        metadata = json.loads(value)
+        metadata.update({"report_step": step, "optimizer_step": optimizer_step,
+                         "microstep": microstep, "sample_in_batch": position,
+                         "delivery_rank": rank})
+        rows.append(metadata)
+    worker_rows = []
+    worker_ids = sorted({row.get("worker_id") for row in rows}, key=lambda x: -1 if x is None else x)
+    for worker_id in worker_ids:
+        group = [row for row in rows if row.get("worker_id") == worker_id]
+        start_ns = min(row["start_ns"] for row in group)
+        end_ns = max(row["end_ns"] for row in group)
+        worker_rows.append({"worker_id": worker_id, "pid": group[0].get("pid"),
+                            "elapsed_s": (end_ns - start_ns) / 1e9,
+                            "sample_count": len(group), "start_ns": start_ns,
+                            "end_ns": end_ns})
+    return rows, worker_rows
 
 
 class EventCollector:
@@ -298,24 +464,20 @@ class DataInstrumentation(AbstractContextManager):
         self._patch(
             BehaviorPromptLeRobotDataset,
             "_build_prompt",
-            lambda old: _dataset_wrapper(
-                old,
-                self.event_queue,
-                "bp_build_prompt",
-                self.sample_rate,
-                self.slow_sample_s,
-            ),
+            lambda old: _context_wrapper(_dataset_wrapper(
+                old, self.event_queue, "bp_build_prompt", self.sample_rate,
+                self.slow_sample_s), "bp_prompt"),
         )
         self._patch(
             LeRobotDataset,
             "__getitem__",
-            lambda old: _dataset_wrapper(
-                old,
-                self.event_queue,
-                "lerobot_getitem",
-                self.sample_rate,
-                self.slow_sample_s,
-            ),
+            lambda old: _context_wrapper(_dataset_wrapper(
+                old, self.event_queue, "lerobot_getitem", self.sample_rate,
+                self.slow_sample_s), "current_obs", only_if_empty=True),
+        )
+        self._patch(
+            LeRobotDataset, "_query_videos",
+            lambda old: _context_wrapper(old, "current_obs", only_if_empty=True),
         )
         if self.video:
             from lerobot.datasets import lerobot_dataset, video_utils
@@ -336,7 +498,8 @@ class DataInstrumentation(AbstractContextManager):
             )
             self._patch(video_utils, "decode_video_frames", whole)
             self._patch(lerobot_dataset, "decode_video_frames", whole)
-            self._patch(video_utils, "decode_video_frames_torchvision", torchvision)
+            self._patch(video_utils, "decode_video_frames_torchvision", lambda old: _backend_wrapper(old, "pyav"))
+            self._patch(video_utils, "decode_video_frames_torchcodec", lambda old: _backend_wrapper(old, "torchcodec"))
         return self
 
     def uninstall(self):
@@ -374,3 +537,19 @@ class WorkerInstrumentation:
             slow_video_s=self.slow_video_s,
             video=self.video,
         ).install()
+
+
+@dataclass
+class ComposedWorkerInit:
+    original: Callable[[int], None] | None
+    instrumentation: WorkerInstrumentation
+
+    def __call__(self, worker_id: int) -> None:
+        if self.original is not None:
+            self.original(worker_id)
+        self.instrumentation(worker_id)
+
+
+def compose_worker_init(original: Callable[[int], None] | None,
+                        instrumentation: WorkerInstrumentation) -> ComposedWorkerInit:
+    return ComposedWorkerInit(original, instrumentation)

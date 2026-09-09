@@ -844,9 +844,9 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor = 2 if cfg.num_workers > 0 else None
         worker_init_fn = None
 
-    dataloader = torch.utils.data.DataLoader(
-        dataset,
-        num_workers=num_workers, 
+    dataloader_kwargs = dict(
+        dataset=dataset,
+        num_workers=num_workers,
         batch_size=cfg.batch_size,
         shuffle=shuffle and not cfg.dataset.streaming,
         sampler=sampler,
@@ -855,6 +855,13 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor=prefetch_factor,
         worker_init_fn=worker_init_fn,
     )
+    if "in_order" not in inspect.signature(torch.utils.data.DataLoader).parameters:
+        if not cfg.dataloader_in_order:
+            raise RuntimeError("当前 PyTorch DataLoader 不支持 in_order=False；请升级 PyTorch")
+    else:
+        dataloader_kwargs["in_order"] = cfg.dataloader_in_order
+    logging.info("DataLoader in_order=%s", cfg.dataloader_in_order)
+    dataloader = torch.utils.data.DataLoader(**dataloader_kwargs)
 
     # Prepare everything with accelerator
     accelerator.wait_for_everyone()

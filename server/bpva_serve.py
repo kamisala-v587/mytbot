@@ -75,7 +75,7 @@ from serve_lerobot_policy import (  # noqa: E402
 from lerobot.configs.policies import PreTrainedConfig  # noqa: E402
 from lerobot.datasets.lerobot_dataset import LeRobotDataset, LeRobotDatasetMetadata  # noqa: E402
 from lerobot.policies.factory import get_policy_class  # noqa: E402
-from lerobot.policies.names import is_bpva  # noqa: E402
+from lerobot.policies.names import is_bpva, is_bpvav2  # noqa: E402
 from lerobot.transforms.constants import get_image_mapping, get_mask_mapping  # noqa: E402
 from lerobot.transforms.core import NormalizeTransformFn, ResizeImagesWithPadFn, UnNormalizeTransformFn  # noqa: E402
 from lerobot.transforms.core_bp import (  # noqa: E402
@@ -85,12 +85,17 @@ from lerobot.transforms.core_bp import (  # noqa: E402
     BPPadStateAndActionTransformFn,
     BPRemapImageKeyTransformFn,
     BPResizeImagesWithPadFn,
+    BPVAv2QwenImageTransformFn,
+    BPVAv2RemapImageKeyTransformFn,
     ImgOnlyQwen3VLTransformFn,
 )
 from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE  # noqa: E402
 
 DEFAULT_MAPPING_PATH = SCRIPT_DIR / "bpva_task_bps.yml"
 DEFAULT_QWEN3_VL_PATH = Path("/vla/workspace/models/Qwen3-VL-2B-Instruct")
+DEFAULT_COSMOS_TOKENIZER_PATH = Path("/vla/workspace/models/Cosmos-Tokenizer-CI8x8")
+DEFAULT_DA3_MODEL_PATH = Path("/vla/workspace/models/DA3-LARGE-1.1")
+DEFAULT_DA3_CODE_ROOT = MYTBOT_ROOT / "third_party" / "Depth-Anything-3"
 BP_PREFIX = "behavior_prompt"
 
 
@@ -330,13 +335,21 @@ class BehaviorPromptCache:
         }
         data = {BP_PREFIX: prompt}
         image_mapping = get_image_mapping(dataset.meta.robot_type, dataset.meta.features)
-        data = BPRemapImageKeyTransformFn(
+        remap_cls = BPVAv2RemapImageKeyTransformFn if is_bpvav2(getattr(self.config, "type", None)) else BPRemapImageKeyTransformFn
+        data = remap_cls(
             mapping=image_mapping,
             bp_camera_keys=list(getattr(self.config, "bp_camera_keys")),
         )(data)
         data = BPPadOrSampleChunksFn(num_chunks=int(getattr(self.config, "bp_num_chunks")))(data)
         height, width = tuple(getattr(self.config, "image_resolution", (224, 224)))
         data = BPResizeImagesWithPadFn(height=int(height), width=int(width))(data)
+        if is_bpvav2(getattr(self.config, "type", None)):
+            processor_path = (
+                getattr(self.config, "qwen3_vl_processor_path", None)
+                or getattr(self.config, "qwen3_vl_pretrained_path", None)
+                or str(DEFAULT_QWEN3_VL_PATH)
+            )
+            data = BPVAv2QwenImageTransformFn(pretrained_model_name_or_path=processor_path)(data)
         if self.action_mode == "delta":
             mask = get_mask_mapping(dataset.meta.robot_type, dataset.meta.features)
             data = BPDeltaActionTransformFn(mask=mask)(data)
@@ -378,8 +391,8 @@ class BPVAPolicyService(TBotSA1PolicyService):
         self.ckpt_dir = resolve_ckpt_dir(args.ckpt_path)
         self.train_cfg = load_train_config_or_none(self.ckpt_dir)
         self.config = PreTrainedConfig.from_pretrained(self.ckpt_dir)
-        if not is_bpva(self.config.type):
-            raise ValueError(f"当前脚本仅支持 BPVA，checkpoint type={self.config.type!r}。")
+        if not (is_bpva(self.config.type) or is_bpvav2(self.config.type)):
+            raise ValueError(f"当前脚本仅支持 BPVA/BPVAv2，checkpoint type={self.config.type!r}。")
         self._apply_runtime_overrides()
         # 完整 BPVA checkpoint 已包含 BP ViT 权重。构造模型时禁止 timm 再从
         # Hugging Face 下载初始化权重；from_pretrained 随后会恢复 checkpoint 权重。
@@ -488,6 +501,54 @@ class BPVAPolicyService(TBotSA1PolicyService):
             self.action_mode,
             len(sources),
         )
+
+    def _apply_runtime_overrides(self) -> None:
+        super()._apply_runtime_overrides()
+        self._normalize_local_model_paths()
+
+    def _normalize_local_model_paths(self) -> None:
+        """Map checkpoints trained under /home/jovyan/workspace to this machine."""
+        defaults = {
+            "qwen3_vl_pretrained_path": str(DEFAULT_QWEN3_VL_PATH),
+            "qwen3_vl_processor_path": str(DEFAULT_QWEN3_VL_PATH),
+            "cosmos_tokenizer_path_or_name": str(DEFAULT_COSMOS_TOKENIZER_PATH),
+            "da3_model_path_or_name": str(DEFAULT_DA3_MODEL_PATH),
+            "da3_code_root": str(DEFAULT_DA3_CODE_ROOT),
+        }
+        explicit = {
+            "qwen3_vl_pretrained_path": self.args.qwen3_vl_pretrained_path,
+            "qwen3_vl_processor_path": self.args.qwen3_vl_processor_path,
+            "cosmos_tokenizer_path_or_name": self.args.cosmos_tokenizer_path_or_name,
+            "da3_model_path_or_name": self.args.da3_model_path_or_name,
+            "da3_code_root": self.args.da3_code_root,
+        }
+        for attr, default in defaults.items():
+            if explicit[attr] or not hasattr(self.config, attr):
+                continue
+            value = getattr(self.config, attr, None)
+            if not isinstance(value, str) or not value:
+                continue
+            candidate = Path(value).expanduser()
+            if candidate.exists():
+                continue
+            replacement = self._remap_known_local_path(value, default)
+            if replacement is None:
+                continue
+            setattr(self.config, attr, replacement)
+            logging.info("运行时修正 %s: %s -> %s", attr, value, replacement)
+
+    @staticmethod
+    def _remap_known_local_path(value: str, default: str) -> str | None:
+        prefixes = ("/home/jovyan/workspace/mytbot", "/home/jovyan/workspace")
+        replacements = (str(MYTBOT_ROOT), "/vla/workspace")
+        for prefix, replacement_prefix in zip(prefixes, replacements, strict=True):
+            if value.startswith(prefix):
+                candidate = replacement_prefix + value[len(prefix):]
+                if Path(candidate).expanduser().exists():
+                    return candidate
+        if Path(default).expanduser().exists():
+            return default
+        return None
 
     def _resolve_task_type(self, obs: dict[str, Any]) -> str:
         task_type = obs.get("task_type")

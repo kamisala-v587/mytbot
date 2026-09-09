@@ -34,8 +34,10 @@ def make_dataset(rows, episodes, *, image_transforms=None):
     dataset.tolerance_s = 0.002
     dataset.video_backend = 'fake'
     dataset.image_transforms = image_transforms
+    dataset.active_camera_keys = None
     dataset.meta = SimpleNamespace(
         video_keys=['camera'],
+        image_keys=[],
         camera_keys=['camera'],
         episodes=episodes,
         tasks=pd.DataFrame(index=['task-zero']),
@@ -143,6 +145,7 @@ class PromptDataset:
         self.meta = SimpleNamespace(
             camera_keys=['camera'], robot_type='egodex_v', features={}
         )
+        self.active_visual_keys = ['camera']
         self.hf_dataset = FakeHFDataset([row(10, 3, 0.0), row(11, 3, 1.0)])
 
     def get_items(self, indices, *, batch_video_decode=False):
