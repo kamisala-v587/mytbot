@@ -37,7 +37,8 @@ from tqdm import tqdm
 from lerobot.configs import parser
 from lerobot.configs.train import TrainPipelineConfig
 from lerobot.datasets.factory import make_dataset
-from lerobot.datasets.sampler import MultiLeRobotWeightedSampler
+from lerobot.datasets.sampler import MultiLeRobotHomogeneousBatchSampler, MultiLeRobotWeightedSampler
+from lerobot.datasets.transformed_dataset import MultiLeRobotDataset
 from lerobot.datasets.utils import cycle, load_json, write_json
 from lerobot.optim.factory import make_optimizer_and_scheduler
 from lerobot.policies.factory import make_policy
@@ -808,6 +809,21 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
 
     # create dataloader for offline training
     fastwam_train_sampler = None
+    batch_sampler = None
+    homogeneous_batch = bool(getattr(cfg.dataset, "homogeneous_batch", False))
+    if homogeneous_batch:
+        if cfg.dataset.streaming:
+            raise ValueError("dataset.homogeneous_batch=True requires streaming=False")
+        if _is_fastwam_policy_type(cfg.policy.type):
+            raise ValueError(
+                "dataset.homogeneous_batch is not supported for FastWAM / TBot_SA1_Wan policies yet"
+            )
+        if not isinstance(dataset, MultiLeRobotDataset):
+            logging.info(
+                "dataset.homogeneous_batch=True ignored: current dataset is not MultiLeRobotDataset"
+            )
+            homogeneous_batch = False
+
     if _is_fastwam_policy_type(cfg.policy.type):
         fastwam_module = _fastwam_policy_module(cfg.policy.type)
         ResumableEpochSampler = import_module(
@@ -825,6 +841,20 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor = 2 if cfg.num_workers > 0 else None
         worker_init_fn = fastwam_worker_init_fn
         fastwam_train_sampler = sampler
+    elif homogeneous_batch:
+        shuffle = False
+        sampler = None
+        batch_sampler = MultiLeRobotHomogeneousBatchSampler(
+            dataset=dataset,
+            batch_size=cfg.batch_size,
+        )
+        num_workers = cfg.num_workers
+        prefetch_factor = 2 if cfg.num_workers > 0 else None
+        worker_init_fn = None
+        logging.info(
+            "Using MultiLeRobotHomogeneousBatchSampler (one source per batch), batch_size=%d",
+            cfg.batch_size,
+        )
     elif not cfg.dataset.streaming and hasattr(dataset, "dataset_weights") and dataset.dataset_weights is not None:
         shuffle = False
         sampler = MultiLeRobotWeightedSampler(dataset=dataset)
@@ -844,17 +874,28 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor = 2 if cfg.num_workers > 0 else None
         worker_init_fn = None
 
-    dataloader_kwargs = dict(
-        dataset=dataset,
-        num_workers=num_workers,
-        batch_size=cfg.batch_size,
-        shuffle=shuffle and not cfg.dataset.streaming,
-        sampler=sampler,
-        pin_memory=device.type == "cuda",
-        drop_last=False,
-        prefetch_factor=prefetch_factor,
-        worker_init_fn=worker_init_fn,
-    )
+    if batch_sampler is not None:
+        # batch_sampler is mutually exclusive with batch_size / shuffle / sampler / drop_last
+        dataloader_kwargs = dict(
+            dataset=dataset,
+            num_workers=num_workers,
+            batch_sampler=batch_sampler,
+            pin_memory=device.type == "cuda",
+            prefetch_factor=prefetch_factor,
+            worker_init_fn=worker_init_fn,
+        )
+    else:
+        dataloader_kwargs = dict(
+            dataset=dataset,
+            num_workers=num_workers,
+            batch_size=cfg.batch_size,
+            shuffle=shuffle and not cfg.dataset.streaming,
+            sampler=sampler,
+            pin_memory=device.type == "cuda",
+            drop_last=False,
+            prefetch_factor=prefetch_factor,
+            worker_init_fn=worker_init_fn,
+        )
     if "in_order" not in inspect.signature(torch.utils.data.DataLoader).parameters:
         if not cfg.dataloader_in_order:
             raise RuntimeError("当前 PyTorch DataLoader 不支持 in_order=False；请升级 PyTorch")

@@ -87,7 +87,8 @@ from tqdm import tqdm
 from lerobot.configs import parser
 from lerobot.configs.train import TrainPipelineConfig
 from lerobot.datasets.factory import make_dataset
-from lerobot.datasets.sampler import MultiLeRobotWeightedSampler
+from lerobot.datasets.sampler import MultiLeRobotHomogeneousBatchSampler, MultiLeRobotWeightedSampler
+from lerobot.datasets.transformed_dataset import MultiLeRobotDataset
 from lerobot.datasets.utils import cycle
 from lerobot.optim.factory import make_optimizer_and_scheduler
 from lerobot.policies.factory import make_policy
@@ -312,9 +313,29 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         logging.info("steps=%s, num_frames=%s, effective_batch_size=%s", cfg.steps, num_frames, effective_bs)
         logging.info("policy:\n%s", policy)
 
-    # --- 6. DataLoader：预训练用 MultiLeRobotWeightedSampler ---
-    # 【已删分支】streaming / shuffle=True / FastWAM ResumableEpochSampler
-    if hasattr(dataset, "dataset_weights") and dataset.dataset_weights is not None:
+    # --- 6. DataLoader：预训练用加权采样；homogeneous_batch 时每 batch 单一数据源 ---
+    # 【已删分支】streaming / FastWAM ResumableEpochSampler
+    batch_sampler = None
+    homogeneous_batch = bool(getattr(cfg.dataset, "homogeneous_batch", False))
+    if homogeneous_batch:
+        if not isinstance(dataset, MultiLeRobotDataset):
+            logging.info(
+                "dataset.homogeneous_batch=True ignored: current dataset is not MultiLeRobotDataset"
+            )
+            homogeneous_batch = False
+
+    if homogeneous_batch:
+        sampler = None
+        shuffle = False
+        batch_sampler = MultiLeRobotHomogeneousBatchSampler(
+            dataset=dataset,
+            batch_size=cfg.batch_size,
+        )
+        logging.info(
+            "Using MultiLeRobotHomogeneousBatchSampler (one source per batch), batch_size=%d",
+            cfg.batch_size,
+        )
+    elif hasattr(dataset, "dataset_weights") and dataset.dataset_weights is not None:
         sampler = MultiLeRobotWeightedSampler(dataset=dataset)
         shuffle = False
     else:
@@ -322,16 +343,25 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         sampler = None
         shuffle = True
 
-    dataloader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=cfg.batch_size,
-        shuffle=shuffle,
-        sampler=sampler,
-        num_workers=cfg.num_workers,
-        pin_memory=device.type == "cuda",
-        drop_last=False,
-        prefetch_factor=2 if cfg.num_workers > 0 else None,
-    )
+    if batch_sampler is not None:
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_sampler=batch_sampler,
+            num_workers=cfg.num_workers,
+            pin_memory=device.type == "cuda",
+            prefetch_factor=2 if cfg.num_workers > 0 else None,
+        )
+    else:
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=cfg.batch_size,
+            shuffle=shuffle,
+            sampler=sampler,
+            num_workers=cfg.num_workers,
+            pin_memory=device.type == "cuda",
+            drop_last=False,
+            prefetch_factor=2 if cfg.num_workers > 0 else None,
+        )
 
     # dist_loading 时不 prepare dataloader（各 rank 独立读）
     accelerator.wait_for_everyone()

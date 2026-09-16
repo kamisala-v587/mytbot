@@ -410,12 +410,17 @@ def write_report(
     step_stragglers: Iterable[dict[str, Any]] = (),
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    from .metrics import derive_bp_compressor_estimates
+
     output = Path(output_dir)
-    rows = list(records)
+    base_rows = [
+        record for record in records if record.stage != "bp_compressor_est"
+    ]
+    rows = base_rows + derive_bp_compressor_estimates(base_rows)
     gpu = list(gpu_samples)
     samples = list(sample_loads)
     stragglers = list(step_stragglers)
-    summary = summarize_records(rows)
+    summary = summarize_records(base_rows)
     summary["metadata"] = metadata or {}
     summary["global_step_stragglers"] = stragglers
     atomic_json(output / "summary.json", summary)
@@ -463,18 +468,62 @@ def write_report(
 
 
 def format_terminal_summary(summary: dict[str, Any]) -> str:
+    metadata = summary.get("metadata") or {}
+    dataset_count = metadata.get("dataset_count")
+    total_frames = metadata.get("total_frames")
     lines = [
         f"记录数: {summary.get('record_count', 0)}",
-        "阶段耗时（mean / p95 / max）:",
     ]
+    if dataset_count is not None or total_frames is not None:
+        frames_text = f"{total_frames:,}" if isinstance(total_frames, int) else total_frames
+        lines.append(
+            f"数据集总个数: {dataset_count if dataset_count is not None else '-'}  "
+            f"数据集总帧数: {frames_text if frames_text is not None else '-'}"
+        )
+    lines.append("阶段耗时（mean / p95 / max；有 device 时附 CUDA mean）:")
 
     def format_seconds(value: float | None) -> str:
         return "-" if value is None else f"{value:.4f}s"
 
     for row in summary.get("bottlenecks", []):
+        device = row.get("device") or {}
+        device_mean = device.get("mean_s")
+        suffix = (
+            f" | cuda_mean={format_seconds(device_mean)}"
+            if device_mean is not None
+            else ""
+        )
         lines.append(
             f"  {row['stage']}: {format_seconds(row.get('mean_s'))} / "
             f"{format_seconds(row.get('p95_s'))} / "
-            f"{format_seconds(row.get('max_s'))}"
+            f"{format_seconds(row.get('max_s'))}{suffix}"
         )
+
+    attribution = summary.get("bp_attribution") or {}
+    proof_order = (
+        "data_wait",
+        "forward",
+        "method.embed_prefix",
+        "qwen_visual_current",
+        "bp_encoder",
+        "bp_visual_encode",
+        "bp_qwen_visual",
+        "bp_compressor_est",
+    )
+    if any(attribution.get(key) for key in proof_order):
+        lines.append(
+            "视觉/BP 归因（TBot 看 embed_prefix/qwen_visual；BPVA 再看 bp_visual_encode）:"
+        )
+        for key in proof_order:
+            row = attribution.get(key)
+            if not row:
+                continue
+            lines.append(
+                f"  {row['stage']}: cpu_mean={format_seconds(row.get('mean_s'))} "
+                f"cuda_mean={format_seconds(row.get('device_mean_s'))} "
+                f"cuda_p95={format_seconds(row.get('device_p95_s'))}"
+            )
+        note = attribution.get("interpretation")
+        if note:
+            lines.append(f"  判定: {note}")
     return "\n".join(lines)

@@ -1,0 +1,892 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/adjust_bottle/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-29f3a72a4bca",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/adjust_bottle/aloha-agilex_randomized_500",
+    "info_sha256": "45e138ef241fe62d215085fb2dc5e839417abfaaf769f1abc64ef17e186e2f75",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782787106676103675
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 12029,
+        "mtime_ns": 1782787106675103675
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 392389,
+        "mtime_ns": 1782787106680103676
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/adjust_bottle/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/adjust_bottle/aloha-agilex_randomized_500",
+      "info_sha256": "45e138ef241fe62d215085fb2dc5e839417abfaaf769f1abc64ef17e186e2f75",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782787106676103675
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 12029,
+          "mtime_ns": 1782787106675103675
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 392389,
+          "mtime_ns": 1782787106680103676
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "ddd2b6e266a5f416c108d3c6ae6702650668921e02b01b13910abc4fb7b7ba29"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 11,
+      "tasks": [
+        "Grab the hand-sized soda bottle and lift it into a head-up position"
+      ]
+    },
+    {
+      "episode": 13,
+      "tasks": [
+        "Pick the bottle with ridges near base head-up using the right arm"
+      ]
+    },
+    {
+      "episode": 23,
+      "tasks": [
+        "Pick up the narrow-necked bottle upright from the table"
+      ]
+    },
+    {
+      "episode": 27,
+      "tasks": [
+        "Use the left arm to pick the red-capped bottle up and keep it head-up."
+      ]
+    },
+    {
+      "episode": 32,
+      "tasks": [
+        "Pick the bottle with ridges near base head-up and hold it steady."
+      ]
+    },
+    {
+      "episode": 44,
+      "tasks": [
+        "Lift the red-capped bottle from the table without mentioning the arm."
+      ]
+    },
+    {
+      "episode": 45,
+      "tasks": [
+        "Lift the medium-sized green bottle using the left arm and hold upright"
+      ]
+    },
+    {
+      "episode": 54,
+      "tasks": [
+        "Take the medium green bottle with capped neck from the table and keep upright"
+      ]
+    },
+    {
+      "episode": 60,
+      "tasks": [
+        "Lift the Coca-Cola bottle from the table upright"
+      ]
+    },
+    {
+      "episode": 62,
+      "tasks": [
+        "Lift the bottle with rounded neck from the table with the right arm"
+      ]
+    },
+    {
+      "episode": 64,
+      "tasks": [
+        "Pick the medium-sized green bottle head-up using the right arm"
+      ]
+    },
+    {
+      "episode": 66,
+      "tasks": [
+        "Grab the red-capped bottle and lift it upward from the table."
+      ]
+    },
+    {
+      "episode": 71,
+      "tasks": [
+        "Lift the Coca-Cola bottle using the right arm and hold upright"
+      ]
+    },
+    {
+      "episode": 87,
+      "tasks": [
+        "Grab the bottle with white printed label from the table and hold it head-up."
+      ]
+    },
+    {
+      "episode": 110,
+      "tasks": [
+        "Hold the long thin bottle upright after lifting with the right arm"
+      ]
+    },
+    {
+      "episode": 113,
+      "tasks": [
+        "Pick the dark drink bottle with logo up with the left arm ensuring it stays head-up."
+      ]
+    },
+    {
+      "episode": 118,
+      "tasks": [
+        "Use the right arm to pick up the smooth green bottle from the table."
+      ]
+    },
+    {
+      "episode": 127,
+      "tasks": [
+        "Lift the plastic drink bottle from the table without mentioning the arm."
+      ]
+    },
+    {
+      "episode": 128,
+      "tasks": [
+        "Lift the dark drink bottle with logo head-up from the table"
+      ]
+    },
+    {
+      "episode": 155,
+      "tasks": [
+        "Use the left arm to lift the smooth bottle with red lid head-up"
+      ]
+    },
+    {
+      "episode": 158,
+      "tasks": [
+        "Grab the dark drink bottle with logo from the table and hold it head-up."
+      ]
+    },
+    {
+      "episode": 163,
+      "tasks": [
+        "Carefully grab the medium dark brown bottle head-up"
+      ]
+    },
+    {
+      "episode": 169,
+      "tasks": [
+        "Identify the narrow-necked bottle and grab it with the left arm"
+      ]
+    },
+    {
+      "episode": 176,
+      "tasks": [
+        "Lift the handheld green bottle head-up from the table"
+      ]
+    },
+    {
+      "episode": 180,
+      "tasks": [
+        "Lift the smooth bottle with red lid from the table without mentioning the arm."
+      ]
+    },
+    {
+      "episode": 197,
+      "tasks": [
+        "Pick the red-capped bottle and keep it upright"
+      ]
+    },
+    {
+      "episode": 202,
+      "tasks": [
+        "Pick up the medium dark brown bottle from the table using the right arm."
+      ]
+    },
+    {
+      "episode": 210,
+      "tasks": [
+        "Use the left arm to pick up the medium dark brown bottle in the correct orientation"
+      ]
+    },
+    {
+      "episode": 236,
+      "tasks": [
+        "Pick the bottle with ridges on bottom upright from the table"
+      ]
+    },
+    {
+      "episode": 237,
+      "tasks": [
+        "Lift the narrow-necked bottle using the left arm and hold upright"
+      ]
+    },
+    {
+      "episode": 264,
+      "tasks": [
+        "Grab the smooth bottle with red lid and lift it upward from the table."
+      ]
+    },
+    {
+      "episode": 270,
+      "tasks": [
+        "Grab the bottle with white neck and red top and lift it upward from the table."
+      ]
+    },
+    {
+      "episode": 280,
+      "tasks": [
+        "Lift the bottle with rounded neck head-up from the table"
+      ]
+    },
+    {
+      "episode": 288,
+      "tasks": [
+        "Grab the plastic bottle head-up using the right arm from the table."
+      ]
+    },
+    {
+      "episode": 303,
+      "tasks": [
+        "Pick the narrow-necked bottle and keep it upright"
+      ]
+    },
+    {
+      "episode": 304,
+      "tasks": [
+        "Use the left arm to pick up the narrow-necked bottle from the table."
+      ]
+    },
+    {
+      "episode": 306,
+      "tasks": [
+        "Lift the bottle with white printed label from the table without mentioning the arm."
+      ]
+    },
+    {
+      "episode": 315,
+      "tasks": [
+        "Raise the bottle with rounded neck from the table using the correct arm, the right arm."
+      ]
+    },
+    {
+      "episode": 319,
+      "tasks": [
+        "Carefully grab the plastic drink bottle head-up"
+      ]
+    },
+    {
+      "episode": 330,
+      "tasks": [
+        "Grab the dark drink bottle with logo from the table with the left arm"
+      ]
+    },
+    {
+      "episode": 365,
+      "tasks": [
+        "Take the smooth bottle with red lid from the table and keep upright"
+      ]
+    },
+    {
+      "episode": 370,
+      "tasks": [
+        "Lift the medium green bottle with capped neck from the table with the right arm"
+      ]
+    },
+    {
+      "episode": 385,
+      "tasks": [
+        "Hold the plastic bottle upright after lifting with the right arm"
+      ]
+    },
+    {
+      "episode": 420,
+      "tasks": [
+        "Lift the dark drink bottle with logo ensuring it remains upright."
+      ]
+    },
+    {
+      "episode": 422,
+      "tasks": [
+        "Use the right arm to pick the brown bottle with red label up and keep it head-up."
+      ]
+    },
+    {
+      "episode": 436,
+      "tasks": [
+        "Hold the medium green bottle with capped neck upright after lifting with the right arm"
+      ]
+    },
+    {
+      "episode": 451,
+      "tasks": [
+        "Grab the dark drink bottle with logo and lift it upright"
+      ]
+    },
+    {
+      "episode": 453,
+      "tasks": [
+        "Grab the narrow-necked bottle from the table and hold it head-up."
+      ]
+    },
+    {
+      "episode": 455,
+      "tasks": [
+        "Raise the smooth green bottle from the table using the correct arm, the right arm."
+      ]
+    },
+    {
+      "episode": 479,
+      "tasks": [
+        "Grab the smooth bottle with red lid from the table with the left arm"
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Carefully grab the medium dark brown bottle head-up": [
+      163
+    ],
+    "Carefully grab the plastic drink bottle head-up": [
+      319
+    ],
+    "Grab the bottle with white neck and red top and lift it upward from the table.": [
+      270
+    ],
+    "Grab the bottle with white printed label from the table and hold it head-up.": [
+      87
+    ],
+    "Grab the dark drink bottle with logo and lift it upright": [
+      451
+    ],
+    "Grab the dark drink bottle with logo from the table and hold it head-up.": [
+      158
+    ],
+    "Grab the dark drink bottle with logo from the table with the left arm": [
+      330
+    ],
+    "Grab the hand-sized soda bottle and lift it into a head-up position": [
+      11
+    ],
+    "Grab the narrow-necked bottle from the table and hold it head-up.": [
+      453
+    ],
+    "Grab the plastic bottle head-up using the right arm from the table.": [
+      288
+    ],
+    "Grab the red-capped bottle and lift it upward from the table.": [
+      66
+    ],
+    "Grab the smooth bottle with red lid and lift it upward from the table.": [
+      264
+    ],
+    "Grab the smooth bottle with red lid from the table with the left arm": [
+      479
+    ],
+    "Hold the long thin bottle upright after lifting with the right arm": [
+      110
+    ],
+    "Hold the medium green bottle with capped neck upright after lifting with the right arm": [
+      436
+    ],
+    "Hold the plastic bottle upright after lifting with the right arm": [
+      385
+    ],
+    "Identify the narrow-necked bottle and grab it with the left arm": [
+      169
+    ],
+    "Lift the Coca-Cola bottle from the table upright": [
+      60
+    ],
+    "Lift the Coca-Cola bottle using the right arm and hold upright": [
+      71
+    ],
+    "Lift the bottle with rounded neck from the table with the right arm": [
+      62
+    ],
+    "Lift the bottle with rounded neck head-up from the table": [
+      280
+    ],
+    "Lift the bottle with white printed label from the table without mentioning the arm.": [
+      306
+    ],
+    "Lift the dark drink bottle with logo ensuring it remains upright.": [
+      420
+    ],
+    "Lift the dark drink bottle with logo head-up from the table": [
+      128
+    ],
+    "Lift the handheld green bottle head-up from the table": [
+      176
+    ],
+    "Lift the medium green bottle with capped neck from the table with the right arm": [
+      370
+    ],
+    "Lift the medium-sized green bottle using the left arm and hold upright": [
+      45
+    ],
+    "Lift the narrow-necked bottle using the left arm and hold upright": [
+      237
+    ],
+    "Lift the plastic drink bottle from the table without mentioning the arm.": [
+      127
+    ],
+    "Lift the red-capped bottle from the table without mentioning the arm.": [
+      44
+    ],
+    "Lift the smooth bottle with red lid from the table without mentioning the arm.": [
+      180
+    ],
+    "Pick the bottle with ridges near base head-up and hold it steady.": [
+      32
+    ],
+    "Pick the bottle with ridges near base head-up using the right arm": [
+      13
+    ],
+    "Pick the bottle with ridges on bottom upright from the table": [
+      236
+    ],
+    "Pick the dark drink bottle with logo up with the left arm ensuring it stays head-up.": [
+      113
+    ],
+    "Pick the medium-sized green bottle head-up using the right arm": [
+      64
+    ],
+    "Pick the narrow-necked bottle and keep it upright": [
+      303
+    ],
+    "Pick the red-capped bottle and keep it upright": [
+      197
+    ],
+    "Pick up the medium dark brown bottle from the table using the right arm.": [
+      202
+    ],
+    "Pick up the narrow-necked bottle upright from the table": [
+      23
+    ],
+    "Raise the bottle with rounded neck from the table using the correct arm, the right arm.": [
+      315
+    ],
+    "Raise the smooth green bottle from the table using the correct arm, the right arm.": [
+      455
+    ],
+    "Take the medium green bottle with capped neck from the table and keep upright": [
+      54
+    ],
+    "Take the smooth bottle with red lid from the table and keep upright": [
+      365
+    ],
+    "Use the left arm to lift the smooth bottle with red lid head-up": [
+      155
+    ],
+    "Use the left arm to pick the red-capped bottle up and keep it head-up.": [
+      27
+    ],
+    "Use the left arm to pick up the medium dark brown bottle in the correct orientation": [
+      210
+    ],
+    "Use the left arm to pick up the narrow-necked bottle from the table.": [
+      304
+    ],
+    "Use the right arm to pick the brown bottle with red label up and keep it head-up.": [
+      422
+    ],
+    "Use the right arm to pick up the smooth green bottle from the table.": [
+      118
+    ]
+  },
+  "source_to_cache_episode": {
+    "11": 0,
+    "13": 1,
+    "23": 2,
+    "27": 3,
+    "32": 4,
+    "44": 5,
+    "45": 6,
+    "54": 7,
+    "60": 8,
+    "62": 9,
+    "64": 10,
+    "66": 11,
+    "71": 12,
+    "87": 13,
+    "110": 14,
+    "113": 15,
+    "118": 16,
+    "127": 17,
+    "128": 18,
+    "155": 19,
+    "158": 20,
+    "163": 21,
+    "169": 22,
+    "176": 23,
+    "180": 24,
+    "197": 25,
+    "202": 26,
+    "210": 27,
+    "236": 28,
+    "237": 29,
+    "264": 30,
+    "270": 31,
+    "280": 32,
+    "288": 33,
+    "303": 34,
+    "304": 35,
+    "306": 36,
+    "315": 37,
+    "319": 38,
+    "330": 39,
+    "365": 40,
+    "370": 41,
+    "385": 42,
+    "420": 43,
+    "422": 44,
+    "436": 45,
+    "451": 46,
+    "453": 47,
+    "455": 48,
+    "479": 49
+  },
+  "source_to_cache_task": {
+    "10": 0,
+    "11": 1,
+    "13": 2,
+    "23": 3,
+    "27": 4,
+    "32": 5,
+    "43": 6,
+    "44": 7,
+    "53": 8,
+    "59": 9,
+    "61": 10,
+    "63": 11,
+    "65": 12,
+    "70": 13,
+    "76": 14,
+    "80": 15,
+    "84": 16,
+    "94": 17,
+    "106": 18,
+    "109": 19,
+    "111": 20,
+    "114": 21,
+    "121": 22,
+    "122": 23,
+    "146": 24,
+    "149": 25,
+    "154": 26,
+    "160": 27,
+    "165": 28,
+    "168": 29,
+    "179": 30,
+    "183": 31,
+    "209": 32,
+    "212": 33,
+    "219": 34,
+    "233": 35,
+    "243": 36,
+    "247": 37,
+    "252": 38,
+    "264": 39,
+    "274": 40,
+    "278": 41,
+    "286": 42,
+    "314": 43,
+    "316": 44,
+    "328": 45,
+    "368": 46,
+    "378": 47,
+    "380": 48,
+    "400": 49
+  },
+  "source_task_names": {
+    "10": "Use the right arm to pick the brown bottle with red label up and keep it head-up.",
+    "11": "Grab the hand-sized soda bottle and lift it into a head-up position",
+    "13": "Pick the bottle with ridges near base head-up using the right arm",
+    "23": "Pick up the narrow-necked bottle upright from the table",
+    "27": "Use the left arm to pick the red-capped bottle up and keep it head-up.",
+    "32": "Pick the bottle with ridges near base head-up and hold it steady.",
+    "43": "Lift the red-capped bottle from the table without mentioning the arm.",
+    "44": "Lift the medium-sized green bottle using the left arm and hold upright",
+    "53": "Take the medium green bottle with capped neck from the table and keep upright",
+    "59": "Lift the Coca-Cola bottle from the table upright",
+    "61": "Lift the bottle with rounded neck from the table with the right arm",
+    "63": "Pick the medium-sized green bottle head-up using the right arm",
+    "65": "Grab the red-capped bottle and lift it upward from the table.",
+    "70": "Lift the Coca-Cola bottle using the right arm and hold upright",
+    "76": "Pick the bottle with ridges on bottom upright from the table",
+    "80": "Raise the smooth green bottle from the table using the correct arm, the right arm.",
+    "84": "Grab the bottle with white printed label from the table and hold it head-up.",
+    "94": "Lift the dark drink bottle with logo ensuring it remains upright.",
+    "106": "Hold the long thin bottle upright after lifting with the right arm",
+    "109": "Pick the dark drink bottle with logo up with the left arm ensuring it stays head-up.",
+    "111": "Use the left arm to pick up the medium dark brown bottle in the correct orientation",
+    "114": "Use the right arm to pick up the smooth green bottle from the table.",
+    "121": "Lift the plastic drink bottle from the table without mentioning the arm.",
+    "122": "Lift the dark drink bottle with logo head-up from the table",
+    "146": "Use the left arm to lift the smooth bottle with red lid head-up",
+    "149": "Grab the dark drink bottle with logo from the table and hold it head-up.",
+    "154": "Carefully grab the medium dark brown bottle head-up",
+    "160": "Identify the narrow-necked bottle and grab it with the left arm",
+    "165": "Lift the handheld green bottle head-up from the table",
+    "168": "Lift the smooth bottle with red lid from the table without mentioning the arm.",
+    "179": "Pick the red-capped bottle and keep it upright",
+    "183": "Pick up the medium dark brown bottle from the table using the right arm.",
+    "209": "Lift the narrow-necked bottle using the left arm and hold upright",
+    "212": "Grab the bottle with white neck and red top and lift it upward from the table.",
+    "219": "Lift the bottle with white printed label from the table without mentioning the arm.",
+    "233": "Grab the smooth bottle with red lid and lift it upward from the table.",
+    "243": "Use the left arm to pick up the narrow-necked bottle from the table.",
+    "247": "Lift the bottle with rounded neck head-up from the table",
+    "252": "Grab the plastic bottle head-up using the right arm from the table.",
+    "264": "Pick the narrow-necked bottle and keep it upright",
+    "274": "Raise the bottle with rounded neck from the table using the correct arm, the right arm.",
+    "278": "Carefully grab the plastic drink bottle head-up",
+    "286": "Grab the dark drink bottle with logo from the table with the left arm",
+    "314": "Take the smooth bottle with red lid from the table and keep upright",
+    "316": "Lift the medium green bottle with capped neck from the table with the right arm",
+    "328": "Hold the plastic bottle upright after lifting with the right arm",
+    "368": "Hold the medium green bottle with capped neck upright after lifting with the right arm",
+    "378": "Grab the dark drink bottle with logo and lift it upright",
+    "380": "Grab the narrow-necked bottle from the table and hold it head-up.",
+    "400": "Grab the smooth bottle with red lid from the table with the left arm"
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        11,
+        13,
+        23,
+        27,
+        32,
+        44,
+        45
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "size_mb": 4.767790794372559,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        54,
+        60,
+        62,
+        64,
+        66,
+        71,
+        87
+      ],
+      "new_episodes": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "size_mb": 4.77906608581543,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        110,
+        113,
+        118,
+        127,
+        128,
+        155,
+        158
+      ],
+      "new_episodes": [
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "size_mb": 4.763664245605469,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        163,
+        169,
+        176,
+        180,
+        197,
+        202
+      ],
+      "new_episodes": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "size_mb": 4.136256217956543,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        210,
+        236,
+        237,
+        264,
+        270,
+        280
+      ],
+      "new_episodes": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "size_mb": 4.963316917419434,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-005.mp4",
+      "source_episodes": [
+        288,
+        303,
+        304,
+        306,
+        315,
+        319,
+        330
+      ],
+      "new_episodes": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "size_mb": 4.890626907348633,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-006.mp4",
+      "source_episodes": [
+        365,
+        370,
+        385,
+        420,
+        422,
+        436,
+        451
+      ],
+      "new_episodes": [
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ],
+      "size_mb": 4.627106666564941,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-007.mp4",
+      "source_episodes": [
+        453,
+        455,
+        479
+      ],
+      "new_episodes": [
+        47,
+        48,
+        49
+      ],
+      "size_mb": 2.1294641494750977,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

@@ -8,7 +8,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import Any, Callable
 
 from .metrics import StageRecord, aggregate_step_stragglers, merge_rank_records
 from .data_instrumentation import (
@@ -80,6 +80,64 @@ def report_microstep_id(measured_microsteps: int) -> int:
     if measured_microsteps < 0:
         raise ValueError("measured_microsteps 必须大于等于 0")
     return measured_microsteps
+
+
+def _unwrap_for_inventory(dataset: Any) -> Any:
+    """Peel common wrappers so inventory reads the concrete train dataset."""
+    ds = dataset
+    for _ in range(6):
+        if any(hasattr(ds, name) for name in ("datasets", "_datasets", "repo_ids", "repo_id")):
+            if hasattr(ds, "num_frames") or hasattr(ds, "__len__"):
+                return ds
+        nxt = (
+            getattr(ds, "current_ds", None)
+            or getattr(ds, "dataset", None)
+            or getattr(ds, "_base", None)
+        )
+        if nxt is None or nxt is ds:
+            break
+        ds = nxt
+    return ds
+
+
+def dataset_inventory(dataset: Any) -> dict[str, int | None]:
+    """Return dataset_count and total_frames for the constructed train dataset.
+
+    Counts sub-datasets (repos) when present; otherwise treats a single
+    ``repo_id`` dataset as count=1. Frame total prefers ``num_frames``, then
+    ``len(dataset)``.
+    """
+    ds = _unwrap_for_inventory(dataset)
+    datasets = getattr(ds, "datasets", None)
+    if datasets is None:
+        datasets = getattr(ds, "_datasets", None)
+    if datasets is not None:
+        count = len(datasets)
+    else:
+        repo_ids = getattr(ds, "repo_ids", None)
+        if repo_ids is not None:
+            count = len(repo_ids)
+        elif getattr(ds, "repo_id", None) is not None:
+            count = 1
+        else:
+            count = 0
+
+    frames: int | None
+    num_frames = getattr(ds, "num_frames", None)
+    if callable(num_frames):
+        try:
+            frames = int(num_frames())
+        except TypeError:
+            frames = None
+    elif num_frames is not None:
+        frames = int(num_frames)
+    else:
+        try:
+            frames = int(len(ds))
+        except TypeError:
+            frames = None
+
+    return {"dataset_count": int(count), "total_frames": frames}
 
 
 @dataclass
@@ -271,7 +329,11 @@ def merge_train_partials(partials: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    load_config: Callable[[str], Any] | None = None,
+) -> None:
     args = build_parser().parse_args(argv)
     import torch
     from accelerate.utils import send_to_device
@@ -281,7 +343,8 @@ def main(argv: list[str] | None = None) -> None:
     from lerobot.utils.random_utils import set_seed
     from lerobot.utils.utils import has_method
 
-    cfg = _load(args.config_path)
+    config_loader = _load if load_config is None else load_config
+    cfg = config_loader(args.config_path)
     cli_overrides = _apply_overrides(cfg, args)
     accelerator = _make_accelerator(cfg)
     session = create_run_session(
@@ -292,6 +355,10 @@ def main(argv: list[str] | None = None) -> None:
 
     memory_start = memory_snapshot()
     memory_after_dataset = None
+    dataset_stats: dict[str, int | None] = {
+        "dataset_count": None,
+        "total_frames": None,
+    }
     records: list[StageRecord] = []
     sample_loads: list[dict[str, Any]] = []
     collector = None
@@ -334,6 +401,8 @@ def main(argv: list[str] | None = None) -> None:
                 "cli_overrides": cli_overrides,
                 "dataloader_in_order": not args.out_of_order,
                 "sample_loads": sample_loads,
+                "dataset_count": dataset_stats.get("dataset_count"),
+                "total_frames": dataset_stats.get("total_frames"),
             },
             status=status,
         )
@@ -357,6 +426,15 @@ def main(argv: list[str] | None = None) -> None:
             slow_video_s=args.slow_video_threshold, video=True,
         ).install()
         raw_dataset, _ = make_dataset(cfg)
+        dataset_stats = dataset_inventory(raw_dataset)
+        if accelerator.is_main_process:
+            frames = dataset_stats.get("total_frames")
+            frames_text = f"{frames:,}" if frames is not None else "未知"
+            print(
+                f"[bpva-benchmark] 数据集个数={dataset_stats.get('dataset_count')} "
+                f"总帧数={frames_text}",
+                flush=True,
+            )
         instrumented_dataset = wrap_dataset_for_instrumentation(raw_dataset)
         memory_after_dataset = memory_snapshot()
         policy = make_policy(cfg.policy)
@@ -646,6 +724,8 @@ def main(argv: list[str] | None = None) -> None:
                 "worker production has no fabricated training step; worker_batch_envelope "
                 "is min(start)-max(end), not summed sample time"
             ),
+            "dataset_count": dataset_stats.get("dataset_count"),
+            "total_frames": dataset_stats.get("total_frames"),
         }
         events = merged["collector_events"]
         stragglers = aggregate_step_stragglers(merged["records"])
@@ -669,6 +749,8 @@ def main(argv: list[str] | None = None) -> None:
                 ),
                 "cli_overrides": cli_overrides,
                 "sample_load_count": len(merged["sample_loads"]),
+                "dataset_count": dataset_stats.get("dataset_count"),
+                "total_frames": dataset_stats.get("total_frames"),
             },
         )
         log_phase(
@@ -677,6 +759,13 @@ def main(argv: list[str] | None = None) -> None:
             f"output={session.output_dir}",
         )
         print(format_terminal_summary(summary), flush=True)
+        frames = dataset_stats.get("total_frames")
+        frames_text = f"{frames:,}" if frames is not None else "未知"
+        print(
+            f"[bpva-benchmark] 数据集总个数={dataset_stats.get('dataset_count')} "
+            f"数据集总帧数={frames_text}",
+            flush=True,
+        )
     except BaseException as exc:
         record_failure(session, accelerator, exc, snapshot)
         raise

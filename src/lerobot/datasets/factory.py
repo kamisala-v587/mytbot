@@ -1001,6 +1001,13 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             raise ValueError("BPVA dataset currently supports non-streaming LeRobot datasets only.")
 
         all_repo_ids = resolve_repo_ids(cfg)
+        if isinstance(cfg.dataset, BPVAv2DatasetConfig) and cfg.dataset.bp_prompt_source == "cache":
+            from lerobot.datasets.bp_cache import normalize_source_identity
+
+            normalized_repo_ids = [normalize_source_identity(repo_id) for repo_id in all_repo_ids]
+            if len(normalized_repo_ids) != len(set(normalized_repo_ids)):
+                raise ValueError("BP cache source repo list contains duplicates after identity normalization")
+            all_repo_ids = normalized_repo_ids
         repo_ids = all_repo_ids
         rank, world_size = get_rank_and_world_size()
         frames_map = None
@@ -1082,6 +1089,25 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
 
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 
+        bp_cache_mapping = None
+        if isinstance(cfg.dataset, BPVAv2DatasetConfig):
+            if cfg.dataset.bp_num_chunks != cfg.policy.bp_num_chunks:
+                raise ValueError(
+                    "BPVAv2 dataset/policy bp_num_chunks mismatch: "
+                    f"{cfg.dataset.bp_num_chunks} != {cfg.policy.bp_num_chunks}"
+                )
+            for dim_name in ("max_state_dim", "max_action_dim"):
+                dataset_dim = int(getattr(cfg.dataset, dim_name))
+                policy_dim = int(getattr(cfg.policy, dim_name))
+                if dataset_dim != policy_dim:
+                    raise ValueError(
+                        f"BPVAv2 dataset/policy {dim_name} mismatch: {dataset_dim} != {policy_dim}"
+                    )
+        if isinstance(cfg.dataset, BPVAv2DatasetConfig) and cfg.dataset.bp_prompt_source == "cache":
+            from lerobot.datasets.bp_cache import load_bp_cache_root_mapping
+
+            bp_cache_mapping = load_bp_cache_root_mapping(cfg.dataset.bp_cache_root_file)
+
         bp_datasets = []
         data_stats = {}
         num_local_repos = len(repo_ids)
@@ -1126,34 +1152,79 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 for key in ds_meta.features
                 if key == ACTION or key in get_feature_mapping(ds_meta.robot_type, ds_meta.features)[ACTION]
             }
-            prompt_image_mapping = get_image_mapping(ds_meta.robot_type, ds_meta.features)
+            prompt_meta = ds_meta
+            prompt_repo_id = repo_id
+            prompt_root = cfg.dataset.root
+            prompt_episodes = cfg.dataset.episodes
+            prompt_revision = cfg.dataset.revision
+            if bp_cache_mapping is not None:
+                from lerobot.datasets.bp_cache import resolve_bp_cache_root, validate_bp_cache_dataset
+
+                cache = validate_bp_cache_dataset(
+                    repo_id,
+                    resolve_bp_cache_root(bp_cache_mapping, repo_id),
+                    ds_meta,
+                    list(cfg.dataset.bp_camera_keys),
+                )
+                prompt_repo_id = cache.repo_id
+                prompt_root = cache.root
+                prompt_episodes = None
+                prompt_revision = None
+                prompt_meta = LeRobotDatasetMetadata(prompt_repo_id, root=cache.root, allow_hub_download=False)
+                prompt_delta_timestamps = {
+                    key: [step / prompt_meta.fps for step in range(bp_action_chunk_size)]
+                    for key in prompt_meta.features
+                    if key == ACTION
+                    or key in get_feature_mapping(prompt_meta.robot_type, prompt_meta.features)[ACTION]
+                }
+
+            prompt_parquet_columns = None
+            if prompt_meta.robot_type == "egodex_v":
+                # EgoDex prompts are vision-only; state/action placeholders are injected later.
+                prompt_parquet_columns = ["timestamp", "frame_index", "episode_index", "index", "task_index"]
+            prompt_image_mapping = get_image_mapping(prompt_meta.robot_type, prompt_meta.features)
             canonical_to_dataset_camera = {canonical: actual for actual, canonical in prompt_image_mapping.items()}
             active_prompt_camera_keys = None
             if isinstance(cfg.dataset, BPVAv2DatasetConfig):
-                missing_canonical = set(cfg.dataset.bp_camera_keys).difference(canonical_to_dataset_camera)
-                if missing_canonical:
+                missing_canonical = [
+                    key for key in cfg.dataset.bp_camera_keys if key not in canonical_to_dataset_camera
+                ]
+                available_canonical = [
+                    key for key in cfg.dataset.bp_camera_keys if key in canonical_to_dataset_camera
+                ]
+                if not available_canonical:
                     raise ValueError(
-                        f"BPVAv2 cameras are unavailable for repo {repo_id!r}: {sorted(missing_canonical)}"
+                        f"BPVAv2 cameras are unavailable for prompt repo {prompt_repo_id!r}: "
+                        f"{missing_canonical}"
                     )
-                active_prompt_camera_keys = [canonical_to_dataset_camera[key] for key in cfg.dataset.bp_camera_keys]
+                if missing_canonical:
+                    logging.warning(
+                        "BP cameras missing for %s; slots %s will be masked and not decoded.",
+                        prompt_repo_id,
+                        missing_canonical,
+                    )
+                active_prompt_camera_keys = [
+                    canonical_to_dataset_camera[key] for key in available_canonical
+                ]
             prompt_ds = LeRobotDataset(
-                repo_id,
-                root=cfg.dataset.root,
-                episodes=cfg.dataset.episodes,
+                prompt_repo_id,
+                root=prompt_root,
+                episodes=prompt_episodes,
                 delta_timestamps=prompt_delta_timestamps or None,
                 image_transforms=image_transforms,
-                revision=cfg.dataset.revision,
-                skip_video_file_validation=cfg.dataset.skip_video_file_validation,
+                revision=prompt_revision,
+                skip_video_file_validation=(False if bp_cache_mapping is not None else cfg.dataset.skip_video_file_validation),
                 video_backend=cfg.dataset.video_backend,
-                parquet_columns=parquet_columns,
+                parquet_columns=prompt_parquet_columns,
                 active_camera_keys=active_prompt_camera_keys,
+                allow_hub_download=bp_cache_mapping is None,
             )
             _configure_vision_only_dataset(current_ds, cfg.policy)
             _load_external_stats_for_dataset(cfg, current_ds)
             prompt_ds.meta.stats.update(current_ds.meta.stats)
             prompt_cfg = BehaviorPromptConfig(
                 prompt_action_chunk_size=bp_action_chunk_size,
-                same_episode_policy=cfg.dataset.bp_same_episode_policy,
+                same_episode_policy=("allow" if bp_cache_mapping is not None else cfg.dataset.bp_same_episode_policy),
                 seed=int(cfg.dataset.bp_seed),
                 num_chunks=cfg.dataset.bp_num_chunks,
                 height=cfg.dataset.height,
@@ -1165,6 +1236,8 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 action_mode=cfg.dataset.action_mode,
                 batch_prompt_video_decode=cfg.dataset.batch_prompt_video_decode,
                 dynamic_bp_cameras=isinstance(cfg.dataset, BPVAv2DatasetConfig),
+                prompt_episode_namespace_shared=bp_cache_mapping is None,
+                prompt_task_scope="dataset" if bp_cache_mapping is not None else "task",
             )
             bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, prompt_ds, prompt_cfg)
             bp_datasets.append(bp_dataset)

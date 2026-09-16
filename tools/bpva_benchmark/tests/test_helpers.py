@@ -12,6 +12,7 @@ from tools.bpva_benchmark.reporting import resolve_output_dir
 from tools.bpva_benchmark.train_benchmark import (
     _apply_overrides,
     build_parser as build_train_parser,
+    dataset_inventory,
 )
 
 
@@ -324,6 +325,20 @@ def test_register_benchmark_configs_includes_tbot_sa1():
     register_benchmark_configs()
     assert "TBot_SA1" in set(DatasetConfig.get_known_choices())
     assert "TBot_SA1" in set(PreTrainedConfig.get_known_choices())
+
+
+def test_dataset_inventory_counts_multi_and_single():
+    multi = SimpleNamespace(
+        datasets=[SimpleNamespace(repo_id="a"), SimpleNamespace(repo_id="b")],
+        num_frames=1234,
+    )
+    assert dataset_inventory(multi) == {"dataset_count": 2, "total_frames": 1234}
+
+    single = SimpleNamespace(repo_id="only", num_frames=9)
+    assert dataset_inventory(single) == {"dataset_count": 1, "total_frames": 9}
+
+    wrapped = SimpleNamespace(current_ds=multi)
+    assert dataset_inventory(wrapped) == {"dataset_count": 2, "total_frames": 1234}
 
 
 def test_tbot_benchmark_config_parses_without_checkpoint():

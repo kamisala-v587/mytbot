@@ -1,0 +1,860 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/beat_block_hammer/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-67bfe3050b49",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/beat_block_hammer/aloha-agilex_randomized_500",
+    "info_sha256": "2f3f21d333b48a6bb030581725a0c7dbb4fd64ad8fb2c804644d93f5db95d5a6",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782787037659101207
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 10493,
+        "mtime_ns": 1782787037658101207
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 366505,
+        "mtime_ns": 1782787037664101207
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/beat_block_hammer/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/beat_block_hammer/aloha-agilex_randomized_500",
+      "info_sha256": "2f3f21d333b48a6bb030581725a0c7dbb4fd64ad8fb2c804644d93f5db95d5a6",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782787037659101207
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 10493,
+          "mtime_ns": 1782787037658101207
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 366505,
+          "mtime_ns": 1782787037664101207
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "2bc3329669d78e10a6a4a9958f2880309b6094662d6b3e2ce4baa353db7e1203"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 1,
+      "tasks": [
+        "Use the left arm to take the hammer with claw-shaped end and strike"
+      ]
+    },
+    {
+      "episode": 14,
+      "tasks": [
+        "Take the nail-driving hammer and beat the block"
+      ]
+    },
+    {
+      "episode": 21,
+      "tasks": [
+        "Pick up the medium-sized metal hammer using the left arm, hammer the block."
+      ]
+    },
+    {
+      "episode": 47,
+      "tasks": [
+        "Lift the plastic handle metal hammer with the left arm then strike block"
+      ]
+    },
+    {
+      "episode": 49,
+      "tasks": [
+        "Grab the medium-sized metal hammer, then hit the block"
+      ]
+    },
+    {
+      "episode": 60,
+      "tasks": [
+        "With the right arm, pick up the hammer for nails and strike the block."
+      ]
+    },
+    {
+      "episode": 61,
+      "tasks": [
+        "Lift the silver curved hammer head, then beat the block."
+      ]
+    },
+    {
+      "episode": 71,
+      "tasks": [
+        "Grab the black and yellow hammer grip using the left arm and hit the block"
+      ]
+    },
+    {
+      "episode": 79,
+      "tasks": [
+        "Employ the right arm to grab the handheld medium claw hammer and hit."
+      ]
+    },
+    {
+      "episode": 88,
+      "tasks": [
+        "Lift the hammer with two-tone handle and hit the block"
+      ]
+    },
+    {
+      "episode": 89,
+      "tasks": [
+        "Pick up the hammer with claw-shaped end using the right arm, hammer the block."
+      ]
+    },
+    {
+      "episode": 98,
+      "tasks": [
+        "Grab the yellow and black hammer grip to beat the block."
+      ]
+    },
+    {
+      "episode": 119,
+      "tasks": [
+        "Pick up the grippy handle hammer using the right arm then beat"
+      ]
+    },
+    {
+      "episode": 126,
+      "tasks": [
+        "Grab the hammer for nails, then strike the block."
+      ]
+    },
+    {
+      "episode": 127,
+      "tasks": [
+        "Pick the hammer for nails and strike the block."
+      ]
+    },
+    {
+      "episode": 130,
+      "tasks": [
+        "Use the right arm to grab the medium-sized metal hammer and beat"
+      ]
+    },
+    {
+      "episode": 134,
+      "tasks": [
+        "With the right arm, grab the nail-driving hammer and hammer the block"
+      ]
+    },
+    {
+      "episode": 150,
+      "tasks": [
+        "Pick the plastic handle metal hammer from the table and strike"
+      ]
+    },
+    {
+      "episode": 155,
+      "tasks": [
+        "Utilize the right arm to hold the hammer with claw-shaped end and strike."
+      ]
+    },
+    {
+      "episode": 156,
+      "tasks": [
+        "Lift the handheld medium claw hammer, then beat the block."
+      ]
+    },
+    {
+      "episode": 161,
+      "tasks": [
+        "Lift the black and yellow hammer grip and hit the block"
+      ]
+    },
+    {
+      "episode": 176,
+      "tasks": [
+        "Hold the yellow and black hammer grip and pound the block."
+      ]
+    },
+    {
+      "episode": 209,
+      "tasks": [
+        "Pick the hammer with two-tone handle from the table and strike"
+      ]
+    },
+    {
+      "episode": 212,
+      "tasks": [
+        "Grab the medium-sized metal hammer with the right arm and hit the block"
+      ]
+    },
+    {
+      "episode": 215,
+      "tasks": [
+        "Use the hammer for nails to beat after grabbing with the left arm"
+      ]
+    },
+    {
+      "episode": 217,
+      "tasks": [
+        "Lift the medium-sized metal hammer and hit the block."
+      ]
+    },
+    {
+      "episode": 224,
+      "tasks": [
+        "Take the handheld medium claw hammer and beat the block"
+      ]
+    },
+    {
+      "episode": 239,
+      "tasks": [
+        "Pick the plastic handle metal hammer from the table and strike"
+      ]
+    },
+    {
+      "episode": 250,
+      "tasks": [
+        "Use the right arm to grab the silver curved hammer head and beat"
+      ]
+    },
+    {
+      "episode": 256,
+      "tasks": [
+        "With the right arm, grab the plastic handle metal hammer and hammer the block"
+      ]
+    },
+    {
+      "episode": 261,
+      "tasks": [
+        "Use the left arm to grab the plastic handle metal hammer and beat"
+      ]
+    },
+    {
+      "episode": 280,
+      "tasks": [
+        "Pick the black and yellow hammer grip with the right arm and hit the block"
+      ]
+    },
+    {
+      "episode": 282,
+      "tasks": [
+        "Use the plastic handle metal hammer to hammer the block."
+      ]
+    },
+    {
+      "episode": 297,
+      "tasks": [
+        "Use the left arm to grab the silver hammer and beat"
+      ]
+    },
+    {
+      "episode": 298,
+      "tasks": [
+        "Take the silver hammer and smash the block."
+      ]
+    },
+    {
+      "episode": 315,
+      "tasks": [
+        "Lift the hammer with claw-shaped end, then beat the block."
+      ]
+    },
+    {
+      "episode": 319,
+      "tasks": [
+        "Hold the black and yellow hammer grip then hit the block"
+      ]
+    },
+    {
+      "episode": 320,
+      "tasks": [
+        "With the right arm, grab the medium-sized metal hammer and hammer the block"
+      ]
+    },
+    {
+      "episode": 349,
+      "tasks": [
+        "Lift the silver curved hammer head and hit the block."
+      ]
+    },
+    {
+      "episode": 352,
+      "tasks": [
+        "Grab the black and yellow hammer grip and use it to hit"
+      ]
+    },
+    {
+      "episode": 357,
+      "tasks": [
+        "Pick up the medium-sized metal hammer using the left arm, hammer the block."
+      ]
+    },
+    {
+      "episode": 373,
+      "tasks": [
+        "Utilize the right arm to hold the nail-driving hammer and strike."
+      ]
+    },
+    {
+      "episode": 401,
+      "tasks": [
+        "Employ the right arm to grab the hammer with claw-shaped end and hit."
+      ]
+    },
+    {
+      "episode": 441,
+      "tasks": [
+        "Grab the hammer with two-tone handle, then strike the block."
+      ]
+    },
+    {
+      "episode": 451,
+      "tasks": [
+        "Grab the handheld medium claw hammer, then strike the block."
+      ]
+    },
+    {
+      "episode": 457,
+      "tasks": [
+        "Use the hammer with claw-shaped end to beat after grabbing with the left arm"
+      ]
+    },
+    {
+      "episode": 465,
+      "tasks": [
+        "Pick the handheld medium claw hammer and strike the block."
+      ]
+    },
+    {
+      "episode": 473,
+      "tasks": [
+        "Pick up the hammer with claw-shaped end using the left arm then beat"
+      ]
+    },
+    {
+      "episode": 477,
+      "tasks": [
+        "Lift the medium-sized metal hammer using the right arm to hit the block."
+      ]
+    },
+    {
+      "episode": 481,
+      "tasks": [
+        "Hold the black and yellow hammer grip and pound the block."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Employ the right arm to grab the hammer with claw-shaped end and hit.": [
+      401
+    ],
+    "Employ the right arm to grab the handheld medium claw hammer and hit.": [
+      79
+    ],
+    "Grab the black and yellow hammer grip and use it to hit": [
+      352
+    ],
+    "Grab the black and yellow hammer grip using the left arm and hit the block": [
+      71
+    ],
+    "Grab the hammer for nails, then strike the block.": [
+      126
+    ],
+    "Grab the hammer with two-tone handle, then strike the block.": [
+      441
+    ],
+    "Grab the handheld medium claw hammer, then strike the block.": [
+      451
+    ],
+    "Grab the medium-sized metal hammer with the right arm and hit the block": [
+      212
+    ],
+    "Grab the medium-sized metal hammer, then hit the block": [
+      49
+    ],
+    "Grab the yellow and black hammer grip to beat the block.": [
+      98
+    ],
+    "Hold the black and yellow hammer grip and pound the block.": [
+      481
+    ],
+    "Hold the black and yellow hammer grip then hit the block": [
+      319
+    ],
+    "Hold the yellow and black hammer grip and pound the block.": [
+      176
+    ],
+    "Lift the black and yellow hammer grip and hit the block": [
+      161
+    ],
+    "Lift the hammer with claw-shaped end, then beat the block.": [
+      315
+    ],
+    "Lift the hammer with two-tone handle and hit the block": [
+      88
+    ],
+    "Lift the handheld medium claw hammer, then beat the block.": [
+      156
+    ],
+    "Lift the medium-sized metal hammer and hit the block.": [
+      217
+    ],
+    "Lift the medium-sized metal hammer using the right arm to hit the block.": [
+      477
+    ],
+    "Lift the plastic handle metal hammer with the left arm then strike block": [
+      47
+    ],
+    "Lift the silver curved hammer head and hit the block.": [
+      349
+    ],
+    "Lift the silver curved hammer head, then beat the block.": [
+      61
+    ],
+    "Pick the black and yellow hammer grip with the right arm and hit the block": [
+      280
+    ],
+    "Pick the hammer for nails and strike the block.": [
+      127
+    ],
+    "Pick the hammer with two-tone handle from the table and strike": [
+      209
+    ],
+    "Pick the handheld medium claw hammer and strike the block.": [
+      465
+    ],
+    "Pick the plastic handle metal hammer from the table and strike": [
+      150,
+      239
+    ],
+    "Pick up the grippy handle hammer using the right arm then beat": [
+      119
+    ],
+    "Pick up the hammer with claw-shaped end using the left arm then beat": [
+      473
+    ],
+    "Pick up the hammer with claw-shaped end using the right arm, hammer the block.": [
+      89
+    ],
+    "Pick up the medium-sized metal hammer using the left arm, hammer the block.": [
+      21,
+      357
+    ],
+    "Take the handheld medium claw hammer and beat the block": [
+      224
+    ],
+    "Take the nail-driving hammer and beat the block": [
+      14
+    ],
+    "Take the silver hammer and smash the block.": [
+      298
+    ],
+    "Use the hammer for nails to beat after grabbing with the left arm": [
+      215
+    ],
+    "Use the hammer with claw-shaped end to beat after grabbing with the left arm": [
+      457
+    ],
+    "Use the left arm to grab the plastic handle metal hammer and beat": [
+      261
+    ],
+    "Use the left arm to grab the silver hammer and beat": [
+      297
+    ],
+    "Use the left arm to take the hammer with claw-shaped end and strike": [
+      1
+    ],
+    "Use the plastic handle metal hammer to hammer the block.": [
+      282
+    ],
+    "Use the right arm to grab the medium-sized metal hammer and beat": [
+      130
+    ],
+    "Use the right arm to grab the silver curved hammer head and beat": [
+      250
+    ],
+    "Utilize the right arm to hold the hammer with claw-shaped end and strike.": [
+      155
+    ],
+    "Utilize the right arm to hold the nail-driving hammer and strike.": [
+      373
+    ],
+    "With the right arm, grab the medium-sized metal hammer and hammer the block": [
+      320
+    ],
+    "With the right arm, grab the nail-driving hammer and hammer the block": [
+      134
+    ],
+    "With the right arm, grab the plastic handle metal hammer and hammer the block": [
+      256
+    ],
+    "With the right arm, pick up the hammer for nails and strike the block.": [
+      60
+    ]
+  },
+  "source_to_cache_episode": {
+    "1": 0,
+    "14": 1,
+    "21": 2,
+    "47": 3,
+    "49": 4,
+    "60": 5,
+    "61": 6,
+    "71": 7,
+    "79": 8,
+    "88": 9,
+    "89": 10,
+    "98": 11,
+    "119": 12,
+    "126": 13,
+    "127": 14,
+    "130": 15,
+    "134": 16,
+    "150": 17,
+    "155": 18,
+    "156": 19,
+    "161": 20,
+    "176": 21,
+    "209": 22,
+    "212": 23,
+    "215": 24,
+    "217": 25,
+    "224": 26,
+    "239": 27,
+    "250": 28,
+    "256": 29,
+    "261": 30,
+    "280": 31,
+    "282": 32,
+    "297": 33,
+    "298": 34,
+    "315": 35,
+    "319": 36,
+    "320": 37,
+    "349": 38,
+    "352": 39,
+    "357": 40,
+    "373": 41,
+    "401": 42,
+    "441": 43,
+    "451": 44,
+    "457": 45,
+    "465": 46,
+    "473": 47,
+    "477": 48,
+    "481": 49
+  },
+  "source_to_cache_task": {
+    "1": 0,
+    "4": 1,
+    "10": 2,
+    "13": 3,
+    "20": 4,
+    "28": 5,
+    "45": 6,
+    "47": 7,
+    "57": 8,
+    "58": 9,
+    "68": 10,
+    "75": 11,
+    "78": 12,
+    "81": 13,
+    "86": 14,
+    "88": 15,
+    "101": 16,
+    "107": 17,
+    "109": 18,
+    "114": 19,
+    "117": 20,
+    "120": 21,
+    "127": 22,
+    "134": 23,
+    "139": 24,
+    "140": 25,
+    "145": 26,
+    "157": 27,
+    "181": 28,
+    "184": 29,
+    "186": 30,
+    "202": 31,
+    "212": 32,
+    "215": 33,
+    "228": 34,
+    "240": 35,
+    "241": 36,
+    "255": 37,
+    "258": 38,
+    "274": 39,
+    "291": 40,
+    "308": 41,
+    "330": 42,
+    "336": 43,
+    "339": 44,
+    "349": 45,
+    "352": 46,
+    "355": 47
+  },
+  "source_task_names": {
+    "1": "Use the left arm to take the hammer with claw-shaped end and strike",
+    "4": "Take the nail-driving hammer and beat the block",
+    "10": "Take the handheld medium claw hammer and beat the block",
+    "13": "Grab the hammer for nails, then strike the block.",
+    "20": "Pick up the medium-sized metal hammer using the left arm, hammer the block.",
+    "28": "Pick up the hammer with claw-shaped end using the right arm, hammer the block.",
+    "45": "Lift the plastic handle metal hammer with the left arm then strike block",
+    "47": "Grab the medium-sized metal hammer, then hit the block",
+    "57": "With the right arm, pick up the hammer for nails and strike the block.",
+    "58": "Lift the silver curved hammer head, then beat the block.",
+    "68": "Grab the black and yellow hammer grip using the left arm and hit the block",
+    "75": "Employ the right arm to grab the handheld medium claw hammer and hit.",
+    "78": "Pick the hammer with two-tone handle from the table and strike",
+    "81": "Lift the hammer with two-tone handle and hit the block",
+    "86": "Lift the medium-sized metal hammer and hit the block.",
+    "88": "Grab the yellow and black hammer grip to beat the block.",
+    "101": "Grab the black and yellow hammer grip and use it to hit",
+    "107": "Pick up the grippy handle hammer using the right arm then beat",
+    "109": "With the right arm, grab the medium-sized metal hammer and hammer the block",
+    "114": "Pick the hammer for nails and strike the block.",
+    "117": "Use the right arm to grab the medium-sized metal hammer and beat",
+    "120": "With the right arm, grab the nail-driving hammer and hammer the block",
+    "127": "Pick the black and yellow hammer grip with the right arm and hit the block",
+    "134": "Pick the plastic handle metal hammer from the table and strike",
+    "139": "Utilize the right arm to hold the hammer with claw-shaped end and strike.",
+    "140": "Lift the handheld medium claw hammer, then beat the block.",
+    "145": "Lift the black and yellow hammer grip and hit the block",
+    "157": "Hold the yellow and black hammer grip and pound the block.",
+    "181": "Use the right arm to grab the silver curved hammer head and beat",
+    "184": "Grab the medium-sized metal hammer with the right arm and hit the block",
+    "186": "Use the hammer for nails to beat after grabbing with the left arm",
+    "202": "Pick the handheld medium claw hammer and strike the block.",
+    "212": "With the right arm, grab the plastic handle metal hammer and hammer the block",
+    "215": "Use the left arm to grab the plastic handle metal hammer and beat",
+    "228": "Use the plastic handle metal hammer to hammer the block.",
+    "240": "Use the left arm to grab the silver hammer and beat",
+    "241": "Take the silver hammer and smash the block.",
+    "255": "Lift the hammer with claw-shaped end, then beat the block.",
+    "258": "Hold the black and yellow hammer grip then hit the block",
+    "274": "Lift the silver curved hammer head and hit the block.",
+    "291": "Utilize the right arm to hold the nail-driving hammer and strike.",
+    "308": "Employ the right arm to grab the hammer with claw-shaped end and hit.",
+    "330": "Grab the hammer with two-tone handle, then strike the block.",
+    "336": "Grab the handheld medium claw hammer, then strike the block.",
+    "339": "Use the hammer with claw-shaped end to beat after grabbing with the left arm",
+    "349": "Pick up the hammer with claw-shaped end using the left arm then beat",
+    "352": "Lift the medium-sized metal hammer using the right arm to hit the block.",
+    "355": "Hold the black and yellow hammer grip and pound the block."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        1,
+        14,
+        21,
+        47,
+        49,
+        60,
+        61,
+        71,
+        79
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "size_mb": 4.914751052856445,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        88,
+        89,
+        98,
+        119,
+        126,
+        127,
+        130,
+        134,
+        150
+      ],
+      "new_episodes": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "size_mb": 4.555384635925293,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        155,
+        156,
+        161,
+        176,
+        209,
+        212,
+        215,
+        217,
+        224
+      ],
+      "new_episodes": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
+      ],
+      "size_mb": 4.765341758728027,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        239,
+        250,
+        256,
+        261,
+        280,
+        282,
+        297,
+        298,
+        315
+      ],
+      "new_episodes": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "size_mb": 4.7550249099731445,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        319,
+        320,
+        349,
+        352,
+        357,
+        373,
+        401,
+        441
+      ],
+      "new_episodes": [
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43
+      ],
+      "size_mb": 4.729887008666992,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-005.mp4",
+      "source_episodes": [
+        451,
+        457,
+        465,
+        473,
+        477,
+        481
+      ],
+      "new_episodes": [
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+      ],
+      "size_mb": 3.2435779571533203,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

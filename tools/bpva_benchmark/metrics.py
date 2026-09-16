@@ -68,10 +68,58 @@ def summarize_values(values: Sequence[float]) -> dict[str, Any]:
     }
 
 
+def derive_bp_compressor_estimates(
+    records: Iterable[StageRecord],
+) -> list[StageRecord]:
+    """Estimate BP non-visual cost as ``bp_encoder - bp_visual_encode`` per step.
+
+    BPVAv2's compressor is not a single child module; pairing the whole BP
+    encoder wall/device time with the timed ``_encode_images`` path attributes
+    how much of BP is Qwen visual vs the rest (state/action + query compressor).
+    """
+    by_key: dict[tuple[int, int | None], dict[str, StageRecord]] = {}
+    for record in records:
+        if record.stage not in {"bp_encoder", "bp_visual_encode"}:
+            continue
+        by_key.setdefault((record.rank, record.step), {})[record.stage] = record
+
+    derived: list[StageRecord] = []
+    for (rank, step), pair in sorted(by_key.items()):
+        parent = pair.get("bp_encoder")
+        visual = pair.get("bp_visual_encode")
+        if parent is None or visual is None:
+            continue
+        cpu = max(0.0, float(parent.elapsed_s) - float(visual.elapsed_s))
+        device = None
+        if parent.device_elapsed_s is not None and visual.device_elapsed_s is not None:
+            device = max(
+                0.0, float(parent.device_elapsed_s) - float(visual.device_elapsed_s)
+            )
+        derived.append(
+            StageRecord(
+                "bp_compressor_est",
+                cpu,
+                rank=rank,
+                step=step,
+                device_elapsed_s=device,
+                metadata={
+                    "definition": "bp_encoder - bp_visual_encode",
+                    "bp_encoder_s": parent.elapsed_s,
+                    "bp_visual_encode_s": visual.elapsed_s,
+                },
+            )
+        )
+    return derived
+
+
 def summarize_records(records: Iterable[StageRecord]) -> dict[str, Any]:
     grouped: dict[str, list[StageRecord]] = {}
     by_rank: dict[int, list[StageRecord]] = {}
-    all_records = list(records)
+    base_records = [
+        record for record in records if record.stage != "bp_compressor_est"
+    ]
+    derived = derive_bp_compressor_estimates(base_records)
+    all_records = base_records + derived
     for record in all_records:
         grouped.setdefault(record.stage, []).append(record)
         by_rank.setdefault(record.rank, []).append(record)
@@ -92,17 +140,58 @@ def summarize_records(records: Iterable[StageRecord]) -> dict[str, Any]:
     }
     bottlenecks = sorted(
         ({"stage": stage, **stats} for stage, stats in stages.items()),
-        key=lambda x: (x.get("mean_s") or 0.0),
+        key=lambda x: (
+            (x.get("device") or {}).get("mean_s")
+            if (x.get("device") or {}).get("mean_s") is not None
+            else (x.get("mean_s") or 0.0)
+        ),
         reverse=True,
     )
     return _json_safe(
         {
             "record_count": len(all_records),
+            "derived_record_count": len(derived),
             "stages": stages,
             "ranks": rank_summary,
             "bottlenecks": bottlenecks,
+            "bp_attribution": _bp_attribution_block(stages),
         }
     )
+
+
+def _bp_attribution_block(stages: dict[str, Any]) -> dict[str, Any]:
+    """Compact proof block: decode wait vs BP visual vs BP remainder."""
+
+    def pick(stage: str) -> dict[str, Any] | None:
+        stats = stages.get(stage)
+        if not stats:
+            return None
+        device = stats.get("device") or {}
+        return {
+            "stage": stage,
+            "mean_s": stats.get("mean_s"),
+            "device_mean_s": device.get("mean_s"),
+            "p95_s": stats.get("p95_s"),
+            "device_p95_s": device.get("p95_s"),
+            "count": stats.get("count"),
+        }
+
+    return {
+        "data_wait": pick("data_wait"),
+        "bp_encoder": pick("bp_encoder"),
+        "bp_visual_encode": pick("bp_visual_encode"),
+        "bp_qwen_visual": pick("bp_qwen_visual"),
+        "bp_compressor_est": pick("bp_compressor_est"),
+        "qwen_visual_current": pick("qwen_visual"),
+        "method.embed_prefix": pick("method.embed_prefix"),
+        "forward": pick("forward"),
+        "interpretation": (
+            "If data_wait << bp_visual_encode and bp_visual_encode ≈ bp_encoder, "
+            "the BP bottleneck is Qwen visual encode of BP frames, not video decode. "
+            "Cross-check TBot: compare qwen_visual / method.embed_prefix (current obs only) "
+            "vs BPVA bp_visual_encode (extra 8-frame pass)."
+        ),
+    }
 
 
 def merge_rank_records(
@@ -119,7 +208,15 @@ def aggregate_step_stragglers(
     records: Iterable[StageRecord],
     *,
     stages: Sequence[str] = (
-        "microstep_wall", "optimizer_step_wall", "data_wait", "train_compute_wall"
+        "microstep_wall",
+        "optimizer_step_wall",
+        "data_wait",
+        "train_compute_wall",
+        "forward",
+        "bp_encoder",
+        "bp_visual_encode",
+        "bp_qwen_visual",
+        "bp_compressor_est",
     ),
 ) -> list[dict[str, Any]]:
     """Aggregate equal report-step/stage rows across ranks without losing raw rows."""

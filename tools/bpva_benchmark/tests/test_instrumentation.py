@@ -132,6 +132,120 @@ def test_bp_vit_hooks_actual_shared_child_once():
     assert [record.stage for record in records].count("bp_vit") == 1
 
 
+class FakeSharedVisual(torch.nn.Module):
+    def forward(self, x):
+        return x + 1
+
+
+class FakeChunkEncoder(torch.nn.Module):
+    def __init__(self, visual: torch.nn.Module):
+        super().__init__()
+        self._visual = visual
+
+    def _encode_images(self, x):
+        return self._visual(x)
+
+    def forward(self, x):
+        encoded = self._encode_images(x)
+        return encoded * 2
+
+
+class FakeBPObsEncoder(torch.nn.Module):
+    def __init__(self, chunk_encoder: FakeChunkEncoder):
+        super().__init__()
+        self.chunk_encoder = chunk_encoder
+
+    def forward(self, x):
+        return self.chunk_encoder(x)
+
+
+class FakeBPVAv2Model(torch.nn.Module):
+    """Mirrors BPVAv2: shared visual is an argument, not a key_model_map child."""
+
+    def __init__(self):
+        super().__init__()
+        self.und_expert = torch.nn.Module()
+        self.und_expert.visual = FakeSharedVisual()
+        chunk = FakeChunkEncoder(self.und_expert.visual)
+        self.bp_obs_encoder = FakeBPObsEncoder(chunk)
+
+    def forward(self, x):
+        current = self.und_expert.visual(x)
+        bp = self.bp_obs_encoder(x)
+        return current + bp
+
+
+def test_bpvav2_bp_visual_encode_is_timed_and_split_from_current_visual():
+    model = FakeBPVAv2Model()
+    inst = ModelInstrumentation(model).install()
+    inst.step = 3
+    model(torch.ones(1, 2))
+    records = inst.resolve(3)
+    inst.uninstall()
+
+    stages = [record.stage for record in records]
+    assert stages.count("bp_encoder") == 1
+    assert stages.count("bp_visual_encode") == 1
+    assert stages.count("bp_qwen_visual") == 1
+    assert stages.count("qwen_visual") == 1
+    assert (
+        model.bp_obs_encoder.chunk_encoder._encode_images.__func__
+        is FakeChunkEncoder._encode_images
+    )
+
+
+def test_derive_bp_compressor_estimate_pairs_encoder_and_visual():
+    from tools.bpva_benchmark.metrics import (
+        StageRecord,
+        derive_bp_compressor_estimates,
+        summarize_records,
+    )
+
+    records = [
+        StageRecord("data_wait", 0.004, rank=0, step=1),
+        StageRecord(
+            "bp_encoder", 1.0, rank=0, step=1, device_elapsed_s=0.90
+        ),
+        StageRecord(
+            "bp_visual_encode", 0.8, rank=0, step=1, device_elapsed_s=0.75
+        ),
+        StageRecord("forward", 2.0, rank=0, step=1, device_elapsed_s=1.8),
+    ]
+    derived = derive_bp_compressor_estimates(records)
+    assert len(derived) == 1
+    assert derived[0].stage == "bp_compressor_est"
+    assert abs(derived[0].elapsed_s - 0.2) < 1e-9
+    assert abs(derived[0].device_elapsed_s - 0.15) < 1e-9
+
+    summary = summarize_records(records)
+    assert summary["bp_attribution"]["bp_visual_encode"]["mean_s"] == 0.8
+    assert abs(summary["bp_attribution"]["bp_compressor_est"]["mean_s"] - 0.2) < 1e-9
+    assert summary["bp_attribution"]["data_wait"]["mean_s"] == 0.004
+    assert "Qwen visual encode" in summary["bp_attribution"]["interpretation"]
+
+
+def test_format_terminal_summary_includes_bp_attribution_block():
+    from tools.bpva_benchmark.metrics import StageRecord, summarize_records
+    from tools.bpva_benchmark.reporting import format_terminal_summary
+
+    summary = summarize_records(
+        [
+            StageRecord("data_wait", 0.01, rank=0, step=0),
+            StageRecord("bp_encoder", 1.2, rank=0, step=0, device_elapsed_s=1.1),
+            StageRecord(
+                "bp_visual_encode", 1.0, rank=0, step=0, device_elapsed_s=0.95
+            ),
+        ]
+    )
+    summary["metadata"] = {"dataset_count": 12, "total_frames": 3456}
+    text = format_terminal_summary(summary)
+    assert "视觉/BP 归因" in text
+    assert "bp_visual_encode" in text
+    assert "bp_compressor_est" in text
+    assert "数据集总个数: 12" in text
+    assert "数据集总帧数: 3,456" in text
+
+
 def test_collector_concurrent_snapshot():
     collector = EventCollector(max_queue=256, top_k=5).start()
     def produce():

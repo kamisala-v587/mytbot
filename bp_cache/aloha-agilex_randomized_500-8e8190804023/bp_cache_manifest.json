@@ -1,0 +1,1088 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_size/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-8e8190804023",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_size/aloha-agilex_randomized_500",
+    "info_sha256": "22136b0109c15e73bd67234c84954c528d970775d3d808aae9df13777ecc1994",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782786681147088457
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 5080,
+        "mtime_ns": 1782786681146088457
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 545933,
+        "mtime_ns": 1782786681152088458
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_size/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_size/aloha-agilex_randomized_500",
+      "info_sha256": "22136b0109c15e73bd67234c84954c528d970775d3d808aae9df13777ecc1994",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782786681147088457
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 5080,
+          "mtime_ns": 1782786681146088457
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 545933,
+          "mtime_ns": 1782786681152088458
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "8a4adbbf05d12bf4b6b47df8f3c4c5d9643780372ab49944f559ce0881f3dddb"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 13,
+      "tasks": [
+        "Shift large block, medium block, and small block to the center and align by size."
+      ]
+    },
+    {
+      "episode": 18,
+      "tasks": [
+        "Move large block, medium block, and small block to the table center in size order."
+      ]
+    },
+    {
+      "episode": 19,
+      "tasks": [
+        "Center large block, medium block, small block with the right arm, the left arm, and the left arm following size order."
+      ]
+    },
+    {
+      "episode": 34,
+      "tasks": [
+        "Grab large block, medium block, small block, and arrange them in size order at the center."
+      ]
+    },
+    {
+      "episode": 45,
+      "tasks": [
+        "Shift large block, medium block, and small block to the table's center and sort by size."
+      ]
+    },
+    {
+      "episode": 57,
+      "tasks": [
+        "Place large block, medium block, small block centrally and arrange largest to smallest."
+      ]
+    },
+    {
+      "episode": 67,
+      "tasks": [
+        "Move large block, medium block, and small block to the center, arranging them by size."
+      ]
+    },
+    {
+      "episode": 71,
+      "tasks": [
+        "Grab large block, medium block, and small block, set them centrally, ordered by size."
+      ]
+    },
+    {
+      "episode": 76,
+      "tasks": [
+        "Shift large block, medium block, and small block to the table's center and sort by size."
+      ]
+    },
+    {
+      "episode": 83,
+      "tasks": [
+        "Move large block, medium block, and small block to the center and align."
+      ]
+    },
+    {
+      "episode": 95,
+      "tasks": [
+        "Move large block with the right arm, medium block with the left arm, and small block with the right arm to arrange them."
+      ]
+    },
+    {
+      "episode": 127,
+      "tasks": [
+        "Bring large block, medium block, and small block to the center, sorting largest to smallest."
+      ]
+    },
+    {
+      "episode": 146,
+      "tasks": [
+        "Arrange blocks large block, medium block, and small block in decreasing size order."
+      ]
+    },
+    {
+      "episode": 150,
+      "tasks": [
+        "Grab large block, medium block, small block, and arrange them in size order at the center."
+      ]
+    },
+    {
+      "episode": 152,
+      "tasks": [
+        "Pick large block first, medium block next, and small block last, and arrange them."
+      ]
+    },
+    {
+      "episode": 156,
+      "tasks": [
+        "Take large block with the left arm, medium block with the right arm, and small block with the left arm to the middle."
+      ]
+    },
+    {
+      "episode": 159,
+      "tasks": [
+        "Move large block, medium block, and small block to the center and align."
+      ]
+    },
+    {
+      "episode": 160,
+      "tasks": [
+        "Arrange blocks large block, medium block, and small block in decreasing size order."
+      ]
+    },
+    {
+      "episode": 168,
+      "tasks": [
+        "Move large block, medium block, and small block to the center and align."
+      ]
+    },
+    {
+      "episode": 183,
+      "tasks": [
+        "Grab large block, medium block, and small block, set them centrally, ordered by size."
+      ]
+    },
+    {
+      "episode": 213,
+      "tasks": [
+        "Transfer large block, medium block, small block to the center, aligning from largest to smallest."
+      ]
+    },
+    {
+      "episode": 231,
+      "tasks": [
+        "Grab large block, medium block, and small block, set them centrally, ordered by size."
+      ]
+    },
+    {
+      "episode": 237,
+      "tasks": [
+        "Grab large block, medium block, small block with the left arm, the right arm, the right arm and organize them by descending size."
+      ]
+    },
+    {
+      "episode": 262,
+      "tasks": [
+        "Move large block, medium block, and small block to the table center in size order."
+      ]
+    },
+    {
+      "episode": 274,
+      "tasks": [
+        "Use the right arm, the left arm, and the right arm to arrange large block, medium block, and small block centrally by size."
+      ]
+    },
+    {
+      "episode": 281,
+      "tasks": [
+        "Use the right arm, the left arm, and the right arm to arrange large block, medium block, and small block centrally by size."
+      ]
+    },
+    {
+      "episode": 283,
+      "tasks": [
+        "Grab large block, medium block, and small block, set them centrally, ordered by size."
+      ]
+    },
+    {
+      "episode": 286,
+      "tasks": [
+        "Center large block, medium block, small block with the right arm, the left arm, and the left arm following size order."
+      ]
+    },
+    {
+      "episode": 304,
+      "tasks": [
+        "Relocate large block, medium block, and small block to the center and arrange them by size."
+      ]
+    },
+    {
+      "episode": 326,
+      "tasks": [
+        "Pick large block first, medium block next, and small block last, and arrange them."
+      ]
+    },
+    {
+      "episode": 328,
+      "tasks": [
+        "Use the left arm, the right arm, and the right arm to arrange large block, medium block, and small block centrally by size."
+      ]
+    },
+    {
+      "episode": 347,
+      "tasks": [
+        "Align large block, medium block, and small block in the center by size, using the right arm, the right arm, and the left arm."
+      ]
+    },
+    {
+      "episode": 362,
+      "tasks": [
+        "Pick large block first, medium block next, and small block last, and arrange them."
+      ]
+    },
+    {
+      "episode": 370,
+      "tasks": [
+        "Arrange large block, medium block, and small block by size at the center."
+      ]
+    },
+    {
+      "episode": 379,
+      "tasks": [
+        "Take large block with the right arm, medium block with the left arm, and small block with the right arm to the middle."
+      ]
+    },
+    {
+      "episode": 389,
+      "tasks": [
+        "Move large block with the left arm, medium block with the right arm, and small block with the right arm to sort them."
+      ]
+    },
+    {
+      "episode": 391,
+      "tasks": [
+        "Grab large block, medium block, and small block and align them by size at the center."
+      ]
+    },
+    {
+      "episode": 396,
+      "tasks": [
+        "Relocate large block, medium block, and small block to the center and arrange them by size."
+      ]
+    },
+    {
+      "episode": 406,
+      "tasks": [
+        "Transfer large block, medium block, small block to the center, aligning from largest to smallest."
+      ]
+    },
+    {
+      "episode": 413,
+      "tasks": [
+        "Shift large block, medium block, and small block to the table's center and sort by size."
+      ]
+    },
+    {
+      "episode": 419,
+      "tasks": [
+        "Transfer large block, medium block, small block to the center, aligning from largest to smallest."
+      ]
+    },
+    {
+      "episode": 430,
+      "tasks": [
+        "Pick large block, medium block, and small block sequentially and move them to the center."
+      ]
+    },
+    {
+      "episode": 441,
+      "tasks": [
+        "Center large block, medium block, small block with the right arm, the left arm, and the right arm following size order."
+      ]
+    },
+    {
+      "episode": 459,
+      "tasks": [
+        "Organize large block, medium block, and small block in the center of the table by size, largest first."
+      ]
+    },
+    {
+      "episode": 465,
+      "tasks": [
+        "Position large block, medium block, then small block at the center in size order."
+      ]
+    },
+    {
+      "episode": 471,
+      "tasks": [
+        "Grab large block, medium block, small block, move them, and arrange by size centrally."
+      ]
+    },
+    {
+      "episode": 473,
+      "tasks": [
+        "Put large block, medium block, and small block in the center by size."
+      ]
+    },
+    {
+      "episode": 477,
+      "tasks": [
+        "Move large block, medium block, and small block to the center, arranging them by size."
+      ]
+    },
+    {
+      "episode": 487,
+      "tasks": [
+        "Move large block, medium block, and small block to the center, arranging them by size."
+      ]
+    },
+    {
+      "episode": 491,
+      "tasks": [
+        "Transfer large block, medium block, small block to the center, aligning from largest to smallest."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Align large block, medium block, and small block in the center by size, using the right arm, the right arm, and the left arm.": [
+      347
+    ],
+    "Arrange blocks large block, medium block, and small block in decreasing size order.": [
+      146,
+      160
+    ],
+    "Arrange large block, medium block, and small block by size at the center.": [
+      370
+    ],
+    "Bring large block, medium block, and small block to the center, sorting largest to smallest.": [
+      127
+    ],
+    "Center large block, medium block, small block with the right arm, the left arm, and the left arm following size order.": [
+      19,
+      286
+    ],
+    "Center large block, medium block, small block with the right arm, the left arm, and the right arm following size order.": [
+      441
+    ],
+    "Grab large block, medium block, and small block and align them by size at the center.": [
+      391
+    ],
+    "Grab large block, medium block, and small block, set them centrally, ordered by size.": [
+      71,
+      183,
+      231,
+      283
+    ],
+    "Grab large block, medium block, small block with the left arm, the right arm, the right arm and organize them by descending size.": [
+      237
+    ],
+    "Grab large block, medium block, small block, and arrange them in size order at the center.": [
+      34,
+      150
+    ],
+    "Grab large block, medium block, small block, move them, and arrange by size centrally.": [
+      471
+    ],
+    "Move large block with the left arm, medium block with the right arm, and small block with the right arm to sort them.": [
+      389
+    ],
+    "Move large block with the right arm, medium block with the left arm, and small block with the right arm to arrange them.": [
+      95
+    ],
+    "Move large block, medium block, and small block to the center and align.": [
+      83,
+      159,
+      168
+    ],
+    "Move large block, medium block, and small block to the center, arranging them by size.": [
+      67,
+      477,
+      487
+    ],
+    "Move large block, medium block, and small block to the table center in size order.": [
+      18,
+      262
+    ],
+    "Organize large block, medium block, and small block in the center of the table by size, largest first.": [
+      459
+    ],
+    "Pick large block first, medium block next, and small block last, and arrange them.": [
+      152,
+      326,
+      362
+    ],
+    "Pick large block, medium block, and small block sequentially and move them to the center.": [
+      430
+    ],
+    "Place large block, medium block, small block centrally and arrange largest to smallest.": [
+      57
+    ],
+    "Position large block, medium block, then small block at the center in size order.": [
+      465
+    ],
+    "Put large block, medium block, and small block in the center by size.": [
+      473
+    ],
+    "Relocate large block, medium block, and small block to the center and arrange them by size.": [
+      304,
+      396
+    ],
+    "Shift large block, medium block, and small block to the center and align by size.": [
+      13
+    ],
+    "Shift large block, medium block, and small block to the table's center and sort by size.": [
+      45,
+      76,
+      413
+    ],
+    "Take large block with the left arm, medium block with the right arm, and small block with the left arm to the middle.": [
+      156
+    ],
+    "Take large block with the right arm, medium block with the left arm, and small block with the right arm to the middle.": [
+      379
+    ],
+    "Transfer large block, medium block, small block to the center, aligning from largest to smallest.": [
+      213,
+      406,
+      419,
+      491
+    ],
+    "Use the left arm, the right arm, and the right arm to arrange large block, medium block, and small block centrally by size.": [
+      328
+    ],
+    "Use the right arm, the left arm, and the right arm to arrange large block, medium block, and small block centrally by size.": [
+      274,
+      281
+    ]
+  },
+  "source_to_cache_episode": {
+    "13": 0,
+    "18": 1,
+    "19": 2,
+    "34": 3,
+    "45": 4,
+    "57": 5,
+    "67": 6,
+    "71": 7,
+    "76": 8,
+    "83": 9,
+    "95": 10,
+    "127": 11,
+    "146": 12,
+    "150": 13,
+    "152": 14,
+    "156": 15,
+    "159": 16,
+    "160": 17,
+    "168": 18,
+    "183": 19,
+    "213": 20,
+    "231": 21,
+    "237": 22,
+    "262": 23,
+    "274": 24,
+    "281": 25,
+    "283": 26,
+    "286": 27,
+    "304": 28,
+    "326": 29,
+    "328": 30,
+    "347": 31,
+    "362": 32,
+    "370": 33,
+    "379": 34,
+    "389": 35,
+    "391": 36,
+    "396": 37,
+    "406": 38,
+    "413": 39,
+    "419": 40,
+    "430": 41,
+    "441": 42,
+    "459": 43,
+    "465": 44,
+    "471": 45,
+    "473": 46,
+    "477": 47,
+    "487": 48,
+    "491": 49
+  },
+  "source_to_cache_task": {
+    "0": 0,
+    "2": 1,
+    "3": 2,
+    "5": 3,
+    "7": 4,
+    "8": 5,
+    "10": 6,
+    "13": 7,
+    "15": 8,
+    "16": 9,
+    "17": 10,
+    "19": 11,
+    "20": 12,
+    "23": 13,
+    "24": 14,
+    "28": 15,
+    "29": 16,
+    "30": 17,
+    "32": 18,
+    "33": 19,
+    "34": 20,
+    "38": 21,
+    "39": 22,
+    "42": 23,
+    "44": 24,
+    "47": 25,
+    "48": 26,
+    "50": 27,
+    "62": 28,
+    "87": 29
+  },
+  "source_task_names": {
+    "0": "Grab large block, medium block, small block, and arrange them in size order at the center.",
+    "2": "Align large block, medium block, and small block in the center by size, using the right arm, the right arm, and the left arm.",
+    "3": "Center large block, medium block, small block with the right arm, the left arm, and the right arm following size order.",
+    "5": "Move large block with the left arm, medium block with the right arm, and small block with the right arm to sort them.",
+    "7": "Grab large block, medium block, small block with the left arm, the right arm, the right arm and organize them by descending size.",
+    "8": "Position large block, medium block, then small block at the center in size order.",
+    "10": "Put large block, medium block, and small block in the center by size.",
+    "13": "Shift large block, medium block, and small block to the center and align by size.",
+    "15": "Move large block, medium block, and small block to the table center in size order.",
+    "16": "Center large block, medium block, small block with the right arm, the left arm, and the left arm following size order.",
+    "17": "Organize large block, medium block, and small block in the center of the table by size, largest first.",
+    "19": "Arrange large block, medium block, and small block by size at the center.",
+    "20": "Pick large block, medium block, and small block sequentially and move them to the center.",
+    "23": "Grab large block, medium block, and small block and align them by size at the center.",
+    "24": "Move large block, medium block, and small block to the center and align.",
+    "28": "Use the left arm, the right arm, and the right arm to arrange large block, medium block, and small block centrally by size.",
+    "29": "Shift large block, medium block, and small block to the table's center and sort by size.",
+    "30": "Place large block, medium block, small block centrally and arrange largest to smallest.",
+    "32": "Transfer large block, medium block, small block to the center, aligning from largest to smallest.",
+    "33": "Move large block, medium block, and small block to the center, arranging them by size.",
+    "34": "Grab large block, medium block, small block, move them, and arrange by size centrally.",
+    "38": "Arrange blocks large block, medium block, and small block in decreasing size order.",
+    "39": "Bring large block, medium block, and small block to the center, sorting largest to smallest.",
+    "42": "Pick large block first, medium block next, and small block last, and arrange them.",
+    "44": "Grab large block, medium block, and small block, set them centrally, ordered by size.",
+    "47": "Relocate large block, medium block, and small block to the center and arrange them by size.",
+    "48": "Use the right arm, the left arm, and the right arm to arrange large block, medium block, and small block centrally by size.",
+    "50": "Move large block with the right arm, medium block with the left arm, and small block with the right arm to arrange them.",
+    "62": "Take large block with the left arm, medium block with the right arm, and small block with the left arm to the middle.",
+    "87": "Take large block with the right arm, medium block with the left arm, and small block with the right arm to the middle."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        13
+      ],
+      "new_episodes": [
+        0
+      ],
+      "size_mb": 3.3730688095092773,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        18,
+        19
+      ],
+      "new_episodes": [
+        1,
+        2
+      ],
+      "size_mb": 4.759794235229492,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        34,
+        45
+      ],
+      "new_episodes": [
+        3,
+        4
+      ],
+      "size_mb": 4.176044464111328,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        57,
+        67
+      ],
+      "new_episodes": [
+        5,
+        6
+      ],
+      "size_mb": 3.932424545288086,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        71,
+        76
+      ],
+      "new_episodes": [
+        7,
+        8
+      ],
+      "size_mb": 3.4167003631591797,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-005.mp4",
+      "source_episodes": [
+        83
+      ],
+      "new_episodes": [
+        9
+      ],
+      "size_mb": 3.6061668395996094,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-006.mp4",
+      "source_episodes": [
+        95,
+        127
+      ],
+      "new_episodes": [
+        10,
+        11
+      ],
+      "size_mb": 4.7848310470581055,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-007.mp4",
+      "source_episodes": [
+        146,
+        150
+      ],
+      "new_episodes": [
+        12,
+        13
+      ],
+      "size_mb": 4.163968086242676,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-008.mp4",
+      "source_episodes": [
+        152,
+        156
+      ],
+      "new_episodes": [
+        14,
+        15
+      ],
+      "size_mb": 2.97725772857666,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-009.mp4",
+      "source_episodes": [
+        159,
+        160
+      ],
+      "new_episodes": [
+        16,
+        17
+      ],
+      "size_mb": 4.748095512390137,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-010.mp4",
+      "source_episodes": [
+        168,
+        183
+      ],
+      "new_episodes": [
+        18,
+        19
+      ],
+      "size_mb": 4.207037925720215,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-011.mp4",
+      "source_episodes": [
+        213,
+        231
+      ],
+      "new_episodes": [
+        20,
+        21
+      ],
+      "size_mb": 4.17259407043457,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-012.mp4",
+      "source_episodes": [
+        237
+      ],
+      "new_episodes": [
+        22
+      ],
+      "size_mb": 3.767390251159668,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-013.mp4",
+      "source_episodes": [
+        262
+      ],
+      "new_episodes": [
+        23
+      ],
+      "size_mb": 3.1368408203125,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-014.mp4",
+      "source_episodes": [
+        274
+      ],
+      "new_episodes": [
+        24
+      ],
+      "size_mb": 4.050318717956543,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-015.mp4",
+      "source_episodes": [
+        281
+      ],
+      "new_episodes": [
+        25
+      ],
+      "size_mb": 3.45108699798584,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-016.mp4",
+      "source_episodes": [
+        283
+      ],
+      "new_episodes": [
+        26
+      ],
+      "size_mb": 2.6642894744873047,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-017.mp4",
+      "source_episodes": [
+        286
+      ],
+      "new_episodes": [
+        27
+      ],
+      "size_mb": 3.02211856842041,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-018.mp4",
+      "source_episodes": [
+        304
+      ],
+      "new_episodes": [
+        28
+      ],
+      "size_mb": 2.8146705627441406,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-019.mp4",
+      "source_episodes": [
+        326,
+        328
+      ],
+      "new_episodes": [
+        29,
+        30
+      ],
+      "size_mb": 4.744168281555176,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-020.mp4",
+      "source_episodes": [
+        347
+      ],
+      "new_episodes": [
+        31
+      ],
+      "size_mb": 3.458376884460449,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-021.mp4",
+      "source_episodes": [
+        362,
+        370
+      ],
+      "new_episodes": [
+        32,
+        33
+      ],
+      "size_mb": 4.787099838256836,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-022.mp4",
+      "source_episodes": [
+        379,
+        389
+      ],
+      "new_episodes": [
+        34,
+        35
+      ],
+      "size_mb": 4.330575942993164,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-023.mp4",
+      "source_episodes": [
+        391
+      ],
+      "new_episodes": [
+        36
+      ],
+      "size_mb": 4.145382881164551,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-024.mp4",
+      "source_episodes": [
+        396,
+        406,
+        413
+      ],
+      "new_episodes": [
+        37,
+        38,
+        39
+      ],
+      "size_mb": 4.878690719604492,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-025.mp4",
+      "source_episodes": [
+        419,
+        430
+      ],
+      "new_episodes": [
+        40,
+        41
+      ],
+      "size_mb": 4.629669189453125,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-026.mp4",
+      "source_episodes": [
+        441,
+        459
+      ],
+      "new_episodes": [
+        42,
+        43
+      ],
+      "size_mb": 3.810842514038086,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-027.mp4",
+      "source_episodes": [
+        465,
+        471
+      ],
+      "new_episodes": [
+        44,
+        45
+      ],
+      "size_mb": 4.946377754211426,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-028.mp4",
+      "source_episodes": [
+        473
+      ],
+      "new_episodes": [
+        46
+      ],
+      "size_mb": 2.953585624694824,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-029.mp4",
+      "source_episodes": [
+        477,
+        487
+      ],
+      "new_episodes": [
+        47,
+        48
+      ],
+      "size_mb": 4.04752254486084,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-030.mp4",
+      "source_episodes": [
+        491
+      ],
+      "new_episodes": [
+        49
+      ],
+      "size_mb": 2.380425453186035,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

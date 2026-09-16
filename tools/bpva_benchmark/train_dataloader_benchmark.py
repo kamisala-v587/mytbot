@@ -28,7 +28,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 import torch
 from accelerate import Accelerator
@@ -477,7 +477,11 @@ def _rank_payload(records: list[BatchLoadRecord], samples: list[SampleLoadRecord
     }
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(
+    argv: list[str] | None = None,
+    *,
+    load_config: Callable[[str], Any] | None = None,
+) -> None:
     args = build_parser().parse_args(argv)
     accelerator = Accelerator()
     output_dir = _make_output_dir(args.output_dir, args.exact_output_dir, accelerator)
@@ -485,7 +489,8 @@ def main(argv: list[str] | None = None) -> None:
     if accelerator.is_main_process:
         print(f"[train-dataloader-benchmark] 输出目录: {output_dir}", flush=True)
 
-    cfg = _load_cfg(args.config_path)
+    config_loader = _load_cfg if load_config is None else load_config
+    cfg = config_loader(args.config_path)
     if args.num_workers is not None:
         cfg.num_workers = args.num_workers
     if cfg.dataset.dist_loading and accelerator.num_processes <= 1:
@@ -522,6 +527,18 @@ def main(argv: list[str] | None = None) -> None:
             dataset, data_stats = make_dataset(cfg)
         accelerator.wait_for_everyone()
     dataset_init_s = time.perf_counter() - dataset_start
+
+    from tools.bpva_benchmark.train_benchmark import dataset_inventory
+
+    inventory = dataset_inventory(dataset)
+    if accelerator.is_main_process:
+        frames = inventory.get("total_frames")
+        frames_text = f"{frames:,}" if frames is not None else "未知"
+        print(
+            f"[train-dataloader-benchmark] 数据集个数={inventory.get('dataset_count')} "
+            f"总帧数={frames_text}",
+            flush=True,
+        )
 
     if accelerator.num_processes > 1:
         _ = gather_object(data_stats, accelerator)
@@ -619,6 +636,8 @@ def main(argv: list[str] | None = None) -> None:
         "skip_send_to_device": args.skip_send_to_device,
         "dataloader_in_order": not args.out_of_order,
         "repo_ids_for_rank": getattr(dataset, "repo_ids", []),
+        "dataset_count": inventory.get("dataset_count"),
+        "total_frames": inventory.get("total_frames"),
     }
     rank_summary = _rank_payload(batch_records, sample_records, metadata)
     _write_json(rank_output / "summary.json", rank_summary)
@@ -652,6 +671,8 @@ def main(argv: list[str] | None = None) -> None:
                 "world_size": accelerator.num_processes,
                 "output_dir": str(output_dir),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                "dataset_count": inventory.get("dataset_count"),
+                "total_frames": inventory.get("total_frames"),
             },
             "dataset_init_s_by_rank": [p["metadata"]["dataset_init_s"] for p in partials],
             "batch_load_s": _summarize_values([float(b["elapsed_s"]) for b in all_batches]),
@@ -669,15 +690,21 @@ def main(argv: list[str] | None = None) -> None:
                     "batch_load_s": p["batch_load_s"],
                     "sample_load_s": p["sample_load_s"],
                     "repo_count": len(p["metadata"].get("repo_ids_for_rank", [])),
+                    "dataset_count": p["metadata"].get("dataset_count"),
+                    "total_frames": p["metadata"].get("total_frames"),
                 }
                 for p in partials
             ],
         }
         _write_json(output_dir / "summary.json", summary)
         _write_json(output_dir / "repo_summary.json", summary["sample_load_s_by_repo"])
+        frames = inventory.get("total_frames")
+        frames_text = f"{frames:,}" if frames is not None else "未知"
         print(
             "[train-dataloader-benchmark] completed "
             f"batch_mean={summary['batch_load_s'].get('mean_s')} "
+            f"dataset_count={inventory.get('dataset_count')} "
+            f"total_frames={frames_text} "
             f"output={output_dir}",
             flush=True,
         )

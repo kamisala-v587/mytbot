@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/click_bell/aloha-agilex_clean_50",
+  "cache_repo_id": "bp-cache/aloha-agilex_clean_50-2bdfe66d2052",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/click_bell/aloha-agilex_clean_50",
+    "info_sha256": "f7e8df9d629a810291941d275a9de8809286a3c10458fc440ef31a2074034930",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4777,
+        "mtime_ns": 1782787053249101765
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 3732,
+        "mtime_ns": 1782787053248101765
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 86081,
+        "mtime_ns": 1782787053252101765
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/click_bell/aloha-agilex_clean_50",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/click_bell/aloha-agilex_clean_50",
+      "info_sha256": "f7e8df9d629a810291941d275a9de8809286a3c10458fc440ef31a2074034930",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4777,
+          "mtime_ns": 1782787053249101765
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 3732,
+          "mtime_ns": 1782787053248101765
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 86081,
+          "mtime_ns": 1782787053252101765
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "274fa8f30f52b6932db0ad706c4ade96eddda84efa416413836aa30b0aa61448"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 6,
+      "tasks": [
+        "Click using the left arm on the bell with protruding knob's center."
+      ]
+    },
+    {
+      "episode": 7,
+      "tasks": [
+        "Push the center of the small blue and brown bell using the left arm."
+      ]
+    },
+    {
+      "episode": 10,
+      "tasks": [
+        "Click the top center of the bell with black flat base on table."
+      ]
+    },
+    {
+      "episode": 39,
+      "tasks": [
+        "Use the right arm to press the compact bell with round base's top section."
+      ]
+    },
+    {
+      "episode": 42,
+      "tasks": [
+        "Click the designated center of the small blue and brown bell."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Click the designated center of the small blue and brown bell.": [
+      42
+    ],
+    "Click the top center of the bell with black flat base on table.": [
+      10
+    ],
+    "Click using the left arm on the bell with protruding knob's center.": [
+      6
+    ],
+    "Push the center of the small blue and brown bell using the left arm.": [
+      7
+    ],
+    "Use the right arm to press the compact bell with round base's top section.": [
+      39
+    ]
+  },
+  "source_to_cache_episode": {
+    "6": 0,
+    "7": 1,
+    "10": 2,
+    "39": 3,
+    "42": 4
+  },
+  "source_to_cache_task": {
+    "6": 0,
+    "7": 1,
+    "10": 2,
+    "38": 3,
+    "40": 4
+  },
+  "source_task_names": {
+    "6": "Click using the left arm on the bell with protruding knob's center.",
+    "7": "Push the center of the small blue and brown bell using the left arm.",
+    "10": "Click the top center of the bell with black flat base on table.",
+    "38": "Use the right arm to press the compact bell with round base's top section.",
+    "40": "Click the designated center of the small blue and brown bell."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        6,
+        7,
+        10,
+        39,
+        42
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "size_mb": 0.7186222076416016,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

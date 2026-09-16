@@ -48,10 +48,21 @@ from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE
 
 
 BP_PREFIX = "behavior_prompt"
+BP_SAME_EPISODE_POLICIES = frozenset({"avoid", "allow", "forbid", "neighbor"})
 
 logger = logging.getLogger(__name__)
 
 
+def normalize_bp_same_episode_policy(policy: str) -> str:
+    """Normalize and validate behavior-prompt same-episode sampling policy."""
+    normalized = str(policy).strip().lower()
+    if normalized == "neibor":
+        logger.warning("bp_same_episode_policy='neibor' is deprecated; use 'neighbor' instead")
+        normalized = "neighbor"
+    if normalized not in BP_SAME_EPISODE_POLICIES:
+        allowed = ", ".join(sorted(BP_SAME_EPISODE_POLICIES))
+        raise ValueError(f"Invalid BP same-episode policy {policy!r}; expected one of: {allowed}")
+    return normalized
 
 
 @dataclass
@@ -64,7 +75,7 @@ class BehaviorPromptConfig:
 
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
-    same_episode_policy: str = "avoid"  # avoid / allow / forbid
+    same_episode_policy: str = "avoid"  # avoid / allow / forbid / neighbor
     seed: int = 0
 
     # BPVA 默认数据变换配置。
@@ -78,8 +89,27 @@ class BehaviorPromptConfig:
     action_mode: str = ""
     batch_prompt_video_decode: bool = False
     dynamic_bp_cameras: bool = False
+    prompt_episode_namespace_shared: bool = True
+    prompt_task_scope: str = "task"  # task / dataset
 
     def __post_init__(self) -> None:
+        self.same_episode_policy = normalize_bp_same_episode_policy(self.same_episode_policy)
+        self.prompt_task_scope = str(self.prompt_task_scope).strip().lower()
+        if self.prompt_task_scope not in {"task", "dataset"}:
+            raise ValueError("prompt_task_scope must be 'task' or 'dataset'")
+        if not self.prompt_episode_namespace_shared:
+            if self.same_episode_policy == "forbid":
+                raise ValueError(
+                    "same_episode_policy='forbid' requires current and prompt datasets to share an episode namespace"
+                )
+            if self.same_episode_policy == "neighbor":
+                logger.warning(
+                    "Behavior-prompt cache has a separate episode namespace; 'neighbor' degrades to same-task random sampling"
+                )
+            elif self.same_episode_policy == "avoid":
+                logger.warning(
+                    "Behavior-prompt cache has a separate episode namespace; 'avoid' behaves as 'allow'"
+                )
         if self.bp_camera_keys is None:
             self.bp_camera_keys = [
                 f"{OBS_IMAGES}.image0",
@@ -165,7 +195,16 @@ class BehaviorPromptLeRobotDataset(Dataset):
             time.perf_counter() - started_at,
         )
         started_at = time.perf_counter()
+        self._current_task_names = self._build_task_index_to_name(self.current_ds)
+        self._prompt_task_names = self._build_task_index_to_name(self.prompt_ds)
         self._task_to_episodes = self._build_task_to_episodes()
+        if self.prompt_cfg.prompt_task_scope == "task":
+            missing_prompt_tasks = sorted(set(self._current_task_names.values()) - set(self._task_to_episodes))
+            if missing_prompt_tasks:
+                raise ValueError(
+                    "Prompt dataset is missing task name(s) required by the current dataset: "
+                    f"{missing_prompt_tasks}"
+                )
         logger.info(
             "Built behavior-prompt task map for %d episodes in %.3fs",
             len(self._episode_ranges),
@@ -344,6 +383,31 @@ class BehaviorPromptLeRobotDataset(Dataset):
             )
         return ranges
 
+    @classmethod
+    def _build_task_index_to_name(cls, dataset: LeRobotDataset) -> dict[int, str]:
+        """Build stable task identities independent of per-dataset integer numbering."""
+        task_table = getattr(dataset.meta, "tasks", None)
+        if task_table is None or not hasattr(task_table, "iterrows"):
+            raise ValueError(f"Dataset {getattr(dataset, 'repo_id', '<unknown>')!r} requires tabular task metadata")
+        result: dict[int, str] = {}
+        for raw_name, row in task_table.iterrows():
+            task_idx = cls._to_int(cls._row_get(row, "task_index"))
+            task_name = str(raw_name).strip()
+            if not task_name:
+                raise ValueError(f"Empty task name for task_index={task_idx}")
+            if task_idx in result and result[task_idx] != task_name:
+                raise ValueError(f"Duplicate task_index={task_idx} has inconsistent names")
+            result[task_idx] = task_name
+        if not result:
+            raise ValueError("Task metadata must not be empty")
+        return result
+
+    def _current_task_identity(self, task_idx: int) -> str:
+        try:
+            return self._current_task_names[task_idx]
+        except KeyError as exc:
+            raise KeyError(f"Current task_index={task_idx} is absent from current task metadata") from exc
+
     def _task_indices_from_metadata(self, row: Any) -> set[int]:
         """Read task IDs from common episode metadata schemas."""
         for key in ("task_index", "task_indices"):
@@ -384,10 +448,10 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 for episode_idx, local_start in zip(episode_ids, starts, strict=True)
             }
 
-    def _build_task_to_episodes(self) -> dict[int, list[int]]:
-        """Build task -> episodes from metadata, reading at most one HF row per fallback episode."""
+    def _build_task_to_episodes(self) -> dict[str, list[int]]:
+        """Build canonical task-name -> prompt episodes despite task index renumbering."""
         metadata_rows = self._episode_metadata_rows()
-        task_to_episodes: dict[int, set[int]] = defaultdict(set)
+        task_to_episodes: dict[str, set[int]] = defaultdict(set)
         missing_task_episodes: list[int] = []
         for episode_idx in self._episode_ranges:
             task_indices = self._task_indices_from_metadata(metadata_rows[episode_idx])
@@ -395,18 +459,49 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 missing_task_episodes.append(episode_idx)
                 continue
             for task_idx in task_indices:
-                task_to_episodes[task_idx].add(episode_idx)
+                try:
+                    task_name = self._prompt_task_names[task_idx]
+                except KeyError as exc:
+                    raise KeyError(f"Prompt task_index={task_idx} is absent from prompt task metadata") from exc
+                task_to_episodes[task_name].add(episode_idx)
 
         if missing_task_episodes:
             for episode_idx, task_idx in self._task_indices_at_episode_starts(missing_task_episodes).items():
-                task_to_episodes[task_idx].add(episode_idx)
-        return {task_idx: sorted(episodes) for task_idx, episodes in task_to_episodes.items()}
+                try:
+                    task_name = self._prompt_task_names[task_idx]
+                except KeyError as exc:
+                    raise KeyError(f"Prompt task_index={task_idx} is absent from prompt task metadata") from exc
+                task_to_episodes[task_name].add(episode_idx)
+        return {task_name: sorted(episodes) for task_name, episodes in task_to_episodes.items()}
 
-    def _sample_prompt_episode(self, current_episode_idx: int, current_task_idx: int) -> int:
+    def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: str) -> int:
         """Sample a prompt episode, preferring the same task and obeying same-episode policy."""
-        candidates = list(self._task_to_episodes.get(current_task_idx, []))
+        candidates = (
+            sorted(self._episode_ranges)
+            if self.prompt_cfg.prompt_task_scope == "dataset"
+            else list(self._task_to_episodes.get(current_task_identity, []))
+        )
         if not candidates:
+            if not self.prompt_cfg.prompt_episode_namespace_shared:
+                raise RuntimeError(f"No cached behavior-prompt episodes for task {current_task_identity!r}")
             candidates = sorted(self._episode_ranges.keys())
+
+        if not self.prompt_cfg.prompt_episode_namespace_shared:
+            return self.rng.choice(candidates)
+
+        if self.prompt_cfg.same_episode_policy == "neighbor":
+            task_episodes = self._task_to_episodes.get(current_task_identity, [])
+            if current_episode_idx in task_episodes:
+                position = task_episodes.index(current_episode_idx)
+                neighbors = task_episodes[max(0, position - 1) : position]
+                neighbors.extend(task_episodes[position + 1 : position + 2])
+                if neighbors:
+                    return self.rng.choice(neighbors)
+
+            # No usable same-task neighbor: preserve the existing soft-avoid fallback.
+            different_episode_candidates = [ep for ep in candidates if ep != current_episode_idx]
+            if different_episode_candidates:
+                candidates = different_episode_candidates
 
         if self.prompt_cfg.same_episode_policy in {"avoid", "forbid"}:
             different_episode_candidates = [ep for ep in candidates if ep != current_episode_idx]
@@ -414,7 +509,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 candidates = different_episode_candidates
             elif self.prompt_cfg.same_episode_policy == "forbid":
                 raise RuntimeError(
-                    f"No different prompt episode for episode={current_episode_idx}, task={current_task_idx}"
+                    f"No different prompt episode for episode={current_episode_idx}, task={current_task_identity}"
                 )
 
         return self.rng.choice(candidates)
@@ -491,7 +586,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
         """
         current_episode_idx = self._to_int(current_sample["episode_index"])
         current_task_idx = self._to_int(current_sample.get("task_index", 0))
-        prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_idx)
+        current_task_identity = self._current_task_identity(current_task_idx)
+        prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_identity)
         local_start, local_end, absolute_start = self._episode_ranges[prompt_episode_idx]
         trajectory_len = local_end - local_start
         prompt_num_chunks = self._resolve_num_chunks(trajectory_len)

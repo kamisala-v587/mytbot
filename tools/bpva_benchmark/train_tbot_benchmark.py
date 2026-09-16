@@ -1,8 +1,7 @@
-"""Short TBot-SA1 training-throughput benchmark without eval/checkpoint/W&B.
+"""TBot-SA1 短程训练吞吐测评（不评测、不存 checkpoint、不启 W&B）。
 
-This entrypoint is intentionally a thin TBot-specific wrapper around
-``train_benchmark`` so BPVA and TBot baselines share the same timing,
-instrumentation, Accelerate, reporting, and dataloader override behavior.
+薄封装：复用 ``train_benchmark`` 的计时、插桩、Accelerate、报告与 dataloader
+覆盖逻辑，仅额外校验 ``policy.type`` 为 TBot_SA1。
 """
 
 from __future__ import annotations
@@ -26,16 +25,7 @@ def _load_tbot(path: str, base_loader: Callable[[str], Any] | None = None) -> An
 
 
 def main(argv: list[str] | None = None) -> None:
-    original_load = train_benchmark._load
-
-    def load_checked(path: str) -> Any:
-        return _load_tbot(path, base_loader=original_load)
-
-    train_benchmark._load = load_checked
-    try:
-        train_benchmark.main(argv)
-    finally:
-        train_benchmark._load = original_load
+    train_benchmark.main(argv, load_config=_load_tbot)
 
 
 if __name__ == "__main__":

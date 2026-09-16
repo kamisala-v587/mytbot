@@ -1,0 +1,856 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/grab_roller/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-523c81a1a777",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/grab_roller/aloha-agilex_randomized_500",
+    "info_sha256": "183f5e8709014027364cb34e39a8fe5113b74688121ad9d49a5a147d1990e500",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782787013832100355
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 10715,
+        "mtime_ns": 1782787013832100355
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 526754,
+        "mtime_ns": 1782787013838100355
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/grab_roller/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/grab_roller/aloha-agilex_randomized_500",
+      "info_sha256": "183f5e8709014027364cb34e39a8fe5113b74688121ad9d49a5a147d1990e500",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782787013832100355
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 10715,
+          "mtime_ns": 1782787013832100355
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 526754,
+          "mtime_ns": 1782787013838100355
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "04d36f8fd06ac3d113bed7318921504d1e9afc9f9355256b0e6a5bdbe95d57c7"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 2,
+      "tasks": [
+        "Take the slim wooden roller directly from the table."
+      ]
+    },
+    {
+      "episode": 14,
+      "tasks": [
+        "Lift the solid wood roller from its place on the table"
+      ]
+    },
+    {
+      "episode": 23,
+      "tasks": [
+        "Lift the wooden rolling tool off the table with arms."
+      ]
+    },
+    {
+      "episode": 29,
+      "tasks": [
+        "Secure the slim wooden roller on the table using arms."
+      ]
+    },
+    {
+      "episode": 32,
+      "tasks": [
+        "Pick up the cylindrical roller with tapered ends using both arms equally"
+      ]
+    },
+    {
+      "episode": 34,
+      "tasks": [
+        "Lift the medium-sized roller off the table with arms."
+      ]
+    },
+    {
+      "episode": 43,
+      "tasks": [
+        "Use both arms to grip the roller for smoothing materials tightly."
+      ]
+    },
+    {
+      "episode": 58,
+      "tasks": [
+        "Pick up the roller with polished surface using both arms."
+      ]
+    },
+    {
+      "episode": 63,
+      "tasks": [
+        "Firmly grab the light brown wooden roller using arms."
+      ]
+    },
+    {
+      "episode": 66,
+      "tasks": [
+        "Securely grab the wood roller using both arms."
+      ]
+    },
+    {
+      "episode": 68,
+      "tasks": [
+        "Firmly grip the roller with smooth texture on the table now."
+      ]
+    },
+    {
+      "episode": 91,
+      "tasks": [
+        "Firmly grab the smooth light brown roller using arms."
+      ]
+    },
+    {
+      "episode": 96,
+      "tasks": [
+        "Both arms should grab the long slim roller now."
+      ]
+    },
+    {
+      "episode": 98,
+      "tasks": [
+        "Both arms should grab the cylindrical roller with tapered ends now."
+      ]
+    },
+    {
+      "episode": 103,
+      "tasks": [
+        "Grasp the roller for smoothing materials on the table with arms."
+      ]
+    },
+    {
+      "episode": 112,
+      "tasks": [
+        "Lift the light wood roller off the table with arms."
+      ]
+    },
+    {
+      "episode": 133,
+      "tasks": [
+        "Grasp the roller for rolling firmly with arms."
+      ]
+    },
+    {
+      "episode": 144,
+      "tasks": [
+        "Grip the roller with smooth texture firmly with arms."
+      ]
+    },
+    {
+      "episode": 158,
+      "tasks": [
+        "Secure the palm-sized roller using your arms."
+      ]
+    },
+    {
+      "episode": 160,
+      "tasks": [
+        "Grasp the roller with smooth texture firmly from the table."
+      ]
+    },
+    {
+      "episode": 167,
+      "tasks": [
+        "Secure the smooth cylindrical roller using your arms."
+      ]
+    },
+    {
+      "episode": 169,
+      "tasks": [
+        "Both arms should grab the smooth light brown roller now."
+      ]
+    },
+    {
+      "episode": 184,
+      "tasks": [
+        "Hold the roller for smoothing materials with both arms to pick it up"
+      ]
+    },
+    {
+      "episode": 189,
+      "tasks": [
+        "Grab the palm-sized roller placed on the table."
+      ]
+    },
+    {
+      "episode": 207,
+      "tasks": [
+        "Take hold of the roller with polished surface using your arms."
+      ]
+    },
+    {
+      "episode": 211,
+      "tasks": [
+        "Use both arms to grip the palm-length roller tightly."
+      ]
+    },
+    {
+      "episode": 216,
+      "tasks": [
+        "Lift the palm-sized roller from the table carefully."
+      ]
+    },
+    {
+      "episode": 217,
+      "tasks": [
+        "Grasp the light brown wooden roller on the table."
+      ]
+    },
+    {
+      "episode": 226,
+      "tasks": [
+        "Firmly grab the cylindrical roller using arms."
+      ]
+    },
+    {
+      "episode": 243,
+      "tasks": [
+        "Grab the roller with polished surface directly from the table."
+      ]
+    },
+    {
+      "episode": 244,
+      "tasks": [
+        "Grab the brown roller placed on the table."
+      ]
+    },
+    {
+      "episode": 245,
+      "tasks": [
+        "Use both arms to grip the light brown roller tightly."
+      ]
+    },
+    {
+      "episode": 254,
+      "tasks": [
+        "Take hold of the cylindrical roller using your arms."
+      ]
+    },
+    {
+      "episode": 258,
+      "tasks": [
+        "Grasp the palm-length roller on the table with arms."
+      ]
+    },
+    {
+      "episode": 266,
+      "tasks": [
+        "Firmly grip the solid wood roller on the table now."
+      ]
+    },
+    {
+      "episode": 276,
+      "tasks": [
+        "Pick up the roller with smooth texture using both arms."
+      ]
+    },
+    {
+      "episode": 291,
+      "tasks": [
+        "Take the light brown wooden roller directly from the table."
+      ]
+    },
+    {
+      "episode": 292,
+      "tasks": [
+        "Hold the light brown roller from the table."
+      ]
+    },
+    {
+      "episode": 302,
+      "tasks": [
+        "Secure the palm-sized roller on the table using arms."
+      ]
+    },
+    {
+      "episode": 318,
+      "tasks": [
+        "Grab the medium roller with narrower tips placed on the table."
+      ]
+    },
+    {
+      "episode": 326,
+      "tasks": [
+        "Use arms to firmly grab the palm-sized roller."
+      ]
+    },
+    {
+      "episode": 333,
+      "tasks": [
+        "Take hold of the roller with polished surface."
+      ]
+    },
+    {
+      "episode": 335,
+      "tasks": [
+        "Hold the palm-length roller firmly from the table."
+      ]
+    },
+    {
+      "episode": 352,
+      "tasks": [
+        "Secure the roller for smoothing materials using your arms."
+      ]
+    },
+    {
+      "episode": 399,
+      "tasks": [
+        "Hold the roller shaped like cylinder from the table."
+      ]
+    },
+    {
+      "episode": 405,
+      "tasks": [
+        "Grasp the wood roller on the table with arms."
+      ]
+    },
+    {
+      "episode": 461,
+      "tasks": [
+        "Firmly grab the medium-sized roller using arms."
+      ]
+    },
+    {
+      "episode": 465,
+      "tasks": [
+        "Take hold of the light brown roller with arms."
+      ]
+    },
+    {
+      "episode": 482,
+      "tasks": [
+        "Use arms to hold the solid wood roller tightly."
+      ]
+    },
+    {
+      "episode": 496,
+      "tasks": [
+        "Pick up the medium-sized roller from the table directly."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Both arms should grab the cylindrical roller with tapered ends now.": [
+      98
+    ],
+    "Both arms should grab the long slim roller now.": [
+      96
+    ],
+    "Both arms should grab the smooth light brown roller now.": [
+      169
+    ],
+    "Firmly grab the cylindrical roller using arms.": [
+      226
+    ],
+    "Firmly grab the light brown wooden roller using arms.": [
+      63
+    ],
+    "Firmly grab the medium-sized roller using arms.": [
+      461
+    ],
+    "Firmly grab the smooth light brown roller using arms.": [
+      91
+    ],
+    "Firmly grip the roller with smooth texture on the table now.": [
+      68
+    ],
+    "Firmly grip the solid wood roller on the table now.": [
+      266
+    ],
+    "Grab the brown roller placed on the table.": [
+      244
+    ],
+    "Grab the medium roller with narrower tips placed on the table.": [
+      318
+    ],
+    "Grab the palm-sized roller placed on the table.": [
+      189
+    ],
+    "Grab the roller with polished surface directly from the table.": [
+      243
+    ],
+    "Grasp the light brown wooden roller on the table.": [
+      217
+    ],
+    "Grasp the palm-length roller on the table with arms.": [
+      258
+    ],
+    "Grasp the roller for rolling firmly with arms.": [
+      133
+    ],
+    "Grasp the roller for smoothing materials on the table with arms.": [
+      103
+    ],
+    "Grasp the roller with smooth texture firmly from the table.": [
+      160
+    ],
+    "Grasp the wood roller on the table with arms.": [
+      405
+    ],
+    "Grip the roller with smooth texture firmly with arms.": [
+      144
+    ],
+    "Hold the light brown roller from the table.": [
+      292
+    ],
+    "Hold the palm-length roller firmly from the table.": [
+      335
+    ],
+    "Hold the roller for smoothing materials with both arms to pick it up": [
+      184
+    ],
+    "Hold the roller shaped like cylinder from the table.": [
+      399
+    ],
+    "Lift the light wood roller off the table with arms.": [
+      112
+    ],
+    "Lift the medium-sized roller off the table with arms.": [
+      34
+    ],
+    "Lift the palm-sized roller from the table carefully.": [
+      216
+    ],
+    "Lift the solid wood roller from its place on the table": [
+      14
+    ],
+    "Lift the wooden rolling tool off the table with arms.": [
+      23
+    ],
+    "Pick up the cylindrical roller with tapered ends using both arms equally": [
+      32
+    ],
+    "Pick up the medium-sized roller from the table directly.": [
+      496
+    ],
+    "Pick up the roller with polished surface using both arms.": [
+      58
+    ],
+    "Pick up the roller with smooth texture using both arms.": [
+      276
+    ],
+    "Secure the palm-sized roller on the table using arms.": [
+      302
+    ],
+    "Secure the palm-sized roller using your arms.": [
+      158
+    ],
+    "Secure the roller for smoothing materials using your arms.": [
+      352
+    ],
+    "Secure the slim wooden roller on the table using arms.": [
+      29
+    ],
+    "Secure the smooth cylindrical roller using your arms.": [
+      167
+    ],
+    "Securely grab the wood roller using both arms.": [
+      66
+    ],
+    "Take hold of the cylindrical roller using your arms.": [
+      254
+    ],
+    "Take hold of the light brown roller with arms.": [
+      465
+    ],
+    "Take hold of the roller with polished surface using your arms.": [
+      207
+    ],
+    "Take hold of the roller with polished surface.": [
+      333
+    ],
+    "Take the light brown wooden roller directly from the table.": [
+      291
+    ],
+    "Take the slim wooden roller directly from the table.": [
+      2
+    ],
+    "Use arms to firmly grab the palm-sized roller.": [
+      326
+    ],
+    "Use arms to hold the solid wood roller tightly.": [
+      482
+    ],
+    "Use both arms to grip the light brown roller tightly.": [
+      245
+    ],
+    "Use both arms to grip the palm-length roller tightly.": [
+      211
+    ],
+    "Use both arms to grip the roller for smoothing materials tightly.": [
+      43
+    ]
+  },
+  "source_to_cache_episode": {
+    "2": 0,
+    "14": 1,
+    "23": 2,
+    "29": 3,
+    "32": 4,
+    "34": 5,
+    "43": 6,
+    "58": 7,
+    "63": 8,
+    "66": 9,
+    "68": 10,
+    "91": 11,
+    "96": 12,
+    "98": 13,
+    "103": 14,
+    "112": 15,
+    "133": 16,
+    "144": 17,
+    "158": 18,
+    "160": 19,
+    "167": 20,
+    "169": 21,
+    "184": 22,
+    "189": 23,
+    "207": 24,
+    "211": 25,
+    "216": 26,
+    "217": 27,
+    "226": 28,
+    "243": 29,
+    "244": 30,
+    "245": 31,
+    "254": 32,
+    "258": 33,
+    "266": 34,
+    "276": 35,
+    "291": 36,
+    "292": 37,
+    "302": 38,
+    "318": 39,
+    "326": 40,
+    "333": 41,
+    "335": 42,
+    "352": 43,
+    "399": 44,
+    "405": 45,
+    "461": 46,
+    "465": 47,
+    "482": 48,
+    "496": 49
+  },
+  "source_to_cache_task": {
+    "2": 0,
+    "8": 1,
+    "14": 2,
+    "23": 3,
+    "29": 4,
+    "32": 5,
+    "34": 6,
+    "43": 7,
+    "50": 8,
+    "53": 9,
+    "57": 10,
+    "58": 11,
+    "61": 12,
+    "63": 13,
+    "65": 14,
+    "88": 15,
+    "90": 16,
+    "93": 17,
+    "102": 18,
+    "106": 19,
+    "121": 20,
+    "143": 21,
+    "145": 22,
+    "151": 23,
+    "153": 24,
+    "164": 25,
+    "169": 26,
+    "186": 27,
+    "191": 28,
+    "192": 29,
+    "199": 30,
+    "213": 31,
+    "214": 32,
+    "215": 33,
+    "224": 34,
+    "228": 35,
+    "251": 36,
+    "252": 37,
+    "255": 38,
+    "260": 39,
+    "272": 40,
+    "283": 41,
+    "285": 42,
+    "297": 43,
+    "331": 44,
+    "335": 45,
+    "377": 46,
+    "381": 47,
+    "391": 48,
+    "394": 49
+  },
+  "source_task_names": {
+    "2": "Take the slim wooden roller directly from the table.",
+    "8": "Pick up the roller with smooth texture using both arms.",
+    "14": "Lift the solid wood roller from its place on the table",
+    "23": "Lift the wooden rolling tool off the table with arms.",
+    "29": "Secure the slim wooden roller on the table using arms.",
+    "32": "Pick up the cylindrical roller with tapered ends using both arms equally",
+    "34": "Lift the medium-sized roller off the table with arms.",
+    "43": "Use both arms to grip the roller for smoothing materials tightly.",
+    "50": "Both arms should grab the long slim roller now.",
+    "53": "Firmly grip the solid wood roller on the table now.",
+    "57": "Grip the roller with smooth texture firmly with arms.",
+    "58": "Pick up the roller with polished surface using both arms.",
+    "61": "Firmly grab the light brown wooden roller using arms.",
+    "63": "Securely grab the wood roller using both arms.",
+    "65": "Firmly grip the roller with smooth texture on the table now.",
+    "88": "Firmly grab the smooth light brown roller using arms.",
+    "90": "Grasp the roller for smoothing materials on the table with arms.",
+    "93": "Both arms should grab the cylindrical roller with tapered ends now.",
+    "102": "Take hold of the roller with polished surface using your arms.",
+    "106": "Lift the light wood roller off the table with arms.",
+    "121": "Grasp the roller for rolling firmly with arms.",
+    "143": "Secure the palm-sized roller using your arms.",
+    "145": "Grasp the roller with smooth texture firmly from the table.",
+    "151": "Secure the smooth cylindrical roller using your arms.",
+    "153": "Both arms should grab the smooth light brown roller now.",
+    "164": "Hold the roller for smoothing materials with both arms to pick it up",
+    "169": "Grab the palm-sized roller placed on the table.",
+    "186": "Use both arms to grip the palm-length roller tightly.",
+    "191": "Lift the palm-sized roller from the table carefully.",
+    "192": "Grasp the light brown wooden roller on the table.",
+    "199": "Firmly grab the cylindrical roller using arms.",
+    "213": "Grab the roller with polished surface directly from the table.",
+    "214": "Grab the brown roller placed on the table.",
+    "215": "Use both arms to grip the light brown roller tightly.",
+    "224": "Take hold of the cylindrical roller using your arms.",
+    "228": "Grasp the palm-length roller on the table with arms.",
+    "251": "Take the light brown wooden roller directly from the table.",
+    "252": "Hold the light brown roller from the table.",
+    "255": "Use arms to firmly grab the palm-sized roller.",
+    "260": "Secure the palm-sized roller on the table using arms.",
+    "272": "Grab the medium roller with narrower tips placed on the table.",
+    "283": "Take hold of the roller with polished surface.",
+    "285": "Hold the palm-length roller firmly from the table.",
+    "297": "Secure the roller for smoothing materials using your arms.",
+    "331": "Hold the roller shaped like cylinder from the table.",
+    "335": "Grasp the wood roller on the table with arms.",
+    "377": "Firmly grab the medium-sized roller using arms.",
+    "381": "Take hold of the light brown roller with arms.",
+    "391": "Use arms to hold the solid wood roller tightly.",
+    "394": "Pick up the medium-sized roller from the table directly."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        2,
+        14,
+        23,
+        29,
+        32,
+        34,
+        43,
+        58,
+        63,
+        66
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "size_mb": 4.817858695983887,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        68,
+        91,
+        96,
+        98,
+        103,
+        112,
+        133,
+        144,
+        158,
+        160,
+        167
+      ],
+      "new_episodes": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "size_mb": 4.828582763671875,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        169,
+        184,
+        189,
+        207,
+        211,
+        216,
+        217,
+        226,
+        243,
+        244,
+        245
+      ],
+      "new_episodes": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "size_mb": 4.901050567626953,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        254,
+        258,
+        266,
+        276,
+        291,
+        292,
+        302,
+        318,
+        326
+      ],
+      "new_episodes": [
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40
+      ],
+      "size_mb": 4.767009735107422,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        333,
+        335,
+        352,
+        399,
+        405,
+        461,
+        465,
+        482,
+        496
+      ],
+      "new_episodes": [
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+      ],
+      "size_mb": 4.678997039794922,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

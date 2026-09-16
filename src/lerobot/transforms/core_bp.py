@@ -348,14 +348,27 @@ class BPVAv2RemapImageKeyTransformFn(DataTransformFn):
     def __call__(self, data: DataDict) -> DataDict:
         prompt = data[BP_PREFIX]
         remapped = {new: prompt["images"][old] for old, new in self.mapping.items() if old in prompt["images"]}
-        missing = [key for key in self.bp_camera_keys if key not in remapped]
-        if missing:
-            raise KeyError(f"BPVAv2 configured cameras are unavailable after remapping: {missing}")
+        present = [key for key in self.bp_camera_keys if key in remapped]
+        if not present:
+            available = ", ".join(sorted(prompt["images"]))
+            raise KeyError(
+                "BPVAv2 prompt has none of the configured cameras "
+                f"{self.bp_camera_keys}; available [{available}]"
+            )
+        fallback = remapped[present[0]]
+        image_masks: dict[str, torch.Tensor] = {}
+        for key in self.bp_camera_keys:
+            if key not in remapped:
+                remapped[key] = torch.ones_like(fallback)
+                image_masks[key] = torch.zeros(
+                    fallback.shape[0], dtype=torch.bool, device=fallback.device
+                )
+            else:
+                image_masks[key] = torch.ones(
+                    remapped[key].shape[0], dtype=torch.bool, device=remapped[key].device
+                )
         prompt["images"] = {key: remapped[key] for key in self.bp_camera_keys}
-        prompt["image_masks"] = {
-            key: torch.ones(prompt["images"][key].shape[0], dtype=torch.bool, device=prompt["images"][key].device)
-            for key in self.bp_camera_keys
-        }
+        prompt["image_masks"] = image_masks
         data[BP_PREFIX] = prompt
         return data
 
@@ -370,7 +383,13 @@ class BPVAv2QwenImageTransformFn(ImgOnlyQwen3VLTransformFn):
         prompt = data[BP_PREFIX]
         processed_pixels: dict[str, torch.Tensor] = {}
         processed_grids: dict[str, torch.Tensor] = {}
+        skipped: list[str] = []
+        masks = prompt.get("image_masks") or {}
         for key, images in prompt["images"].items():
+            mask = masks.get(key)
+            if mask is not None and not bool(torch.as_tensor(mask).any()):
+                skipped.append(key)
+                continue
             outputs = self.image_processor(list(images), do_rescale=False)
             grids = torch.as_tensor(outputs.image_grid_thw, dtype=torch.long)
             pixels = torch.as_tensor(outputs.pixel_values)
@@ -379,6 +398,13 @@ class BPVAv2QwenImageTransformFn(ImgOnlyQwen3VLTransformFn):
                 raise ValueError(f"BPVAv2 requires fixed processed image shape within camera {key!r}")
             processed_pixels[key] = pixels.reshape(images.shape[0], int(patch_counts[0]), pixels.shape[-1])
             processed_grids[key] = grids
+        if not processed_pixels:
+            raise ValueError("BPVAv2 requires at least one unmasked camera to process")
+        template_pixels = next(iter(processed_pixels.values()))
+        template_grids = next(iter(processed_grids.values()))
+        for key in skipped:
+            processed_pixels[key] = torch.zeros_like(template_pixels)
+            processed_grids[key] = template_grids.clone()
         prompt["bp_pixel_values"] = processed_pixels
         prompt["bp_image_grid_thw"] = processed_grids
         data[BP_PREFIX] = prompt

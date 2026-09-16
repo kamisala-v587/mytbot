@@ -1,0 +1,18 @@
+{
+  "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/RoboTwin-LeRobot-v3.0.txt",
+  "bp_cache_root": "/home/jovyan/workspace/mytbot/bp_cache",
+  "mapping_output": "/home/jovyan/workspace/mytbot/bp_cache/mapping.yaml",
+  "sample_ratio": 0.1,
+  "sampling_scope": "dataset",
+  "sampling_mode": "random",
+  "seed": 42,
+  "bp_camera_keys": [
+    "observation.images.image0"
+  ],
+  "target_video_mb": 5.0,
+  "single_episode_soft_mb": 10.0,
+  "single_episode_hard_mb": 20.0,
+  "resume": false,
+  "overwrite": false,
+  "dry_run": false
+}

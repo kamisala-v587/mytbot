@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import contextvars
 import functools
 import time
 from dataclasses import dataclass
 from typing import Any
 
 from .metrics import StageRecord
+
+# BPVAv2 passes the shared Qwen visual into BP encode; mark that call stack so
+# the shared ``qwen_visual`` hook can attribute BP vs current-obs separately.
+_BP_VISUAL_CONTEXT: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "bp_visual_context", default=False
+)
 
 
 @dataclass
@@ -110,6 +117,14 @@ class ModelInstrumentation:
         "embed_prefix_with_behavior_prompt",
         "compute_3d_query_loss",
     )
+    # Explicit BP stages used by terminal / summary attribution.
+    BP_STAGE_NAMES = (
+        "bp_encoder",
+        "bp_visual_encode",
+        "bp_qwen_visual",
+        "bp_compressor_est",
+        "bp_vit",
+    )
 
     def __init__(self, model: Any, rank: int = 0):
         self.model = model
@@ -119,7 +134,7 @@ class ModelInstrumentation:
         self._handles: list[Any] = []
         self._methods: list[tuple[Any, str, Any]] = []
         self._pending: list[_Pending] = []
-        self._active: dict[tuple[int, str], list[tuple[float, Any, Any]]] = {}
+        self._active: dict[tuple[int, str], list[tuple[float, Any, Any, str]]] = {}
 
     def _register_module(self, module: Any, stage: str, seen: set[int]) -> None:
         if id(module) in seen:
@@ -149,22 +164,35 @@ class ModelInstrumentation:
                 _, module = min(matches, key=lambda item: len(item[0]))
                 self._register_module(module, stage, seen)
 
+        # Legacy BPVA kept per-camera ViTs under key_model_map.
         key_map = modules.get("bp_obs_encoder.chunk_encoder.key_model_map")
         if key_map is not None:
             for module in key_map.values():
                 self._register_module(module, "bp_vit", seen)
+
+        # BPVAv2: shared Qwen visual is an argument to chunk_encoder, not a child.
+        # Time `_encode_images` (visual + projection) and attribute nested visual hooks.
+        chunk_encoder = modules.get("bp_obs_encoder.chunk_encoder")
+        if chunk_encoder is not None and hasattr(chunk_encoder, "_encode_images"):
+            self._wrap_bp_visual_encode(chunk_encoder)
 
         for name in self.METHOD_NAMES:
             if hasattr(self.model, name):
                 self._wrap_method(self.model, name, f"method.{name}")
         return self
 
+    def _resolve_hook_stage(self, stage: str) -> str:
+        if stage == "qwen_visual" and _BP_VISUAL_CONTEXT.get():
+            return "bp_qwen_visual"
+        return stage
+
     def _pre(self, stage: str):
         def hook(module, _inputs):
-            timer = DeviceStageTimer(stage, self.rank, self.step)
+            actual = self._resolve_hook_stage(stage)
+            timer = DeviceStageTimer(actual, self.rank, self.step)
             timer.__enter__()
             self._active.setdefault((id(module), stage), []).append(
-                (timer.began, timer.start, timer.end)
+                (timer.began, timer.start, timer.end, actual)
             )
 
         return hook
@@ -174,12 +202,17 @@ class ModelInstrumentation:
             stack = self._active.get((id(module), stage), [])
             if not stack:
                 return
-            began, start, end = stack.pop()
+            began, start, end, actual = stack.pop()
             if end is not None:
                 end.record()
             self._pending.append(
                 _Pending(
-                    stage, self.rank, self.step, time.perf_counter() - began, start, end
+                    actual,
+                    self.rank,
+                    self.step,
+                    time.perf_counter() - began,
+                    start,
+                    end,
                 )
             )
 
@@ -198,6 +231,27 @@ class ModelInstrumentation:
 
         self._methods.append((owner, name, original))
         setattr(owner, name, wrapped)
+
+    def _wrap_bp_visual_encode(self, chunk_encoder: Any) -> None:
+        """Time BPVAv2 BP image encode (shared Qwen visual + projection)."""
+        original = chunk_encoder._encode_images
+
+        @functools.wraps(original)
+        def wrapped(*args, **kwargs):
+            token = _BP_VISUAL_CONTEXT.set(True)
+            try:
+                with DeviceStageTimer(
+                    "bp_visual_encode", self.rank, self.step
+                ) as timer:
+                    result = original(*args, **kwargs)
+                if timer.pending is not None:
+                    self._pending.append(timer.pending)
+                return result
+            finally:
+                _BP_VISUAL_CONTEXT.reset(token)
+
+        self._methods.append((chunk_encoder, "_encode_images", original))
+        chunk_encoder._encode_images = wrapped
 
     def pop_pending(self, step: int | None = None) -> list[_Pending]:
         pending = self._pending

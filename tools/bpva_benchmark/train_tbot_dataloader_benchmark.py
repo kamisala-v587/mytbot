@@ -1,8 +1,8 @@
 """TBot-SA1 wrapper for the training dataloader benchmark.
 
-The implementation delegates to ``train_dataloader_benchmark`` so TBot and BPVA
-dataloader baselines share the same construction, iteration timing, per-sample
-metadata, distributed behavior, and output format.
+Delegates to ``train_dataloader_benchmark`` so TBot and BPVA share construction,
+iteration timing, per-sample metadata, distributed behavior, and output format.
+Only validates ``policy.type`` is TBot_SA1.
 """
 
 from __future__ import annotations
@@ -26,16 +26,7 @@ def _load_tbot_cfg(path: str, base_loader: Callable[[str], Any] | None = None) -
 
 
 def main(argv: list[str] | None = None) -> None:
-    original_loader = train_dataloader_benchmark._load_cfg
-
-    def load_checked(path: str) -> Any:
-        return _load_tbot_cfg(path, base_loader=original_loader)
-
-    train_dataloader_benchmark._load_cfg = load_checked
-    try:
-        train_dataloader_benchmark.main(argv)
-    finally:
-        train_dataloader_benchmark._load_cfg = original_loader
+    train_dataloader_benchmark.main(argv, load_config=_load_tbot_cfg)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/dump_bin_bigbin/aloha-agilex_clean_50",
+  "cache_repo_id": "bp-cache/aloha-agilex_clean_50-cefb1efdc834",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/dump_bin_bigbin/aloha-agilex_clean_50",
+    "info_sha256": "a131406a10b79de157a403ecd859ac1639e35e4cb605ef1fb9957003233ce956",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4778,
+        "mtime_ns": 1782787015970100432
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 3776,
+        "mtime_ns": 1782787015970100432
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 97406,
+        "mtime_ns": 1782787015973100432
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/dump_bin_bigbin/aloha-agilex_clean_50",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/dump_bin_bigbin/aloha-agilex_clean_50",
+      "info_sha256": "a131406a10b79de157a403ecd859ac1639e35e4cb605ef1fb9957003233ce956",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4778,
+          "mtime_ns": 1782787015970100432
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 3776,
+          "mtime_ns": 1782787015970100432
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 97406,
+          "mtime_ns": 1782787015973100432
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "5cd66561c789190414bc81407bdc17b3fc0f1cd36720235c6fb1a5b0ac45aa52"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 1,
+      "tasks": [
+        "Pick the round gray tabletrashbin, pour its contents out."
+      ]
+    },
+    {
+      "episode": 14,
+      "tasks": [
+        "Move the arm, take the open-top tabletrashbin, and pour."
+      ]
+    },
+    {
+      "episode": 26,
+      "tasks": [
+        "Grab the white cylindrical waste bin and empty it into the bin."
+      ]
+    },
+    {
+      "episode": 37,
+      "tasks": [
+        "Pick up the light gray waste container, empty into the big bin"
+      ]
+    },
+    {
+      "episode": 45,
+      "tasks": [
+        "Use arm to pick the small tabletop trashbin, pour in bin"
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Grab the white cylindrical waste bin and empty it into the bin.": [
+      26
+    ],
+    "Move the arm, take the open-top tabletrashbin, and pour.": [
+      14
+    ],
+    "Pick the round gray tabletrashbin, pour its contents out.": [
+      1
+    ],
+    "Pick up the light gray waste container, empty into the big bin": [
+      37
+    ],
+    "Use arm to pick the small tabletop trashbin, pour in bin": [
+      45
+    ]
+  },
+  "source_to_cache_episode": {
+    "1": 0,
+    "14": 1,
+    "26": 2,
+    "37": 3,
+    "45": 4
+  },
+  "source_to_cache_task": {
+    "1": 0,
+    "14": 1,
+    "26": 2,
+    "35": 3,
+    "43": 4
+  },
+  "source_task_names": {
+    "1": "Pick the round gray tabletrashbin, pour its contents out.",
+    "14": "Move the arm, take the open-top tabletrashbin, and pour.",
+    "26": "Grab the white cylindrical waste bin and empty it into the bin.",
+    "35": "Pick up the light gray waste container, empty into the big bin",
+    "43": "Use arm to pick the small tabletop trashbin, pour in bin"
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        1,
+        14,
+        26,
+        37,
+        45
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "size_mb": 2.4544715881347656,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

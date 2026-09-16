@@ -1,0 +1,844 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/click_alarmclock/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-2cc9117c9ed2",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/click_alarmclock/aloha-agilex_randomized_500",
+    "info_sha256": "0a844c1d40595651e8c32aab82a16df20597ea46b8ebae4416a4b3f806415542",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782787164514105744
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 12144,
+        "mtime_ns": 1782787164513105744
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 375163,
+        "mtime_ns": 1782787164518105744
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/click_alarmclock/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/click_alarmclock/aloha-agilex_randomized_500",
+      "info_sha256": "0a844c1d40595651e8c32aab82a16df20597ea46b8ebae4416a4b3f806415542",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782787164514105744
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 12144,
+          "mtime_ns": 1782787164513105744
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 375163,
+          "mtime_ns": 1782787164518105744
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "cbb645879f95c94dfaebee299f9c8601056ed6026a70f6b5e7862c2333bee29a"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 2,
+      "tasks": [
+        "Ensure the left arm clicks the top center button of the small plastic alarm clock"
+      ]
+    },
+    {
+      "episode": 5,
+      "tasks": [
+        "Hit the center of the small alarm-clock's top button"
+      ]
+    },
+    {
+      "episode": 26,
+      "tasks": [
+        "Use the left arm to press the blue clock with green stripe's top button"
+      ]
+    },
+    {
+      "episode": 54,
+      "tasks": [
+        "the right arm presses the center top button on the small alarm-clock"
+      ]
+    },
+    {
+      "episode": 59,
+      "tasks": [
+        "Use the right arm to click the top of the alarm-clock with rounded edges"
+      ]
+    },
+    {
+      "episode": 61,
+      "tasks": [
+        "Locate and press the small plastic alarm clock's top center button"
+      ]
+    },
+    {
+      "episode": 64,
+      "tasks": [
+        "Push the center area of the square alarm clock's top"
+      ]
+    },
+    {
+      "episode": 68,
+      "tasks": [
+        "Click the top center button of the white-faced alarm clock"
+      ]
+    },
+    {
+      "episode": 72,
+      "tasks": [
+        "Press the button on the clock with black hands's top side"
+      ]
+    },
+    {
+      "episode": 82,
+      "tasks": [
+        "Touch the compact alarm-clock's center top button with the left arm"
+      ]
+    },
+    {
+      "episode": 100,
+      "tasks": [
+        "the left arm activates the clock with black hands by clicking the top button"
+      ]
+    },
+    {
+      "episode": 108,
+      "tasks": [
+        "Click the center of the alarm-clock with digital display's top"
+      ]
+    },
+    {
+      "episode": 131,
+      "tasks": [
+        "Use the left arm to press the digital screen alarm-clock's top button"
+      ]
+    },
+    {
+      "episode": 137,
+      "tasks": [
+        "Touch the alarm-clock with digital display's center top button with the right arm"
+      ]
+    },
+    {
+      "episode": 181,
+      "tasks": [
+        "Press the alarm-clock with rounded edges's top button using the right arm"
+      ]
+    },
+    {
+      "episode": 183,
+      "tasks": [
+        "Push the central button on the black matte alarm-clock's top side."
+      ]
+    },
+    {
+      "episode": 197,
+      "tasks": [
+        "Press the button on the small clock with rounded edges's top side"
+      ]
+    },
+    {
+      "episode": 203,
+      "tasks": [
+        "Push the top button of the white-faced alarm clock using the left arm"
+      ]
+    },
+    {
+      "episode": 209,
+      "tasks": [
+        "the right arm clicks the center top button on the black matte alarm-clock"
+      ]
+    },
+    {
+      "episode": 216,
+      "tasks": [
+        "Click the button centered on the small alarm-clock's top."
+      ]
+    },
+    {
+      "episode": 229,
+      "tasks": [
+        "Use the left arm to press the rectangular alarm-clock button"
+      ]
+    },
+    {
+      "episode": 234,
+      "tasks": [
+        "Use the left arm to tap the rectangular alarm-clock's top center button."
+      ]
+    },
+    {
+      "episode": 240,
+      "tasks": [
+        "Hit the center of the black matte alarm-clock's top button"
+      ]
+    },
+    {
+      "episode": 241,
+      "tasks": [
+        "Click the middle button on the small alarm-clock's top side"
+      ]
+    },
+    {
+      "episode": 256,
+      "tasks": [
+        "Tap the button at the small plastic alarm clock's top center."
+      ]
+    },
+    {
+      "episode": 267,
+      "tasks": [
+        "Guide the left arm to press the centered button on the rounded square-shaped alarm clock."
+      ]
+    },
+    {
+      "episode": 274,
+      "tasks": [
+        "Activate the compact alarm-clock by clicking its top button"
+      ]
+    },
+    {
+      "episode": 281,
+      "tasks": [
+        "Tap the center button on the blue clock with green stripe."
+      ]
+    },
+    {
+      "episode": 287,
+      "tasks": [
+        "Point the right arm to press the button of the small alarm-clock."
+      ]
+    },
+    {
+      "episode": 298,
+      "tasks": [
+        "the right arm presses the center top button on the smooth black alarm-clock"
+      ]
+    },
+    {
+      "episode": 301,
+      "tasks": [
+        "Use the right arm to activate the square plastic alarm clock's button"
+      ]
+    },
+    {
+      "episode": 309,
+      "tasks": [
+        "Touch the black matte alarm-clock's center top button with the left arm"
+      ]
+    },
+    {
+      "episode": 315,
+      "tasks": [
+        "Use the left arm to press the center top of the alarm-clock with buttons on side"
+      ]
+    },
+    {
+      "episode": 327,
+      "tasks": [
+        "Tap the palm-sized alarm-clock's top button with the right arm"
+      ]
+    },
+    {
+      "episode": 347,
+      "tasks": [
+        "Use the right arm to tap the white-faced alarm clock's top center button."
+      ]
+    },
+    {
+      "episode": 384,
+      "tasks": [
+        "Click the button centered on the compact alarm-clock."
+      ]
+    },
+    {
+      "episode": 389,
+      "tasks": [
+        "Use the right arm to click the top center button on the dark blue clock."
+      ]
+    },
+    {
+      "episode": 391,
+      "tasks": [
+        "Click the button centered on the palm-sized alarm-clock."
+      ]
+    },
+    {
+      "episode": 399,
+      "tasks": [
+        "Click the center button on the small clock with rounded edges's top side."
+      ]
+    },
+    {
+      "episode": 413,
+      "tasks": [
+        "Use the right arm to press the small plastic alarm clock button"
+      ]
+    },
+    {
+      "episode": 417,
+      "tasks": [
+        "Press the top button in the compact alarm-clock's center."
+      ]
+    },
+    {
+      "episode": 418,
+      "tasks": [
+        "the left arm clicks the center top button on the black alarm-clock"
+      ]
+    },
+    {
+      "episode": 432,
+      "tasks": [
+        "Press the top button in the smooth black alarm-clock's center."
+      ]
+    },
+    {
+      "episode": 435,
+      "tasks": [
+        "Press the button on the clock with white dial's top side"
+      ]
+    },
+    {
+      "episode": 440,
+      "tasks": [
+        "Activate the smooth black alarm-clock by clicking its top button"
+      ]
+    },
+    {
+      "episode": 454,
+      "tasks": [
+        "Locate and press the white-faced alarm clock's top center button"
+      ]
+    },
+    {
+      "episode": 455,
+      "tasks": [
+        "Tap the center button on the lightweight plastic alarm-clock."
+      ]
+    },
+    {
+      "episode": 467,
+      "tasks": [
+        "Activate the rounded square-shaped alarm clock by clicking its top button"
+      ]
+    },
+    {
+      "episode": 470,
+      "tasks": [
+        "Guide the left arm to press the centered button on the clock with black hands."
+      ]
+    },
+    {
+      "episode": 478,
+      "tasks": [
+        "Use the left arm to tap the smooth black alarm-clock's top center button."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Activate the compact alarm-clock by clicking its top button": [
+      274
+    ],
+    "Activate the rounded square-shaped alarm clock by clicking its top button": [
+      467
+    ],
+    "Activate the smooth black alarm-clock by clicking its top button": [
+      440
+    ],
+    "Click the button centered on the compact alarm-clock.": [
+      384
+    ],
+    "Click the button centered on the palm-sized alarm-clock.": [
+      391
+    ],
+    "Click the button centered on the small alarm-clock's top.": [
+      216
+    ],
+    "Click the center button on the small clock with rounded edges's top side.": [
+      399
+    ],
+    "Click the center of the alarm-clock with digital display's top": [
+      108
+    ],
+    "Click the middle button on the small alarm-clock's top side": [
+      241
+    ],
+    "Click the top center button of the white-faced alarm clock": [
+      68
+    ],
+    "Ensure the left arm clicks the top center button of the small plastic alarm clock": [
+      2
+    ],
+    "Guide the left arm to press the centered button on the clock with black hands.": [
+      470
+    ],
+    "Guide the left arm to press the centered button on the rounded square-shaped alarm clock.": [
+      267
+    ],
+    "Hit the center of the black matte alarm-clock's top button": [
+      240
+    ],
+    "Hit the center of the small alarm-clock's top button": [
+      5
+    ],
+    "Locate and press the small plastic alarm clock's top center button": [
+      61
+    ],
+    "Locate and press the white-faced alarm clock's top center button": [
+      454
+    ],
+    "Point the right arm to press the button of the small alarm-clock.": [
+      287
+    ],
+    "Press the alarm-clock with rounded edges's top button using the right arm": [
+      181
+    ],
+    "Press the button on the clock with black hands's top side": [
+      72
+    ],
+    "Press the button on the clock with white dial's top side": [
+      435
+    ],
+    "Press the button on the small clock with rounded edges's top side": [
+      197
+    ],
+    "Press the top button in the compact alarm-clock's center.": [
+      417
+    ],
+    "Press the top button in the smooth black alarm-clock's center.": [
+      432
+    ],
+    "Push the center area of the square alarm clock's top": [
+      64
+    ],
+    "Push the central button on the black matte alarm-clock's top side.": [
+      183
+    ],
+    "Push the top button of the white-faced alarm clock using the left arm": [
+      203
+    ],
+    "Tap the button at the small plastic alarm clock's top center.": [
+      256
+    ],
+    "Tap the center button on the blue clock with green stripe.": [
+      281
+    ],
+    "Tap the center button on the lightweight plastic alarm-clock.": [
+      455
+    ],
+    "Tap the palm-sized alarm-clock's top button with the right arm": [
+      327
+    ],
+    "Touch the alarm-clock with digital display's center top button with the right arm": [
+      137
+    ],
+    "Touch the black matte alarm-clock's center top button with the left arm": [
+      309
+    ],
+    "Touch the compact alarm-clock's center top button with the left arm": [
+      82
+    ],
+    "Use the left arm to press the blue clock with green stripe's top button": [
+      26
+    ],
+    "Use the left arm to press the center top of the alarm-clock with buttons on side": [
+      315
+    ],
+    "Use the left arm to press the digital screen alarm-clock's top button": [
+      131
+    ],
+    "Use the left arm to press the rectangular alarm-clock button": [
+      229
+    ],
+    "Use the left arm to tap the rectangular alarm-clock's top center button.": [
+      234
+    ],
+    "Use the left arm to tap the smooth black alarm-clock's top center button.": [
+      478
+    ],
+    "Use the right arm to activate the square plastic alarm clock's button": [
+      301
+    ],
+    "Use the right arm to click the top center button on the dark blue clock.": [
+      389
+    ],
+    "Use the right arm to click the top of the alarm-clock with rounded edges": [
+      59
+    ],
+    "Use the right arm to press the small plastic alarm clock button": [
+      413
+    ],
+    "Use the right arm to tap the white-faced alarm clock's top center button.": [
+      347
+    ],
+    "the left arm activates the clock with black hands by clicking the top button": [
+      100
+    ],
+    "the left arm clicks the center top button on the black alarm-clock": [
+      418
+    ],
+    "the right arm clicks the center top button on the black matte alarm-clock": [
+      209
+    ],
+    "the right arm presses the center top button on the small alarm-clock": [
+      54
+    ],
+    "the right arm presses the center top button on the smooth black alarm-clock": [
+      298
+    ]
+  },
+  "source_to_cache_episode": {
+    "2": 0,
+    "5": 1,
+    "26": 2,
+    "54": 3,
+    "59": 4,
+    "61": 5,
+    "64": 6,
+    "68": 7,
+    "72": 8,
+    "82": 9,
+    "100": 10,
+    "108": 11,
+    "131": 12,
+    "137": 13,
+    "181": 14,
+    "183": 15,
+    "197": 16,
+    "203": 17,
+    "209": 18,
+    "216": 19,
+    "229": 20,
+    "234": 21,
+    "240": 22,
+    "241": 23,
+    "256": 24,
+    "267": 25,
+    "274": 26,
+    "281": 27,
+    "287": 28,
+    "298": 29,
+    "301": 30,
+    "309": 31,
+    "315": 32,
+    "327": 33,
+    "347": 34,
+    "384": 35,
+    "389": 36,
+    "391": 37,
+    "399": 38,
+    "413": 39,
+    "417": 40,
+    "418": 41,
+    "432": 42,
+    "435": 43,
+    "440": 44,
+    "454": 45,
+    "455": 46,
+    "467": 47,
+    "470": 48,
+    "478": 49
+  },
+  "source_to_cache_task": {
+    "2": 0,
+    "4": 1,
+    "5": 2,
+    "10": 3,
+    "18": 4,
+    "26": 5,
+    "54": 6,
+    "59": 7,
+    "61": 8,
+    "63": 9,
+    "67": 10,
+    "71": 11,
+    "80": 12,
+    "97": 13,
+    "105": 14,
+    "124": 15,
+    "129": 16,
+    "135": 17,
+    "142": 18,
+    "167": 19,
+    "169": 20,
+    "181": 21,
+    "187": 22,
+    "192": 23,
+    "194": 24,
+    "209": 25,
+    "214": 26,
+    "220": 27,
+    "221": 28,
+    "235": 29,
+    "244": 30,
+    "249": 31,
+    "251": 32,
+    "260": 33,
+    "270": 34,
+    "273": 35,
+    "280": 36,
+    "295": 37,
+    "312": 38,
+    "344": 39,
+    "347": 40,
+    "349": 41,
+    "363": 42,
+    "366": 43,
+    "367": 44,
+    "376": 45,
+    "388": 46,
+    "389": 47,
+    "396": 48,
+    "403": 49
+  },
+  "source_task_names": {
+    "2": "Ensure the left arm clicks the top center button of the small plastic alarm clock",
+    "4": "Guide the left arm to press the centered button on the clock with black hands.",
+    "5": "Hit the center of the small alarm-clock's top button",
+    "10": "Click the center button on the small clock with rounded edges's top side.",
+    "18": "Use the left arm to press the center top of the alarm-clock with buttons on side",
+    "26": "Use the left arm to press the blue clock with green stripe's top button",
+    "54": "the right arm presses the center top button on the small alarm-clock",
+    "59": "Use the right arm to click the top of the alarm-clock with rounded edges",
+    "61": "Locate and press the small plastic alarm clock's top center button",
+    "63": "Push the center area of the square alarm clock's top",
+    "67": "Click the top center button of the white-faced alarm clock",
+    "71": "Press the button on the clock with black hands's top side",
+    "80": "Touch the compact alarm-clock's center top button with the left arm",
+    "97": "the left arm activates the clock with black hands by clicking the top button",
+    "105": "Click the center of the alarm-clock with digital display's top",
+    "124": "Use the left arm to press the digital screen alarm-clock's top button",
+    "129": "Touch the alarm-clock with digital display's center top button with the right arm",
+    "135": "Press the button on the clock with white dial's top side",
+    "142": "Tap the center button on the blue clock with green stripe.",
+    "167": "Press the alarm-clock with rounded edges's top button using the right arm",
+    "169": "Push the central button on the black matte alarm-clock's top side.",
+    "181": "Press the button on the small clock with rounded edges's top side",
+    "187": "Push the top button of the white-faced alarm clock using the left arm",
+    "192": "the right arm clicks the center top button on the black matte alarm-clock",
+    "194": "Click the button centered on the small alarm-clock's top.",
+    "209": "Use the left arm to press the rectangular alarm-clock button",
+    "214": "Use the left arm to tap the rectangular alarm-clock's top center button.",
+    "220": "Hit the center of the black matte alarm-clock's top button",
+    "221": "Click the middle button on the small alarm-clock's top side",
+    "235": "Tap the button at the small plastic alarm clock's top center.",
+    "244": "Guide the left arm to press the centered button on the rounded square-shaped alarm clock.",
+    "249": "Activate the smooth black alarm-clock by clicking its top button",
+    "251": "Activate the compact alarm-clock by clicking its top button",
+    "260": "Point the right arm to press the button of the small alarm-clock.",
+    "270": "the right arm presses the center top button on the smooth black alarm-clock",
+    "273": "Use the right arm to activate the square plastic alarm clock's button",
+    "280": "Touch the black matte alarm-clock's center top button with the left arm",
+    "295": "Tap the palm-sized alarm-clock's top button with the right arm",
+    "312": "Use the right arm to tap the white-faced alarm clock's top center button.",
+    "344": "Click the button centered on the compact alarm-clock.",
+    "347": "Use the right arm to click the top center button on the dark blue clock.",
+    "349": "Click the button centered on the palm-sized alarm-clock.",
+    "363": "Use the right arm to press the small plastic alarm clock button",
+    "366": "Press the top button in the compact alarm-clock's center.",
+    "367": "the left arm clicks the center top button on the black alarm-clock",
+    "376": "Press the top button in the smooth black alarm-clock's center.",
+    "388": "Locate and press the white-faced alarm clock's top center button",
+    "389": "Tap the center button on the lightweight plastic alarm-clock.",
+    "396": "Activate the rounded square-shaped alarm clock by clicking its top button",
+    "403": "Use the left arm to tap the smooth black alarm-clock's top center button."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        2,
+        5,
+        26,
+        54,
+        59,
+        61,
+        64,
+        68,
+        72,
+        82,
+        100,
+        108
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "size_mb": 4.80996036529541,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        131,
+        137,
+        181,
+        183,
+        197,
+        203,
+        209,
+        216,
+        229,
+        234,
+        240,
+        241
+      ],
+      "new_episodes": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "size_mb": 4.682352066040039,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        256,
+        267,
+        274,
+        281,
+        287,
+        298,
+        301,
+        309,
+        315,
+        327,
+        347,
+        384,
+        389,
+        391
+      ],
+      "new_episodes": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37
+      ],
+      "size_mb": 4.826107978820801,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        399,
+        413,
+        417,
+        418,
+        432,
+        435,
+        440,
+        454,
+        455,
+        467,
+        470,
+        478
+      ],
+      "new_episodes": [
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49
+      ],
+      "size_mb": 4.988893508911133,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

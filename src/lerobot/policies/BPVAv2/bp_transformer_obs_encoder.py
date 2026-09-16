@@ -292,6 +292,14 @@ class BPTransformerObsEncoder(nn.Module):
         context = torch.no_grad() if self.freeze_shared_visual else nullcontext()
         with context:
             for key in active_keys:
+                camera_valid = (
+                    torch.ones(batch_size, num_chunks, dtype=torch.bool, device=device)
+                    if masks is None or key not in masks
+                    else self._mask(masks[key], batch_size, num_chunks, device)
+                )
+                if not bool(camera_valid.any()):
+                    valid_by_key[key] = camera_valid
+                    continue
                 grid = torch.as_tensor(grids[key], device=device)
                 if grid.ndim == 2:
                     grid = grid.unsqueeze(0)
@@ -341,11 +349,7 @@ class BPTransformerObsEncoder(nn.Module):
                 encoded_by_key[key] = projected.reshape(
                     batch_size, num_chunks, tokens_per_image, self.compressor_dim
                 )
-                valid_by_key[key] = (
-                    torch.ones(batch_size, num_chunks, dtype=torch.bool, device=device)
-                    if masks is None or key not in masks
-                    else self._mask(masks[key], batch_size, num_chunks, device)
-                )
+                valid_by_key[key] = camera_valid
 
         assert expected_tokens_per_image is not None
         zero_tokens = next(iter(encoded_by_key.values())).new_zeros(

@@ -42,6 +42,9 @@ class DatasetConfig(draccus.ChoiceRegistry, abc.ABC):
     external_stats_path: str | None = None
     external_stats_root: str | None = None
     weight_rules_path: str | None = None
+    # False (default): sample-level mix — a batch may contain frames from multiple repos.
+    # True: each batch is drawn from a single underlying dataset (better video I/O locality).
+    homogeneous_batch: bool = False
     video_backend: str = field(default_factory=get_safe_default_codec)
     # Only skip per-video existence checks during dataset initialization.
     skip_video_file_validation: bool = False

@@ -1,0 +1,924 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/handover_block/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-812f1b9390cc",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/handover_block/aloha-agilex_randomized_500",
+    "info_sha256": "b0406b0127aa0cdd07c444c42ed004bae1892253022aae029bb7b9f1a3cb776c",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4781,
+        "mtime_ns": 1782787090847103109
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 3818,
+        "mtime_ns": 1782787090846103109
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 524224,
+        "mtime_ns": 1782787090853103110
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/handover_block/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/handover_block/aloha-agilex_randomized_500",
+      "info_sha256": "b0406b0127aa0cdd07c444c42ed004bae1892253022aae029bb7b9f1a3cb776c",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4781,
+          "mtime_ns": 1782787090847103109
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 3818,
+          "mtime_ns": 1782787090846103109
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 524224,
+          "mtime_ns": 1782787090853103110
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "3b291511b5919afcd852a7eaa1ba14274f4f67ebd1490d5248b0945068a91973"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 7,
+      "tasks": [
+        "Set the red block on the blue pad gently."
+      ]
+    },
+    {
+      "episode": 36,
+      "tasks": [
+        "Use left arm to grab the red block and place it on the pad."
+      ]
+    },
+    {
+      "episode": 37,
+      "tasks": [
+        "Use your arms to shift the red block."
+      ]
+    },
+    {
+      "episode": 56,
+      "tasks": [
+        "Place the red block onto the blue pad using the right arm."
+      ]
+    },
+    {
+      "episode": 59,
+      "tasks": [
+        "Hand the red block to the right arm."
+      ]
+    },
+    {
+      "episode": 75,
+      "tasks": [
+        "The left arm should grab the red block, hand it to the right, and put it on the blue pad."
+      ]
+    },
+    {
+      "episode": 79,
+      "tasks": [
+        "Take the red block, pass it to the right arm, then place it."
+      ]
+    },
+    {
+      "episode": 85,
+      "tasks": [
+        "Grasp the block in your left arm, pass it into the right, and place it onto the blue pad."
+      ]
+    },
+    {
+      "episode": 112,
+      "tasks": [
+        "Grip the red block with the left arm and transfer it."
+      ]
+    },
+    {
+      "episode": 120,
+      "tasks": [
+        "Move the red block using the left arm."
+      ]
+    },
+    {
+      "episode": 123,
+      "tasks": [
+        "With the left arm grab the red block, hand it to the right arm, then position it onto the blue pad."
+      ]
+    },
+    {
+      "episode": 135,
+      "tasks": [
+        "Lift the red block with your left arm."
+      ]
+    },
+    {
+      "episode": 153,
+      "tasks": [
+        "Use the left arm to pick up the red block and transfer it to the right arm before placing it on the blue pad."
+      ]
+    },
+    {
+      "episode": 154,
+      "tasks": [
+        "Hand over the red block to the right arm."
+      ]
+    },
+    {
+      "episode": 160,
+      "tasks": [
+        "Grab the red block, hand it to the right arm, then set it down."
+      ]
+    },
+    {
+      "episode": 165,
+      "tasks": [
+        "Grip the red block with the left arm and transfer it."
+      ]
+    },
+    {
+      "episode": 175,
+      "tasks": [
+        "Take the red block and move it to the pad."
+      ]
+    },
+    {
+      "episode": 188,
+      "tasks": [
+        "Take the red block and move it to the pad."
+      ]
+    },
+    {
+      "episode": 193,
+      "tasks": [
+        "Take the red block and move it to the pad."
+      ]
+    },
+    {
+      "episode": 201,
+      "tasks": [
+        "Pick up the red block using your left arm, pass it to the right arm, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 202,
+      "tasks": [
+        "Move the red block from the left hand to the pad."
+      ]
+    },
+    {
+      "episode": 221,
+      "tasks": [
+        "Grab the red block, transfer it, and set it on blue."
+      ]
+    },
+    {
+      "episode": 230,
+      "tasks": [
+        "Set the red block on the blue pad gently."
+      ]
+    },
+    {
+      "episode": 246,
+      "tasks": [
+        "Grab the red block with the left arm, pass it to the right hand, and drop it on the blue pad."
+      ]
+    },
+    {
+      "episode": 249,
+      "tasks": [
+        "Grab the red block and transfer to the right."
+      ]
+    },
+    {
+      "episode": 287,
+      "tasks": [
+        "Hand over the red block to the right arm."
+      ]
+    },
+    {
+      "episode": 297,
+      "tasks": [
+        "Grab the red block with the left arm, pass it to the right hand, and drop it on the blue pad."
+      ]
+    },
+    {
+      "episode": 316,
+      "tasks": [
+        "Hold the red block with the left arm and place it on the pad."
+      ]
+    },
+    {
+      "episode": 323,
+      "tasks": [
+        "Grab red block, pass to the right arm, then drop on blue pad."
+      ]
+    },
+    {
+      "episode": 324,
+      "tasks": [
+        "Pick the red block up with the left arm, hand it to the right arm, and set it on the blue pad."
+      ]
+    },
+    {
+      "episode": 329,
+      "tasks": [
+        "Pick the red block from the table, switch it from the left arm to the right, and place it down on the blue pad."
+      ]
+    },
+    {
+      "episode": 330,
+      "tasks": [
+        "Use the left arm to grasp the red block, transfer it to the right arm, and set it down on the blue pad."
+      ]
+    },
+    {
+      "episode": 332,
+      "tasks": [
+        "Take the red block, pass it to the right arm, then place it."
+      ]
+    },
+    {
+      "episode": 336,
+      "tasks": [
+        "Use left arm to grab the red block and place it on the pad."
+      ]
+    },
+    {
+      "episode": 341,
+      "tasks": [
+        "Grab the red block, hand it to the right arm, then set it down."
+      ]
+    },
+    {
+      "episode": 343,
+      "tasks": [
+        "Grab red block, pass to the right arm, then drop on blue pad."
+      ]
+    },
+    {
+      "episode": 360,
+      "tasks": [
+        "Grab the red block on the table with the left arm, switch to the right arm, and drop it on the blue pad."
+      ]
+    },
+    {
+      "episode": 361,
+      "tasks": [
+        "Grasp the red block with your left arm, transfer it into the right, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 362,
+      "tasks": [
+        "Lift the red block off the table using the left arm, give it to the right hand, and put it on the blue pad."
+      ]
+    },
+    {
+      "episode": 363,
+      "tasks": [
+        "Pick the red block up with the left arm, hand it to the right arm, and set it on the blue pad."
+      ]
+    },
+    {
+      "episode": 368,
+      "tasks": [
+        "Lift the red block with the left arm, pass it to the right arm, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 376,
+      "tasks": [
+        "Place the red block onto the blue pad using the right arm."
+      ]
+    },
+    {
+      "episode": 377,
+      "tasks": [
+        "Pick the red block with the left arm and transfer to the right."
+      ]
+    },
+    {
+      "episode": 381,
+      "tasks": [
+        "Pick up the red block using the left arm, give it to the right arm, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 409,
+      "tasks": [
+        "With the left arm grab the red block, hand it to the right arm, then position it onto the blue pad."
+      ]
+    },
+    {
+      "episode": 431,
+      "tasks": [
+        "Lift the red block from the table with the left arm, pass it to the right arm, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 437,
+      "tasks": [
+        "Grab the red block with the left arm, pass it to the right hand, and drop it on the blue pad."
+      ]
+    },
+    {
+      "episode": 471,
+      "tasks": [
+        "Lift the red block with the left arm, pass it to the right arm, and place it on the blue pad."
+      ]
+    },
+    {
+      "episode": 497,
+      "tasks": [
+        "Pick the red block up with the left arm, hand it to the right arm, and set it on the blue pad."
+      ]
+    },
+    {
+      "episode": 498,
+      "tasks": [
+        "Pick the red block with the left hand and pass it."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Grab red block, pass to the right arm, then drop on blue pad.": [
+      323,
+      343
+    ],
+    "Grab the red block and transfer to the right.": [
+      249
+    ],
+    "Grab the red block on the table with the left arm, switch to the right arm, and drop it on the blue pad.": [
+      360
+    ],
+    "Grab the red block with the left arm, pass it to the right hand, and drop it on the blue pad.": [
+      246,
+      297,
+      437
+    ],
+    "Grab the red block, hand it to the right arm, then set it down.": [
+      160,
+      341
+    ],
+    "Grab the red block, transfer it, and set it on blue.": [
+      221
+    ],
+    "Grasp the block in your left arm, pass it into the right, and place it onto the blue pad.": [
+      85
+    ],
+    "Grasp the red block with your left arm, transfer it into the right, and place it on the blue pad.": [
+      361
+    ],
+    "Grip the red block with the left arm and transfer it.": [
+      112,
+      165
+    ],
+    "Hand over the red block to the right arm.": [
+      154,
+      287
+    ],
+    "Hand the red block to the right arm.": [
+      59
+    ],
+    "Hold the red block with the left arm and place it on the pad.": [
+      316
+    ],
+    "Lift the red block from the table with the left arm, pass it to the right arm, and place it on the blue pad.": [
+      431
+    ],
+    "Lift the red block off the table using the left arm, give it to the right hand, and put it on the blue pad.": [
+      362
+    ],
+    "Lift the red block with the left arm, pass it to the right arm, and place it on the blue pad.": [
+      368,
+      471
+    ],
+    "Lift the red block with your left arm.": [
+      135
+    ],
+    "Move the red block from the left hand to the pad.": [
+      202
+    ],
+    "Move the red block using the left arm.": [
+      120
+    ],
+    "Pick the red block from the table, switch it from the left arm to the right, and place it down on the blue pad.": [
+      329
+    ],
+    "Pick the red block up with the left arm, hand it to the right arm, and set it on the blue pad.": [
+      324,
+      363,
+      497
+    ],
+    "Pick the red block with the left arm and transfer to the right.": [
+      377
+    ],
+    "Pick the red block with the left hand and pass it.": [
+      498
+    ],
+    "Pick up the red block using the left arm, give it to the right arm, and place it on the blue pad.": [
+      381
+    ],
+    "Pick up the red block using your left arm, pass it to the right arm, and place it on the blue pad.": [
+      201
+    ],
+    "Place the red block onto the blue pad using the right arm.": [
+      56,
+      376
+    ],
+    "Set the red block on the blue pad gently.": [
+      7,
+      230
+    ],
+    "Take the red block and move it to the pad.": [
+      175,
+      188,
+      193
+    ],
+    "Take the red block, pass it to the right arm, then place it.": [
+      79,
+      332
+    ],
+    "The left arm should grab the red block, hand it to the right, and put it on the blue pad.": [
+      75
+    ],
+    "Use left arm to grab the red block and place it on the pad.": [
+      36,
+      336
+    ],
+    "Use the left arm to grasp the red block, transfer it to the right arm, and set it down on the blue pad.": [
+      330
+    ],
+    "Use the left arm to pick up the red block and transfer it to the right arm before placing it on the blue pad.": [
+      153
+    ],
+    "Use your arms to shift the red block.": [
+      37
+    ],
+    "With the left arm grab the red block, hand it to the right arm, then position it onto the blue pad.": [
+      123,
+      409
+    ]
+  },
+  "source_to_cache_episode": {
+    "7": 0,
+    "36": 1,
+    "37": 2,
+    "56": 3,
+    "59": 4,
+    "75": 5,
+    "79": 6,
+    "85": 7,
+    "112": 8,
+    "120": 9,
+    "123": 10,
+    "135": 11,
+    "153": 12,
+    "154": 13,
+    "160": 14,
+    "165": 15,
+    "175": 16,
+    "188": 17,
+    "193": 18,
+    "201": 19,
+    "202": 20,
+    "221": 21,
+    "230": 22,
+    "246": 23,
+    "249": 24,
+    "287": 25,
+    "297": 26,
+    "316": 27,
+    "323": 28,
+    "324": 29,
+    "329": 30,
+    "330": 31,
+    "332": 32,
+    "336": 33,
+    "341": 34,
+    "343": 35,
+    "360": 36,
+    "361": 37,
+    "362": 38,
+    "363": 39,
+    "368": 40,
+    "376": 41,
+    "377": 42,
+    "381": 43,
+    "409": 44,
+    "431": 45,
+    "437": 46,
+    "471": 47,
+    "497": 48,
+    "498": 49
+  },
+  "source_to_cache_task": {
+    "1": 0,
+    "4": 1,
+    "7": 2,
+    "8": 3,
+    "9": 4,
+    "10": 5,
+    "11": 6,
+    "12": 7,
+    "13": 8,
+    "15": 9,
+    "16": 10,
+    "17": 11,
+    "19": 12,
+    "21": 13,
+    "22": 14,
+    "24": 15,
+    "25": 16,
+    "26": 17,
+    "28": 18,
+    "31": 19,
+    "32": 20,
+    "33": 21,
+    "34": 22,
+    "36": 23,
+    "38": 24,
+    "39": 25,
+    "40": 26,
+    "41": 27,
+    "42": 28,
+    "43": 29,
+    "44": 30,
+    "45": 31,
+    "46": 32,
+    "47": 33
+  },
+  "source_task_names": {
+    "1": "Move the red block using the left arm.",
+    "4": "Pick the red block up with the left arm, hand it to the right arm, and set it on the blue pad.",
+    "7": "Set the red block on the blue pad gently.",
+    "8": "The left arm should grab the red block, hand it to the right, and put it on the blue pad.",
+    "9": "Pick up the red block using the left arm, give it to the right arm, and place it on the blue pad.",
+    "10": "Lift the red block from the table with the left arm, pass it to the right arm, and place it on the blue pad.",
+    "11": "Lift the red block with the left arm, pass it to the right arm, and place it on the blue pad.",
+    "12": "Grab the red block on the table with the left arm, switch to the right arm, and drop it on the blue pad.",
+    "13": "Use the left arm to grasp the red block, transfer it to the right arm, and set it down on the blue pad.",
+    "15": "Pick the red block with the left hand and pass it.",
+    "16": "Use the left arm to pick up the red block and transfer it to the right arm before placing it on the blue pad.",
+    "17": "Take the red block, pass it to the right arm, then place it.",
+    "19": "Grab red block, pass to the right arm, then drop on blue pad.",
+    "21": "Grasp the block in your left arm, pass it into the right, and place it onto the blue pad.",
+    "22": "Hand over the red block to the right arm.",
+    "24": "Place the red block onto the blue pad using the right arm.",
+    "25": "Use left arm to grab the red block and place it on the pad.",
+    "26": "Use your arms to shift the red block.",
+    "28": "With the left arm grab the red block, hand it to the right arm, then position it onto the blue pad.",
+    "31": "Pick the red block from the table, switch it from the left arm to the right, and place it down on the blue pad.",
+    "32": "Pick up the red block using your left arm, pass it to the right arm, and place it on the blue pad.",
+    "33": "Hand the red block to the right arm.",
+    "34": "Take the red block and move it to the pad.",
+    "36": "Lift the red block with your left arm.",
+    "38": "Pick the red block with the left arm and transfer to the right.",
+    "39": "Grab the red block with the left arm, pass it to the right hand, and drop it on the blue pad.",
+    "40": "Lift the red block off the table using the left arm, give it to the right hand, and put it on the blue pad.",
+    "41": "Move the red block from the left hand to the pad.",
+    "42": "Grab the red block, transfer it, and set it on blue.",
+    "43": "Grab the red block, hand it to the right arm, then set it down.",
+    "44": "Grab the red block and transfer to the right.",
+    "45": "Grip the red block with the left arm and transfer it.",
+    "46": "Hold the red block with the left arm and place it on the pad.",
+    "47": "Grasp the red block with your left arm, transfer it into the right, and place it on the blue pad."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        7,
+        36,
+        37,
+        56
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "size_mb": 4.459199905395508,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        59,
+        75,
+        79,
+        85
+      ],
+      "new_episodes": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "size_mb": 4.545494079589844,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        112,
+        120,
+        123
+      ],
+      "new_episodes": [
+        8,
+        9,
+        10
+      ],
+      "size_mb": 3.0644102096557617,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        135,
+        153,
+        154
+      ],
+      "new_episodes": [
+        11,
+        12,
+        13
+      ],
+      "size_mb": 4.304913520812988,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        160,
+        165,
+        175,
+        188
+      ],
+      "new_episodes": [
+        14,
+        15,
+        16,
+        17
+      ],
+      "size_mb": 4.865659713745117,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-005.mp4",
+      "source_episodes": [
+        193,
+        201,
+        202
+      ],
+      "new_episodes": [
+        18,
+        19,
+        20
+      ],
+      "size_mb": 3.8539419174194336,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-006.mp4",
+      "source_episodes": [
+        221,
+        230
+      ],
+      "new_episodes": [
+        21,
+        22
+      ],
+      "size_mb": 4.851428031921387,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-007.mp4",
+      "source_episodes": [
+        246,
+        249,
+        287
+      ],
+      "new_episodes": [
+        23,
+        24,
+        25
+      ],
+      "size_mb": 3.781582832336426,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-008.mp4",
+      "source_episodes": [
+        297,
+        316
+      ],
+      "new_episodes": [
+        26,
+        27
+      ],
+      "size_mb": 3.5599441528320312,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-009.mp4",
+      "source_episodes": [
+        323,
+        324,
+        329,
+        330
+      ],
+      "new_episodes": [
+        28,
+        29,
+        30,
+        31
+      ],
+      "size_mb": 4.993257522583008,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-010.mp4",
+      "source_episodes": [
+        332,
+        336
+      ],
+      "new_episodes": [
+        32,
+        33
+      ],
+      "size_mb": 3.837635040283203,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-011.mp4",
+      "source_episodes": [
+        341,
+        343,
+        360
+      ],
+      "new_episodes": [
+        34,
+        35,
+        36
+      ],
+      "size_mb": 3.6483259201049805,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-012.mp4",
+      "source_episodes": [
+        361,
+        362,
+        363
+      ],
+      "new_episodes": [
+        37,
+        38,
+        39
+      ],
+      "size_mb": 4.085175514221191,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-013.mp4",
+      "source_episodes": [
+        368,
+        376,
+        377
+      ],
+      "new_episodes": [
+        40,
+        41,
+        42
+      ],
+      "size_mb": 4.112515449523926,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-014.mp4",
+      "source_episodes": [
+        381,
+        409,
+        431,
+        437
+      ],
+      "new_episodes": [
+        43,
+        44,
+        45,
+        46
+      ],
+      "size_mb": 4.231257438659668,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-015.mp4",
+      "source_episodes": [
+        471,
+        497,
+        498
+      ],
+      "new_episodes": [
+        47,
+        48,
+        49
+      ],
+      "size_mb": 3.3214502334594727,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

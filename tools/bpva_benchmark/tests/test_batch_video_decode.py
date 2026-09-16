@@ -167,6 +167,7 @@ def make_behavior(prompt_dataset, *, enabled):
         prompt_action_chunk_size=1, num_chunks=2, batch_prompt_video_decode=enabled
     )
     dataset._episode_ranges = {3: (0, 2, 10)}
+    dataset._current_task_names = {0: 'task-zero'}
     dataset._batch_decode_warned_workers = set()
     dataset._sample_prompt_episode = lambda current_episode, current_task: 3
     return dataset

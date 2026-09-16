@@ -164,15 +164,30 @@ class TrainPipelineConfig(HubMixin):
         **kwargs: Any,
     ) -> "TrainPipelineConfig":
         model_id = str(pretrained_name_or_path)
+        config_path = Path(model_id).expanduser()
         config_file: str | None = None
-        if Path(model_id).is_dir():
-            if TRAIN_CONFIG_NAME in os.listdir(model_id):
-                config_file = os.path.join(model_id, TRAIN_CONFIG_NAME)
+        if config_path.is_dir():
+            if TRAIN_CONFIG_NAME in os.listdir(config_path):
+                config_file = str(config_path / TRAIN_CONFIG_NAME)
             else:
-                print(f"{TRAIN_CONFIG_NAME} not found in {Path(model_id).resolve()}")
-        elif Path(model_id).is_file():
-            config_file = model_id
+                print(f"{TRAIN_CONFIG_NAME} not found in {config_path.resolve()}")
+        elif config_path.is_file():
+            config_file = str(config_path)
         else:
+            # Relative/local-looking paths must not fall through to Hub download —
+            # missing files would otherwise surface as HFValidationError.
+            looks_local = (
+                is_jsonc_path(config_path)
+                or config_path.suffix.lower() == ".json"
+                or "/" in model_id
+                or "\\" in model_id
+                or model_id.startswith((".", "~"))
+            )
+            if looks_local:
+                raise FileNotFoundError(
+                    f"本地训练配置不存在: {config_path.resolve()} "
+                    f"(cwd={Path.cwd()})"
+                )
             try:
                 config_file = hf_hub_download(
                     repo_id=model_id,

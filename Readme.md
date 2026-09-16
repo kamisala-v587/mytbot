@@ -6,6 +6,7 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export LEROBOT_PARALLEL_DATASET_LOAD=1
+export LEROBOT_TORCHCODEC_CACHE_SIZE=64
 
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 
 
@@ -19,14 +20,24 @@ export LEROBOT_PARALLEL_DATASET_LOAD=1
 
 
 ### Tbot 训练脚本
-accelerate launch --num_processes=8 -m lerobot.scripts.lerobot_train \
-  --config_path=/home/jovyan/workspace/mytbot/configs/B200/pretrain_config.jsonc
+accelerate launch --num_processes=8 -m lerobot.scripts.lerobot_train --config_path=/home/jovyan/workspace/mytbot/configs/B200/pretrain_config.jsonc
 
 
 ### BPVA 训练脚本
-accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpva_config.jsonc
-
-accelerate launch --num_processes=4   -m lerobot.scripts.lerobot_train   --config_path=/vla/workspace/my_tbot/configs/Pro6k/bpva_sft_robotwin.jsonc
+accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpvav2_pretrain_v1.0.jsonc
 
 ### BPVA V2 训练脚本
-accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpvav2_pretrain_v0.1.jsonc
+accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpvav2_sft_v0.3.jsonc
+
+
+cd /home/jovyan/workspace/mytbot
+conda activate bptbot
+
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+export LEROBOT_PARALLEL_DATASET_LOAD=1
+export LEROBOT_TORCHCODEC_CACHE_SIZE=8
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 
+accelerate launch --num_processes=8   -m lerobot.scripts.lerobot_train   --config_path=/home/jovyan/workspace/mytbot/configs/B200/bpvav2_sft_v0.3.jsonc

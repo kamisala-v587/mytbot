@@ -1,0 +1,1124 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_rgb/aloha-agilex_randomized_500",
+  "cache_repo_id": "bp-cache/aloha-agilex_randomized_500-3a3c8ee5126c",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_rgb/aloha-agilex_randomized_500",
+    "info_sha256": "c06e5b2bc3bb66b43b6ff025798adbcab28ce8e7e75abbc5456da75ff2ad844d",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4782,
+        "mtime_ns": 1782787119723104142
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 7385,
+        "mtime_ns": 1782787119722104142
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 545672,
+        "mtime_ns": 1782787119722104142
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_rgb/aloha-agilex_randomized_500",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/blocks_ranking_rgb/aloha-agilex_randomized_500",
+      "info_sha256": "c06e5b2bc3bb66b43b6ff025798adbcab28ce8e7e75abbc5456da75ff2ad844d",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4782,
+          "mtime_ns": 1782787119723104142
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 7385,
+          "mtime_ns": 1782787119722104142
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 545672,
+          "mtime_ns": 1782787119722104142
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "dd6c32bd79cac8f9dbeb30348128481d5256adb3b98311c6d6c08cfc29c03044"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 12,
+      "tasks": [
+        "Set red block, green block, and blue block side by side in the order of red block, green block, then blue block."
+      ]
+    },
+    {
+      "episode": 30,
+      "tasks": [
+        "First, use the right arm to grab red block and place it on the left. Then grab green block with the right arm and position it next to red block, followed by grabbing blue block with the left arm and placing it next to green block."
+      ]
+    },
+    {
+      "episode": 31,
+      "tasks": [
+        "Position red block in the first spot, then set green block to the right of red block, and finish by placing blue block to the right of green block."
+      ]
+    },
+    {
+      "episode": 39,
+      "tasks": [
+        "Set red block, green block, and blue block side by side in the order of red block, green block, then blue block."
+      ]
+    },
+    {
+      "episode": 43,
+      "tasks": [
+        "Grab red block, green block, and blue block, and place them steadily from left to right in the order red, green, blue."
+      ]
+    },
+    {
+      "episode": 76,
+      "tasks": [
+        "Place red block to the left, green block in the middle, and blue block on the right in a linear fashion."
+      ]
+    },
+    {
+      "episode": 80,
+      "tasks": [
+        "Arrange red block, green block, and blue block in sequence from leftmost to rightmost positions."
+      ]
+    },
+    {
+      "episode": 83,
+      "tasks": [
+        "Move red block with the left arm to the far left, green block with the right arm just beside red block, and finally blue block with the left arm next to green block."
+      ]
+    },
+    {
+      "episode": 84,
+      "tasks": [
+        "Grab red block, set it on the leftmost side, add green block to its right, and complete with blue block on the far right."
+      ]
+    },
+    {
+      "episode": 93,
+      "tasks": [
+        "Using the right arm, the left arm, and the left arm, arrange red block, green block, and blue block from left to right in the given order."
+      ]
+    },
+    {
+      "episode": 94,
+      "tasks": [
+        "Move red block with the right arm to the far left, green block with the left arm just beside red block, and finally blue block with the left arm next to green block."
+      ]
+    },
+    {
+      "episode": 115,
+      "tasks": [
+        "Grab red block, position it on the left. Next, grab green block to place beside red block, then grab blue block and set it to the right of green block."
+      ]
+    },
+    {
+      "episode": 121,
+      "tasks": [
+        "Start with red block on the left, followed by green block next to red block, and end with blue block on the far right."
+      ]
+    },
+    {
+      "episode": 122,
+      "tasks": [
+        "Pick up red block using the right arm, set it on the left, repeat the placement with the left arm for green block, and the left arm for blue block."
+      ]
+    },
+    {
+      "episode": 123,
+      "tasks": [
+        "Pick up red block, green block, and blue block in sequence and position them in a left-to-right row."
+      ]
+    },
+    {
+      "episode": 133,
+      "tasks": [
+        "With the left arm, the right arm, and the right arm, arrange red block, green block, and blue block sequentially in a horizontal row."
+      ]
+    },
+    {
+      "episode": 148,
+      "tasks": [
+        "First, grab red block, then green block, then blue block with the right arm, the left arm, and the left arm, and place them in order left to right."
+      ]
+    },
+    {
+      "episode": 169,
+      "tasks": [
+        "Begin by placing red block on the left, then add green block to the right, and finish with blue block."
+      ]
+    },
+    {
+      "episode": 171,
+      "tasks": [
+        "Use the left arm to place red block on the left, then use the right arm for green block beside red block, and finally the left arm for blue block next to green block."
+      ]
+    },
+    {
+      "episode": 176,
+      "tasks": [
+        "Start with red block on the left, add green block next to it, and then place blue block on the right."
+      ]
+    },
+    {
+      "episode": 179,
+      "tasks": [
+        "Position red block, green block, and blue block from left to right in the specified sequence."
+      ]
+    },
+    {
+      "episode": 197,
+      "tasks": [
+        "Grab red block, set it on the leftmost side, add green block to its right, and complete with blue block on the far right."
+      ]
+    },
+    {
+      "episode": 213,
+      "tasks": [
+        "Arrange red block at the left edge, green block to the right of it, and blue block next to green block forming a row."
+      ]
+    },
+    {
+      "episode": 217,
+      "tasks": [
+        "First, place red block on the far left, then green block in the middle, and finish with blue block on the right."
+      ]
+    },
+    {
+      "episode": 229,
+      "tasks": [
+        "Put red block first, green block next, and blue block last in a straight line from left to right, using the right arm, the left arm, and the left arm."
+      ]
+    },
+    {
+      "episode": 234,
+      "tasks": [
+        "Set red block, green block, and blue block side by side in the order of red block, green block, then blue block."
+      ]
+    },
+    {
+      "episode": 236,
+      "tasks": [
+        "Arrange red block at the left edge, green block to the right of it, and blue block next to green block forming a row."
+      ]
+    },
+    {
+      "episode": 248,
+      "tasks": [
+        "Position red block first, followed by green block, and end with blue block in a row from left to right."
+      ]
+    },
+    {
+      "episode": 265,
+      "tasks": [
+        "Put red block first, green block next, and blue block last in a straight line from left to right, using the left arm, the right arm, and the right arm."
+      ]
+    },
+    {
+      "episode": 292,
+      "tasks": [
+        "Grab and place red block first, followed by green block, and finish with blue block in a row."
+      ]
+    },
+    {
+      "episode": 295,
+      "tasks": [
+        "Line up the objects in the order red block, green block, and blue block, starting from the left."
+      ]
+    },
+    {
+      "episode": 300,
+      "tasks": [
+        "Grab red block, green block, and blue block, and place them steadily from left to right in the order red, green, blue."
+      ]
+    },
+    {
+      "episode": 312,
+      "tasks": [
+        "Position red block first, followed by green block, and end with blue block in a row from left to right."
+      ]
+    },
+    {
+      "episode": 320,
+      "tasks": [
+        "Use the left arm for red block to set it leftmost, continue with the left arm to position green block next to red block, and finish by placing blue block using the right arm to the right of green block."
+      ]
+    },
+    {
+      "episode": 350,
+      "tasks": [
+        "red block, then green block, and finally blue block should be placed in a row from left to right."
+      ]
+    },
+    {
+      "episode": 380,
+      "tasks": [
+        "Line up the objects in the order red block, green block, and blue block, starting from the left."
+      ]
+    },
+    {
+      "episode": 382,
+      "tasks": [
+        "Use the right arm to grab red block, set it on the left, follow with the right arm for green block, and end with the left arm for blue block."
+      ]
+    },
+    {
+      "episode": 392,
+      "tasks": [
+        "Grab and place red block first, followed by green block, and finish with blue block in a row."
+      ]
+    },
+    {
+      "episode": 406,
+      "tasks": [
+        "Grab red block, position it on the left. Next, grab green block to place beside red block, then grab blue block and set it to the right of green block."
+      ]
+    },
+    {
+      "episode": 407,
+      "tasks": [
+        "Position red block first, green block second, and blue block third in a row from left to right."
+      ]
+    },
+    {
+      "episode": 409,
+      "tasks": [
+        "Position red block first, followed by green block, and end with blue block in a row from left to right."
+      ]
+    },
+    {
+      "episode": 419,
+      "tasks": [
+        "Arrange red block, green block, and blue block from left to right using the right arm, the left arm, and the right arm in the order red, green, blue."
+      ]
+    },
+    {
+      "episode": 439,
+      "tasks": [
+        "Start with red block, followed by green block and blue block, placing them in order left to right."
+      ]
+    },
+    {
+      "episode": 443,
+      "tasks": [
+        "Grab red block, set it on the leftmost side, add green block to its right, and complete with blue block on the far right."
+      ]
+    },
+    {
+      "episode": 447,
+      "tasks": [
+        "Grab red block with the left arm, place it leftmost, then green block using the right arm, followed by blue block with the left arm."
+      ]
+    },
+    {
+      "episode": 464,
+      "tasks": [
+        "First, place red block, then green block beside it, and finally blue block next to green block."
+      ]
+    },
+    {
+      "episode": 467,
+      "tasks": [
+        "Position red block, green block, and blue block from left to right in the specified sequence."
+      ]
+    },
+    {
+      "episode": 481,
+      "tasks": [
+        "Place red block to the left, green block in the middle, and blue block on the right in a linear fashion."
+      ]
+    },
+    {
+      "episode": 496,
+      "tasks": [
+        "Using the left arm, the right arm, and the left arm, arrange red block, green block, and blue block sequentially from left to right in a single row."
+      ]
+    },
+    {
+      "episode": 497,
+      "tasks": [
+        "Start with red block, followed by green block and blue block, placing them in order left to right."
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Arrange red block at the left edge, green block to the right of it, and blue block next to green block forming a row.": [
+      213,
+      236
+    ],
+    "Arrange red block, green block, and blue block from left to right using the right arm, the left arm, and the right arm in the order red, green, blue.": [
+      419
+    ],
+    "Arrange red block, green block, and blue block in sequence from leftmost to rightmost positions.": [
+      80
+    ],
+    "Begin by placing red block on the left, then add green block to the right, and finish with blue block.": [
+      169
+    ],
+    "First, grab red block, then green block, then blue block with the right arm, the left arm, and the left arm, and place them in order left to right.": [
+      148
+    ],
+    "First, place red block on the far left, then green block in the middle, and finish with blue block on the right.": [
+      217
+    ],
+    "First, place red block, then green block beside it, and finally blue block next to green block.": [
+      464
+    ],
+    "First, use the right arm to grab red block and place it on the left. Then grab green block with the right arm and position it next to red block, followed by grabbing blue block with the left arm and placing it next to green block.": [
+      30
+    ],
+    "Grab and place red block first, followed by green block, and finish with blue block in a row.": [
+      292,
+      392
+    ],
+    "Grab red block with the left arm, place it leftmost, then green block using the right arm, followed by blue block with the left arm.": [
+      447
+    ],
+    "Grab red block, green block, and blue block, and place them steadily from left to right in the order red, green, blue.": [
+      43,
+      300
+    ],
+    "Grab red block, position it on the left. Next, grab green block to place beside red block, then grab blue block and set it to the right of green block.": [
+      115,
+      406
+    ],
+    "Grab red block, set it on the leftmost side, add green block to its right, and complete with blue block on the far right.": [
+      84,
+      197,
+      443
+    ],
+    "Line up the objects in the order red block, green block, and blue block, starting from the left.": [
+      295,
+      380
+    ],
+    "Move red block with the left arm to the far left, green block with the right arm just beside red block, and finally blue block with the left arm next to green block.": [
+      83
+    ],
+    "Move red block with the right arm to the far left, green block with the left arm just beside red block, and finally blue block with the left arm next to green block.": [
+      94
+    ],
+    "Pick up red block using the right arm, set it on the left, repeat the placement with the left arm for green block, and the left arm for blue block.": [
+      122
+    ],
+    "Pick up red block, green block, and blue block in sequence and position them in a left-to-right row.": [
+      123
+    ],
+    "Place red block to the left, green block in the middle, and blue block on the right in a linear fashion.": [
+      76,
+      481
+    ],
+    "Position red block first, followed by green block, and end with blue block in a row from left to right.": [
+      248,
+      312,
+      409
+    ],
+    "Position red block first, green block second, and blue block third in a row from left to right.": [
+      407
+    ],
+    "Position red block in the first spot, then set green block to the right of red block, and finish by placing blue block to the right of green block.": [
+      31
+    ],
+    "Position red block, green block, and blue block from left to right in the specified sequence.": [
+      179,
+      467
+    ],
+    "Put red block first, green block next, and blue block last in a straight line from left to right, using the left arm, the right arm, and the right arm.": [
+      265
+    ],
+    "Put red block first, green block next, and blue block last in a straight line from left to right, using the right arm, the left arm, and the left arm.": [
+      229
+    ],
+    "Set red block, green block, and blue block side by side in the order of red block, green block, then blue block.": [
+      12,
+      39,
+      234
+    ],
+    "Start with red block on the left, add green block next to it, and then place blue block on the right.": [
+      176
+    ],
+    "Start with red block on the left, followed by green block next to red block, and end with blue block on the far right.": [
+      121
+    ],
+    "Start with red block, followed by green block and blue block, placing them in order left to right.": [
+      439,
+      497
+    ],
+    "Use the left arm for red block to set it leftmost, continue with the left arm to position green block next to red block, and finish by placing blue block using the right arm to the right of green block.": [
+      320
+    ],
+    "Use the left arm to place red block on the left, then use the right arm for green block beside red block, and finally the left arm for blue block next to green block.": [
+      171
+    ],
+    "Use the right arm to grab red block, set it on the left, follow with the right arm for green block, and end with the left arm for blue block.": [
+      382
+    ],
+    "Using the left arm, the right arm, and the left arm, arrange red block, green block, and blue block sequentially from left to right in a single row.": [
+      496
+    ],
+    "Using the right arm, the left arm, and the left arm, arrange red block, green block, and blue block from left to right in the given order.": [
+      93
+    ],
+    "With the left arm, the right arm, and the right arm, arrange red block, green block, and blue block sequentially in a horizontal row.": [
+      133
+    ],
+    "red block, then green block, and finally blue block should be placed in a row from left to right.": [
+      350
+    ]
+  },
+  "source_to_cache_episode": {
+    "12": 0,
+    "30": 1,
+    "31": 2,
+    "39": 3,
+    "43": 4,
+    "76": 5,
+    "80": 6,
+    "83": 7,
+    "84": 8,
+    "93": 9,
+    "94": 10,
+    "115": 11,
+    "121": 12,
+    "122": 13,
+    "123": 14,
+    "133": 15,
+    "148": 16,
+    "169": 17,
+    "171": 18,
+    "176": 19,
+    "179": 20,
+    "197": 21,
+    "213": 22,
+    "217": 23,
+    "229": 24,
+    "234": 25,
+    "236": 26,
+    "248": 27,
+    "265": 28,
+    "292": 29,
+    "295": 30,
+    "300": 31,
+    "312": 32,
+    "320": 33,
+    "350": 34,
+    "380": 35,
+    "382": 36,
+    "392": 37,
+    "406": 38,
+    "407": 39,
+    "409": 40,
+    "419": 41,
+    "439": 42,
+    "443": 43,
+    "447": 44,
+    "464": 45,
+    "467": 46,
+    "481": 47,
+    "496": 48,
+    "497": 49
+  },
+  "source_to_cache_task": {
+    "0": 0,
+    "4": 1,
+    "8": 2,
+    "9": 3,
+    "10": 4,
+    "11": 5,
+    "12": 6,
+    "14": 7,
+    "15": 8,
+    "18": 9,
+    "21": 10,
+    "22": 11,
+    "23": 12,
+    "25": 13,
+    "26": 14,
+    "27": 15,
+    "29": 16,
+    "32": 17,
+    "36": 18,
+    "40": 19,
+    "45": 20,
+    "46": 21,
+    "54": 22,
+    "57": 23,
+    "59": 24,
+    "61": 25,
+    "64": 26,
+    "70": 27,
+    "75": 28,
+    "77": 29,
+    "80": 30,
+    "81": 31,
+    "85": 32,
+    "111": 33,
+    "120": 34,
+    "127": 35
+  },
+  "source_task_names": {
+    "0": "Start with red block on the left, followed by green block next to red block, and end with blue block on the far right.",
+    "4": "Grab and place red block first, followed by green block, and finish with blue block in a row.",
+    "8": "Pick up red block using the right arm, set it on the left, repeat the placement with the left arm for green block, and the left arm for blue block.",
+    "9": "First, place red block, then green block beside it, and finally blue block next to green block.",
+    "10": "Start with red block, followed by green block and blue block, placing them in order left to right.",
+    "11": "First, place red block on the far left, then green block in the middle, and finish with blue block on the right.",
+    "12": "Set red block, green block, and blue block side by side in the order of red block, green block, then blue block.",
+    "14": "Grab red block, position it on the left. Next, grab green block to place beside red block, then grab blue block and set it to the right of green block.",
+    "15": "Begin by placing red block on the left, then add green block to the right, and finish with blue block.",
+    "18": "Arrange red block, green block, and blue block in sequence from leftmost to rightmost positions.",
+    "21": "Pick up red block, green block, and blue block in sequence and position them in a left-to-right row.",
+    "22": "red block, then green block, and finally blue block should be placed in a row from left to right.",
+    "23": "Move red block with the left arm to the far left, green block with the right arm just beside red block, and finally blue block with the left arm next to green block.",
+    "25": "Grab red block, set it on the leftmost side, add green block to its right, and complete with blue block on the far right.",
+    "26": "First, use the right arm to grab red block and place it on the left. Then grab green block with the right arm and position it next to red block, followed by grabbing blue block with the left arm and placing it next to green block.",
+    "27": "Position red block in the first spot, then set green block to the right of red block, and finish by placing blue block to the right of green block.",
+    "29": "Place red block to the left, green block in the middle, and blue block on the right in a linear fashion.",
+    "32": "Move red block with the right arm to the far left, green block with the left arm just beside red block, and finally blue block with the left arm next to green block.",
+    "36": "Grab red block, green block, and blue block, and place them steadily from left to right in the order red, green, blue.",
+    "40": "Use the left arm to place red block on the left, then use the right arm for green block beside red block, and finally the left arm for blue block next to green block.",
+    "45": "Position red block first, green block second, and blue block third in a row from left to right.",
+    "46": "Arrange red block at the left edge, green block to the right of it, and blue block next to green block forming a row.",
+    "54": "Line up the objects in the order red block, green block, and blue block, starting from the left.",
+    "57": "Using the right arm, the left arm, and the left arm, arrange red block, green block, and blue block from left to right in the given order.",
+    "59": "Position red block, green block, and blue block from left to right in the specified sequence.",
+    "61": "Position red block first, followed by green block, and end with blue block in a row from left to right.",
+    "64": "Put red block first, green block next, and blue block last in a straight line from left to right, using the left arm, the right arm, and the right arm.",
+    "70": "Start with red block on the left, add green block next to it, and then place blue block on the right.",
+    "75": "First, grab red block, then green block, then blue block with the right arm, the left arm, and the left arm, and place them in order left to right.",
+    "77": "With the left arm, the right arm, and the right arm, arrange red block, green block, and blue block sequentially in a horizontal row.",
+    "80": "Arrange red block, green block, and blue block from left to right using the right arm, the left arm, and the right arm in the order red, green, blue.",
+    "81": "Using the left arm, the right arm, and the left arm, arrange red block, green block, and blue block sequentially from left to right in a single row.",
+    "85": "Put red block first, green block next, and blue block last in a straight line from left to right, using the right arm, the left arm, and the left arm.",
+    "111": "Use the left arm for red block to set it leftmost, continue with the left arm to position green block next to red block, and finish by placing blue block using the right arm to the right of green block.",
+    "120": "Use the right arm to grab red block, set it on the left, follow with the right arm for green block, and end with the left arm for blue block.",
+    "127": "Grab red block with the left arm, place it leftmost, then green block using the right arm, followed by blue block with the left arm."
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        12,
+        30
+      ],
+      "new_episodes": [
+        0,
+        1
+      ],
+      "size_mb": 3.0966434478759766,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-001.mp4",
+      "source_episodes": [
+        31,
+        39
+      ],
+      "new_episodes": [
+        2,
+        3
+      ],
+      "size_mb": 4.010379791259766,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-002.mp4",
+      "source_episodes": [
+        43
+      ],
+      "new_episodes": [
+        4
+      ],
+      "size_mb": 2.4768171310424805,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-003.mp4",
+      "source_episodes": [
+        76,
+        80
+      ],
+      "new_episodes": [
+        5,
+        6
+      ],
+      "size_mb": 4.808289527893066,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-004.mp4",
+      "source_episodes": [
+        83
+      ],
+      "new_episodes": [
+        7
+      ],
+      "size_mb": 1.9647693634033203,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-005.mp4",
+      "source_episodes": [
+        84,
+        93
+      ],
+      "new_episodes": [
+        8,
+        9
+      ],
+      "size_mb": 4.8696136474609375,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-006.mp4",
+      "source_episodes": [
+        94,
+        115
+      ],
+      "new_episodes": [
+        10,
+        11
+      ],
+      "size_mb": 3.880809783935547,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-007.mp4",
+      "source_episodes": [
+        121,
+        122
+      ],
+      "new_episodes": [
+        12,
+        13
+      ],
+      "size_mb": 3.461658477783203,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-008.mp4",
+      "source_episodes": [
+        123,
+        133
+      ],
+      "new_episodes": [
+        14,
+        15
+      ],
+      "size_mb": 4.5094404220581055,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-009.mp4",
+      "source_episodes": [
+        148,
+        169
+      ],
+      "new_episodes": [
+        16,
+        17
+      ],
+      "size_mb": 4.606207847595215,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-010.mp4",
+      "source_episodes": [
+        171,
+        176
+      ],
+      "new_episodes": [
+        18,
+        19
+      ],
+      "size_mb": 3.5881271362304688,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-011.mp4",
+      "source_episodes": [
+        179
+      ],
+      "new_episodes": [
+        20
+      ],
+      "size_mb": 2.077345848083496,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-012.mp4",
+      "source_episodes": [
+        197
+      ],
+      "new_episodes": [
+        21
+      ],
+      "size_mb": 3.4007368087768555,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-013.mp4",
+      "source_episodes": [
+        213
+      ],
+      "new_episodes": [
+        22
+      ],
+      "size_mb": 3.347543716430664,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-014.mp4",
+      "source_episodes": [
+        217
+      ],
+      "new_episodes": [
+        23
+      ],
+      "size_mb": 2.731442451477051,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-015.mp4",
+      "source_episodes": [
+        229,
+        234
+      ],
+      "new_episodes": [
+        24,
+        25
+      ],
+      "size_mb": 4.688132286071777,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-016.mp4",
+      "source_episodes": [
+        236
+      ],
+      "new_episodes": [
+        26
+      ],
+      "size_mb": 2.6139259338378906,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-017.mp4",
+      "source_episodes": [
+        248,
+        265
+      ],
+      "new_episodes": [
+        27,
+        28
+      ],
+      "size_mb": 4.496758460998535,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-018.mp4",
+      "source_episodes": [
+        292,
+        295
+      ],
+      "new_episodes": [
+        29,
+        30
+      ],
+      "size_mb": 4.235306739807129,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-019.mp4",
+      "source_episodes": [
+        300
+      ],
+      "new_episodes": [
+        31
+      ],
+      "size_mb": 2.9806365966796875,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-020.mp4",
+      "source_episodes": [
+        312
+      ],
+      "new_episodes": [
+        32
+      ],
+      "size_mb": 3.6450023651123047,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-021.mp4",
+      "source_episodes": [
+        320,
+        350
+      ],
+      "new_episodes": [
+        33,
+        34
+      ],
+      "size_mb": 4.2482757568359375,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-022.mp4",
+      "source_episodes": [
+        380,
+        382
+      ],
+      "new_episodes": [
+        35,
+        36
+      ],
+      "size_mb": 4.777295112609863,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-023.mp4",
+      "source_episodes": [
+        392
+      ],
+      "new_episodes": [
+        37
+      ],
+      "size_mb": 1.3797006607055664,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-024.mp4",
+      "source_episodes": [
+        406
+      ],
+      "new_episodes": [
+        38
+      ],
+      "size_mb": 4.347451210021973,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-025.mp4",
+      "source_episodes": [
+        407,
+        409
+      ],
+      "new_episodes": [
+        39,
+        40
+      ],
+      "size_mb": 4.242334365844727,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-026.mp4",
+      "source_episodes": [
+        419,
+        439
+      ],
+      "new_episodes": [
+        41,
+        42
+      ],
+      "size_mb": 2.9789657592773438,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-027.mp4",
+      "source_episodes": [
+        443,
+        447
+      ],
+      "new_episodes": [
+        43,
+        44
+      ],
+      "size_mb": 4.94264030456543,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-028.mp4",
+      "source_episodes": [
+        464,
+        467
+      ],
+      "new_episodes": [
+        45,
+        46
+      ],
+      "size_mb": 3.7959346771240234,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-029.mp4",
+      "source_episodes": [
+        481
+      ],
+      "new_episodes": [
+        47
+      ],
+      "size_mb": 1.6093931198120117,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-030.mp4",
+      "source_episodes": [
+        496
+      ],
+      "new_episodes": [
+        48
+      ],
+      "size_mb": 3.472029685974121,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    },
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-031.mp4",
+      "source_episodes": [
+        497
+      ],
+      "new_episodes": [
+        49
+      ],
+      "size_mb": 1.6897382736206055,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}

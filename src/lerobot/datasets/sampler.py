@@ -209,3 +209,65 @@ class MultiLeRobotWeightedSampler(Sampler[int]):
 
     def __len__(self) -> int:
         return self.num_samples
+
+
+class MultiLeRobotHomogeneousBatchSampler(Sampler[List[int]]):
+    """
+    Batch sampler that draws each batch from a single underlying dataset.
+
+    Dataset selection uses ``dataset.dataset_weights`` when set; otherwise
+    lengths (frame counts). Within the chosen dataset, frames are sampled
+    uniformly with replacement so every yielded batch has exactly
+    ``batch_size`` indices.
+    """
+
+    def __init__(
+        self,
+        dataset: MultiLeRobotDataset,
+        batch_size: int,
+        num_samples: Optional[int] = None,
+        generator: Optional[torch.Generator] = None,
+    ) -> None:
+        if not isinstance(dataset, MultiLeRobotDataset):
+            raise TypeError("MultiLeRobotHomogeneousBatchSampler requires a MultiLeRobotDataset.")
+        if batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, got {batch_size}.")
+
+        self.dataset = dataset
+        self.batch_size = int(batch_size)
+        self.generator = generator
+
+        self._lengths = dataset._lengths
+        self._cum_lengths = dataset._cum_lengths
+
+        if dataset.dataset_weights is not None:
+            self._weights = dataset.dataset_weights
+        else:
+            lengths = torch.tensor(self._lengths, dtype=torch.float32)
+            if (lengths <= 0).all():
+                raise ValueError("All underlying datasets are empty.")
+            self._weights = lengths / lengths.sum()
+
+        if (self._weights <= 0).all():
+            raise ValueError("dataset_weights must contain at least one positive value.")
+
+        self.num_samples = num_samples if num_samples is not None else len(dataset)
+        self.num_batches = max(1, self.num_samples // self.batch_size)
+
+    def __iter__(self) -> Iterator[List[int]]:
+        g = self.generator if self.generator is not None else torch.Generator()
+        if self.generator is None:
+            g.manual_seed(torch.randint(0, 2**31 - 1, (1,)).item())
+
+        for _ in range(self.num_batches):
+            ds_idx = torch.multinomial(self._weights, 1, replacement=True, generator=g).item()
+            local_len = self._lengths[ds_idx]
+            if local_len <= 0:
+                raise ValueError(f"Cannot sample from empty dataset index {ds_idx}.")
+
+            global_start = 0 if ds_idx == 0 else self._cum_lengths[ds_idx - 1]
+            local_indices = torch.randint(high=local_len, size=(self.batch_size,), generator=g).tolist()
+            yield [global_start + int(local_idx) for local_idx in local_indices]
+
+    def __len__(self) -> int:
+        return self.num_batches

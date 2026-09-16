@@ -92,6 +92,7 @@ class LeRobotDatasetMetadata:
         revision: str | None = None,
         force_cache_sync: bool = False,
         metadata_buffer_size: int = 10,
+        allow_hub_download: bool = True,
     ):
         self.repo_id = repo_id
         self.revision = revision if revision else CODEBASE_VERSION
@@ -106,6 +107,8 @@ class LeRobotDatasetMetadata:
                 raise FileNotFoundError
             self.load_metadata()
         except (FileNotFoundError, NotADirectoryError):
+            if not allow_hub_download:
+                raise
             if is_valid_version(self.revision):
                 self.revision = get_safe_version(self.repo_id, self.revision)
 
@@ -570,6 +573,7 @@ class LeRobotDataset(torch.utils.data.Dataset):
         batch_encoding_size: int = 1,
         parquet_columns: list[str] | None = None,
         active_camera_keys: list[str] | None = None,
+        allow_hub_download: bool = True,
     ):
         """
         2 modes are available for instantiating this class, depending on 2 different use cases:
@@ -688,6 +692,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
                 Metadata and MP4 video decoding remain available through ``self.meta``. Defaults to all columns.
             active_camera_keys (list[str] | None, optional): Restrict image/video validation, decoding, and
                 image transforms to these camera keys without mutating metadata. Defaults to all cameras.
+            allow_hub_download (bool, optional): Whether missing local files may be fetched from the Hub.
+                Set false for validated local-only datasets such as BP caches. Defaults to true.
         """
         super().__init__()
         self.repo_id = repo_id
@@ -716,7 +722,11 @@ class LeRobotDataset(torch.utils.data.Dataset):
 
         # Load metadata
         self.meta = LeRobotDatasetMetadata(
-            self.repo_id, self.root, self.revision, force_cache_sync=force_cache_sync
+            self.repo_id,
+            self.root,
+            self.revision,
+            force_cache_sync=force_cache_sync,
+            allow_hub_download=allow_hub_download,
         )
         if self.active_camera_keys is not None:
             if not self.active_camera_keys or len(set(self.active_camera_keys)) != len(self.active_camera_keys):
@@ -739,6 +749,8 @@ class LeRobotDataset(torch.utils.data.Dataset):
             if not self._check_cached_episodes_sufficient():
                 raise FileNotFoundError("Cached dataset doesn't contain all requested episodes")
         except (AssertionError, FileNotFoundError, NotADirectoryError):
+            if not allow_hub_download:
+                raise
             if is_valid_version(self.revision):
                 self.revision = get_safe_version(self.repo_id, self.revision)
             self.download(download_videos)

@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "algorithm_version": "bp-cache-v2",
+  "source_repo": "/share/RoboTwin-LeRobot-v3.0/move_can_pot/aloha-agilex_clean_50",
+  "cache_repo_id": "bp-cache/aloha-agilex_clean_50-1ccf0782b49e",
+  "source_root_signature": {
+    "root": "/share/RoboTwin-LeRobot-v3.0/move_can_pot/aloha-agilex_clean_50",
+    "info_sha256": "eb36be2b64df242726b2c6d8bc0aa800216f109250d45c11bb30e73b521a1f93",
+    "files": [
+      {
+        "path": "meta/info.json",
+        "size": 4777,
+        "mtime_ns": 1782786676197088280
+      },
+      {
+        "path": "meta/tasks.parquet",
+        "size": 4629,
+        "mtime_ns": 1782786676196088280
+      },
+      {
+        "path": "meta/episodes/chunk-000/file-000.parquet",
+        "size": 90211,
+        "mtime_ns": 1782786676200088280
+      }
+    ]
+  },
+  "config": {
+    "sample_ratio": 0.1,
+    "sampling_scope": "dataset",
+    "sampling_mode": "random",
+    "seed": 42,
+    "bp_camera_keys": [
+      "observation.images.image0"
+    ],
+    "target_video_mb": 5.0,
+    "single_episode_soft_mb": 10.0,
+    "single_episode_hard_mb": 20.0
+  },
+  "fingerprint": {
+    "schema_version": 1,
+    "algorithm_version": "bp-cache-v2",
+    "source_repo": "/share/RoboTwin-LeRobot-v3.0/move_can_pot/aloha-agilex_clean_50",
+    "source_signature": {
+      "root": "/share/RoboTwin-LeRobot-v3.0/move_can_pot/aloha-agilex_clean_50",
+      "info_sha256": "eb36be2b64df242726b2c6d8bc0aa800216f109250d45c11bb30e73b521a1f93",
+      "files": [
+        {
+          "path": "meta/info.json",
+          "size": 4777,
+          "mtime_ns": 1782786676197088280
+        },
+        {
+          "path": "meta/tasks.parquet",
+          "size": 4629,
+          "mtime_ns": 1782786676196088280
+        },
+        {
+          "path": "meta/episodes/chunk-000/file-000.parquet",
+          "size": 90211,
+          "mtime_ns": 1782786676200088280
+        }
+      ]
+    },
+    "config": {
+      "sample_ratio": 0.1,
+      "sampling_scope": "dataset",
+      "sampling_mode": "random",
+      "seed": 42,
+      "bp_camera_keys": [
+        "observation.images.image0"
+      ],
+      "target_video_mb": 5.0,
+      "single_episode_soft_mb": 10.0,
+      "single_episode_hard_mb": 20.0
+    },
+    "digest": "d158a47a10eef73b4af0c1b46068484eaaabd6ffc3cbd05c999e35c76c6daff7"
+  },
+  "selected_source_episodes": [
+    {
+      "episode": 0,
+      "tasks": [
+        "Use the right arm to grab the yellow label sauce can and move it next to the medium silver pot for cooking"
+      ]
+    },
+    {
+      "episode": 25,
+      "tasks": [
+        "Move the red can with gold patterns to the cooking kitchenpot with side grips with the left arm"
+      ]
+    },
+    {
+      "episode": 29,
+      "tasks": [
+        "Grab the sauce can, shift it, and place it close to the rounded silver pot with handles"
+      ]
+    },
+    {
+      "episode": 40,
+      "tasks": [
+        "Use the left arm to grab the brown top sauce can and move it beside the cooking kitchenpot with side grips"
+      ]
+    },
+    {
+      "episode": 45,
+      "tasks": [
+        "Set the white plastic lid sauce can right next to the gray pot for boiling food"
+      ]
+    }
+  ],
+  "selected_by_task": {
+    "Grab the sauce can, shift it, and place it close to the rounded silver pot with handles": [
+      29
+    ],
+    "Move the red can with gold patterns to the cooking kitchenpot with side grips with the left arm": [
+      25
+    ],
+    "Set the white plastic lid sauce can right next to the gray pot for boiling food": [
+      45
+    ],
+    "Use the left arm to grab the brown top sauce can and move it beside the cooking kitchenpot with side grips": [
+      40
+    ],
+    "Use the right arm to grab the yellow label sauce can and move it next to the medium silver pot for cooking": [
+      0
+    ]
+  },
+  "source_to_cache_episode": {
+    "0": 0,
+    "25": 1,
+    "29": 2,
+    "40": 3,
+    "45": 4
+  },
+  "source_to_cache_task": {
+    "0": 0,
+    "25": 1,
+    "29": 2,
+    "40": 3,
+    "45": 4
+  },
+  "source_task_names": {
+    "0": "Use the right arm to grab the yellow label sauce can and move it next to the medium silver pot for cooking",
+    "25": "Move the red can with gold patterns to the cooking kitchenpot with side grips with the left arm",
+    "29": "Grab the sauce can, shift it, and place it close to the rounded silver pot with handles",
+    "40": "Use the left arm to grab the brown top sauce can and move it beside the cooking kitchenpot with side grips",
+    "45": "Set the white plastic lid sauce can right next to the gray pot for boiling food"
+  },
+  "actual_camera_keys": [
+    "observation.images.cam_high"
+  ],
+  "video_files": [
+    {
+      "camera": "observation.images.cam_high",
+      "relative_path": "videos/observation.images.cam_high/chunk-000/file-000.mp4",
+      "source_episodes": [
+        0,
+        25,
+        29,
+        40,
+        45
+      ],
+      "new_episodes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "size_mb": 1.7583847045898438,
+      "oversized_single_episode": false,
+      "codec": "libsvtav1",
+      "pix_fmt": "yuv420p"
+    }
+  ],
+  "warnings": [],
+  "fallbacks": {},
+  "complete": true
+}
