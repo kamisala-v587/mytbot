@@ -1,5 +1,4 @@
 /vla/workspace/data/robotwin2.0/adjust_bottle/aloha-agilex_clean_50
-/vla/workspace/data/robotwin2.0/adjust_bottle/aloha-agilex_randomized_50
 /vla/workspace/data/robotwin2.0/adjust_bottle/aloha-agilex_randomized_500
 /vla/workspace/data/robotwin2.0/adjust_bottle/singe_clean_100
 /vla/workspace/data/robotwin2.0/beat_block_hammer/aloha-agilex_clean_50

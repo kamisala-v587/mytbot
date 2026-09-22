@@ -21,6 +21,7 @@ _CONFIG_IMPORTS = {
     "QwenA1Config": ".InternVLA_A1_3B.configuration_internvla_a1",
     "InternA1Config": ".InternVLA_A1_2B.configuration_internvla_a1",
     "QwenActionConfig": ".qwenaction.configuration_qwenaction",
+    "Q35Config": ".q35.configuration_q35",
     "TBotSA1Config": ".TBot_SA1.configuration_tbot_sa1",
     "BPVAConfig": ".BPVA.configuration_bpva",
     "BPVAv2Config": ".BPVAv2.configuration_bpva",

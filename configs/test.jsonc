@@ -1,29 +1,35 @@
-{
-    // TBot-SA1 training benchmark baseline.
-    // This mirrors configs/bpvav2_pretrain_test.jsonc where possible so BPVA vs
-    // TBot comparisons use the same Baidunyun test repo list, data resolution,
-    // batch size, workers, optimizer family, and benchmark step shape.
-    // policy.pretrained_path=null means no TBot checkpoint is loaded. The model
-    // still needs the configured local Qwen3-VL and Cosmos base assets because
-    // TBot-SA1 constructs those modules from their own pretrained artifacts.
+{ 
+    "dataloader_in_order": false,
     "dataset": {
-        "type": "TBot_SA1",
-        "repo_id": "tbot_sa1_pretrain_test",
-        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/pretrain_data_ids_baiduyun_test.txt",
+        "type": "bpvav2",
+        "repo_id": "bpva_pretrain_data",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/pretrain-bpdata.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
         "use_imagenet_stats": true,
-        "video_backend": "pyav",
-        "skip_video_file_validation": true,
+        "video_backend": "pyav", 
+        "homogeneous_batch": true, 
+        "skip_video_file_validation": true, 
+        "batch_prompt_video_decode": false, 
         "streaming": false,
-        "dist_loading": false,
-        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",
+        "dist_loading": true,
+        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules_bp.yaml",
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
         "max_action_dim": 32,
         "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
+
+        "bp_num_chunks": 8,
+        "bp_prompt_source": "original", 
+        "bp_same_episode_policy": "avoid", 
+        "bp_seed": 0,
+        "bp_camera_keys": [
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
+        ],
 
         "image_transforms": {
             "enable": false,
@@ -33,7 +39,7 @@
 
     "env": null,
     "policy": {
-        "type": "TBot_SA1",
+        "type": "bpvav2",
         "pretrained_path": null,
         "push_to_hub": false,
         "device": null,
@@ -51,8 +57,27 @@
         "attention_mask_mode": "default",
         "num_inference_steps": 10,
         "image_resolution": [224, 224],
-        "image_delta_indices": [-15, 0, 15],
-        "tokenizer_max_length": 96,
+        "image_delta_indices": [-50, 0, 50],
+
+        // 以下 BP 字段决定 checkpoint 参数结构，不能随意改变，否则 pretrained 加载会结构不兼容。
+        "bp_num_chunks": 8,
+        "bp_action_chunk_size": 50,
+        "bp_camera_keys": [
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
+        ],
+        "bp_encoder_version": "query_compressor_v1",
+        "bp_freeze_shared_visual": false,
+        "bp_compressor_dim": 512,
+        "bp_state_action_hidden_dim": 256,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
+        "bp_use_modality_type_embedding": true,
+        "bp_use_camera_embedding": true,
+        "bp_use_chunk_position_embedding": true,
 
         "normalization_mapping": {
             "VISUAL": "IDENTITY",
@@ -65,15 +90,14 @@
         "train_expert_only": false,
         "train_vlm_only": false,
 
-        "optimizer_lr": 5e-5,
+        "optimizer_lr": 1e-3, 
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 2000,
-        "scheduler_decay_steps": 100000,
-        "scheduler_decay_lr": 5e-6,
-
+        "scheduler_warmup_steps": 1000, 
+        "scheduler_decay_steps": 100000, 
+        "scheduler_decay_lr": 5e-5, 
         "scale_factor": 8,
         "lambda_gen": 0.01,
         "cosmos_tokenizer_path_or_name": "/vla/workspace/models/Cosmos-Tokenizer-CI8x8",
@@ -94,23 +118,21 @@
         "da3_code_root": "/vla/workspace/my_tbot/third_party/Depth-Anything-3",
         "da3_teacher_process_res": 504,
         "da3_layer_weights": [1.0, 1.2, 1.4, 1.6],
-        "log_da3_teacher_timing": false,
-
-        "mask_action_dim_padding_loss": false,
-        "action_loss_valid_dim": null
+        "log_da3_teacher_timing": true
+        // 预训练不截断loss计算
     },
 
-    "output_dir": "outputs/TBot_SA1/pretrain_benchmark_test",
-    "job_name": "tbot-sa1-pretrain-benchmark-test",
+    "output_dir": "outputs/BPVAv2/Pretrain",
+    "job_name": "bpv2_base_ten",
     "resume": false,
     "seed": 42,
-    "num_workers": 8,
-    "batch_size": 8,
+    "num_workers": 6,
+    "batch_size": 6,  
     "gradient_accumulation_steps": 1,
     "steps": 100000,
-    "eval_freq": 0,
-    "log_freq": 1,
-    "save_checkpoint": false,
+    "eval_freq": 1000,
+    "log_freq": 10,
+    "save_checkpoint": true,
     "save_freq": 5000,
     "use_policy_training_preset": true,
 
@@ -121,8 +143,8 @@
     },
 
     "wandb": {
-        "enable": false,
-        "project": "TBot_SA1",
+        "enable": true,
+        "project": "BPVA",
         "mode": "offline"
     },
 

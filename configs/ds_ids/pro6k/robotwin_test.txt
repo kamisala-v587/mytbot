@@ -1,0 +1,6 @@
+/vla/workspace/data/robotwin2.0/blocks_ranking_rgb/aloha-agilex_clean_50
+/vla/workspace/data/robotwin2.0/blocks_ranking_rgb/aloha-agilex_randomized_500
+/vla/workspace/data/robotwin2.0/blocks_ranking_size/aloha-agilex_clean_50
+/vla/workspace/data/robotwin2.0/blocks_ranking_size/aloha-agilex_randomized_500
+/vla/workspace/data/robotwin2.0/move_can_pot/aloha-agilex_clean_50
+/vla/workspace/data/robotwin2.0/move_can_pot/aloha-agilex_randomized_500

@@ -1,0 +1,112 @@
+{
+    "dataset": {
+        "type": "q35",  // 数据集管线注册名，必须与 policy.type 一致
+        "repo_id": "q35_pretrain_test",  // 逻辑数据集名，仅用于日志/输出标识
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robotwin_test.txt",  // 实际训练 repo 列表
+        "action_mode": "delta",  // abs=绝对动作；delta=相对当前 state 的增量动作
+        "use_external_stats": true,  // 使用预先算好的归一化统计，而不是现场统计
+        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",  // 外部 stats 根目录
+        "use_imagenet_stats": true,  // 图像用 ImageNet mean/std
+        "video_backend": "pyav",  // 视频解码后端
+        "skip_video_file_validation": true,  // 初始化时跳过逐视频存在性检查
+        "streaming": false,  // true 则流式读数据，不落本地缓存
+        "dist_loading": false,  // 多卡时按 rank 切分 repo，避免每卡都加载全集
+        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",  // 多数据源采样权重
+        "height": 224,  // resize 后的图像高
+        "width": 224,  // resize 后的图像宽
+        "max_state_dim": 32,  // state 统一 pad 到该维度
+        "max_action_dim": 32,  // action 统一 pad 到该维度
+        "current_image_index": 0,  // 从时序图像里取第几帧；Q35 只吃当前帧，保持 0
+        "qwen3_5_processor_path": "/vla/workspace/shiliangchao/models/Qwen35_0_8",  // TODO: 填 Qwen3.5 processor/ckpt 目录，和下面 policy 路径保持一致
+        "qwen3_5_processor_revision": null,  // 可选 HF revision；本地目录保持 null
+
+        "image_transforms": {
+            "enable": false,  // 是否开图像增强
+            "preset": null  // 可设 pi05 / pi0.5 / pi05_style；Q35 会插入 Pi05 增强
+        }
+    },
+
+    "env": null,  // 离线训练不需要仿真环境
+    "policy": {
+        "type": "q35",  // policy 注册名，固定 q35
+        "pretrained_path": null,  // 从此路径加载已训 policy；null 表示从 Qwen3.5 初始化
+        "push_to_hub": false,  // 是否把权重推到 HuggingFace Hub
+        "device": null,  // null 则自动选可用设备
+
+        "dtype": "bfloat16",  // 模型精度，仅支持 bfloat16 / float32
+        "expert_type": "action",  // 当前只实现 action expert
+        "qwen3_5_pretrained_path": "/vla/workspace/shiliangchao/models/Qwen35_0_8",  // TODO: 填本地 Qwen3.5 权重目录，仅支持官方 0.8B / 2B / 4B
+        "qwen3_5_model_revision": null,  // 可选 HF revision；本地目录保持 null
+        "qwen3_5_processor_path": null,  // null 时复用 qwen3_5_pretrained_path
+        "qwen3_5_processor_revision": null,  // processor 的可选 HF revision
+        "qwen3_5_fingerprint": null,  // 可选校验 0.8B / 2B / 4B；null 则加载后自动识别
+        "expert_width_ratio": 0.5,  // action expert 相对 VLM 文本宽度的缩放比，已有实验用 0.5
+
+        "n_obs_steps": 1,  // 观测历史步数；Q35 action-only 只用当前步
+        "chunk_size": 50,  // 一次预测的动作序列长度
+        "n_action_steps": 50,  // 推理时实际执行的动作步数，不能大于 chunk_size
+        "max_state_dim": 32,  // 模型侧 state 宽度，需与 dataset 对齐
+        "max_action_dim": 32,  // 模型侧 action 宽度，需与 dataset 对齐
+        "num_inference_steps": 10,  // Flow Matching 采样步数
+        "image_resolution": [224, 224],  // 模型期望的图像分辨率
+        "image_delta_indices": [0],  // Q35 强制只要当前帧，不能改成 TBot 那种 [-15, 0, 15]
+        "num_camera_views": 3,  // Q35 固定 3 路相机槽；不足的相机会被 mask 掉
+        "empty_cameras": 0,  // 额外占位空相机数，一般保持 0
+
+        "time_sampling_beta_alpha": 1.5,  // Flow 时间采样 Beta 分布 alpha
+        "time_sampling_beta_beta": 1.0,  // Flow 时间采样 Beta 分布 beta
+        "time_sampling_scale": 0.999,  // 把采样时间缩放到 (0, 1) 内
+        "time_sampling_offset": 0.001,  // 时间采样下限偏移，避免 t=0
+        "min_period": 4e-3,  // 时间正弦编码的最小周期
+        "max_period": 4.0,  // 时间正弦编码的最大周期
+
+        "attention_implementation": "sdpa",  // 注意力实现：sdpa 或 eager
+        "gradient_checkpointing": false,  // 用算力换显存
+        "causal_vlm": false,  // VLM prefix 是否因果；当前默认双向
+        "compile_model": false,  // 是否 torch.compile 训练 forward
+        "compile_mode": "default",  // torch.compile 模式，仅 compile_model=true 时生效
+
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",  // 视觉归一化；IDENTITY 表示交给 dataset transform
+            "STATE": "IDENTITY",  // state 归一化
+            "ACTION": "IDENTITY"  // action 归一化
+        },
+
+        "optimizer_lr": 5e-5,  // 峰值学习率，VLM 和 action expert 共用
+        "optimizer_betas": [0.9, 0.95],  // AdamW beta
+        "optimizer_eps": 1e-8,  // AdamW epsilon
+        "optimizer_weight_decay": 0.01,  // 权重衰减
+        "optimizer_grad_clip_norm": 1.0,  // 梯度裁剪阈值
+        "scheduler_warmup_steps": 1000,  // 余弦学习率 warmup 步数
+        "scheduler_decay_steps": 20000,  // 余弦学习率衰减步数
+        "scheduler_decay_lr": 5e-6  // 衰减后的最小学习率
+    },
+
+    "output_dir": "outputs/Q35/pretrain",  // 训练输出根目录，实际会再拼日期子目录
+    "job_name": "q35-pretrain",  // 本次任务名，会出现在输出目录和日志里
+    "resume": false,  // true 则从 checkpoint 恢复，需配合 config_path
+    "seed": 42,  // 训练随机种子
+    "num_workers": 16,  // DataLoader worker 数
+    "batch_size": 64,  // 单卡 batch
+    "gradient_accumulation_steps": 1,  // 梯度累积步数
+    "steps": 20000,  // 总训练步数，建议和 scheduler_decay_steps 对齐
+    "eval_freq": 0,  // 每隔多少步做环境评估；0 表示关闭
+    "log_freq": 10,  // 每隔多少步打训练日志
+    "save_checkpoint": true,  // 是否落盘 checkpoint
+    "save_freq": 5000,  // checkpoint 保存间隔
+    "use_policy_training_preset": true,  // true 则使用上面 policy 里的 optimizer/scheduler
+
+    "eval": {
+        "n_episodes": 50,  // 评估 episode 数
+        "batch_size": 50,  // 并行评估环境数，不能大于 n_episodes
+        "use_async_envs": false  // 是否用多进程异步环境
+    },
+
+    "wandb": {
+        "enable": false,  // 是否记录到 wandb
+        "project": "Q35",  // wandb 项目名
+        "mode": "offline"  // online / offline / disabled
+    },
+
+    "rename_map": {}  // 观测 key 重命名表，一般为空
+}

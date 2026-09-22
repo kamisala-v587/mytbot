@@ -102,3 +102,5 @@ tasks:
     dataset_path: /vla/workspace/data/robotwin2.0/stamp_seal/aloha-agilex_clean_50
   turn_switch:
     dataset_path: /vla/workspace/data/robotwin2.0/turn_switch/aloha-agilex_clean_50
+  myblocks_ranking_rgb:
+    dataset_path: /vla/workspace/data/my_demo_clean_processed_Lerobot

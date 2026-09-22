@@ -45,6 +45,7 @@ from lerobot.datasets.transformed_dataset import (
 from lerobot.policies.fastwam.configuration_fastwam import FastWAMDatasetConfig
 from lerobot.policies.TBot_SA1_Wan.configuration_tbot_sa1_wan import TBotSA1WanDatasetConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfig, RoboChallengeRawW1DatasetConfig
+from lerobot.policies.q35.configuration_q35 import Q35DatasetConfig  # noqa: F401
 from lerobot.policies.BPVA.configuration_bpva import BPVADatasetConfig
 from lerobot.policies.BPVAv2.configuration_bpva import BPVAv2Config, BPVAv2DatasetConfig
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1

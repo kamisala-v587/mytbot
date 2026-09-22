@@ -102,3 +102,5 @@ tasks:
     dataset_path: /vla/workspace/data/robotwin2.0/stamp_seal/aloha-agilex_randomized_500
   turn_switch:
     dataset_path: /vla/workspace/data/robotwin2.0/turn_switch/aloha-agilex_randomized_500
+  myblocks_ranking_rgb:
+    dataset_path: /vla/workspace/my_robotwin/data/myblocks_ranking_rgb/my_demo_randomized_lerobot
