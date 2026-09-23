@@ -11,7 +11,6 @@
         "video_backend": "pyav", 
         "homogeneous_batch": true, 
         "skip_video_file_validation": true, 
-        "batch_prompt_video_decode": false, 
         "streaming": false,
         "dist_loading": true,
         "weight_rules_path": "/home/jovyan/workspace/mytbot/configs/ds_ids/weight_rules_bp.yaml",
@@ -22,8 +21,6 @@
         "qwen3_vl_processor_path": "/home/jovyan/workspace/models/Qwen3-vl-2b-instruct",
 
         "bp_num_chunks": 8,
-        "bp_prompt_source": "original", 
-        "bp_same_episode_policy": "avoid", 
         "bp_seed": 0,
         "bp_camera_keys": [
             "observation.images.image0",

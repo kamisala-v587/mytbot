@@ -9,9 +9,9 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 import torch
-from torch.utils.data import Dataset, get_worker_info
+from torch.utils.data import Dataset
 
-from lerobot.datasets.lerobot_dataset import BatchedVideoDecodeError, LeRobotDataset
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping
 from lerobot.transforms.core import (
     ComposeFieldsTransform,
@@ -48,34 +48,21 @@ from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE
 
 
 BP_PREFIX = "behavior_prompt"
-BP_SAME_EPISODE_POLICIES = frozenset({"avoid", "allow", "forbid", "neighbor"})
 
 logger = logging.getLogger(__name__)
-
-
-def normalize_bp_same_episode_policy(policy: str) -> str:
-    """Normalize and validate behavior-prompt same-episode sampling policy."""
-    normalized = str(policy).strip().lower()
-    if normalized == "neibor":
-        logger.warning("bp_same_episode_policy='neibor' is deprecated; use 'neighbor' instead")
-        normalized = "neighbor"
-    if normalized not in BP_SAME_EPISODE_POLICIES:
-        allowed = ", ".join(sorted(BP_SAME_EPISODE_POLICIES))
-        raise ValueError(f"Invalid BP same-episode policy {policy!r}; expected one of: {allowed}")
-    return normalized
 
 
 @dataclass
 class BehaviorPromptConfig:
     """Configuration for sampling a behavior prompt trajectory.
 
-    The prompt trajectory is sampled into at most K action chunks before video IO.
+    Prompt episodes are drawn at random from the same task in the current repo.
+    The selected trajectory is sampled into at most K action chunks before video IO.
     A later transform only pads short trajectories to fixed K for batching.
     """
 
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
-    same_episode_policy: str = "avoid"  # avoid / allow / forbid / neighbor
     seed: int = 0
 
     # BPVA 默认数据变换配置。
@@ -87,29 +74,9 @@ class BehaviorPromptConfig:
     qwen3_vl_processor_path: str = "Qwen/Qwen3-VL-2B-Instruct"
     bp_camera_keys: list[str] | None = None
     action_mode: str = ""
-    batch_prompt_video_decode: bool = False
     dynamic_bp_cameras: bool = False
-    prompt_episode_namespace_shared: bool = True
-    prompt_task_scope: str = "task"  # task / dataset
 
     def __post_init__(self) -> None:
-        self.same_episode_policy = normalize_bp_same_episode_policy(self.same_episode_policy)
-        self.prompt_task_scope = str(self.prompt_task_scope).strip().lower()
-        if self.prompt_task_scope not in {"task", "dataset"}:
-            raise ValueError("prompt_task_scope must be 'task' or 'dataset'")
-        if not self.prompt_episode_namespace_shared:
-            if self.same_episode_policy == "forbid":
-                raise ValueError(
-                    "same_episode_policy='forbid' requires current and prompt datasets to share an episode namespace"
-                )
-            if self.same_episode_policy == "neighbor":
-                logger.warning(
-                    "Behavior-prompt cache has a separate episode namespace; 'neighbor' degrades to same-task random sampling"
-                )
-            elif self.same_episode_policy == "avoid":
-                logger.warning(
-                    "Behavior-prompt cache has a separate episode namespace; 'avoid' behaves as 'allow'"
-                )
         if self.bp_camera_keys is None:
             self.bp_camera_keys = [
                 f"{OBS_IMAGES}.image0",
@@ -185,7 +152,6 @@ class BehaviorPromptLeRobotDataset(Dataset):
         self.prompt_cfg = prompt_cfg
         self.transform = transform or IdentityTransformFn()
         self.rng = random.Random(prompt_cfg.seed)
-        self._batch_decode_warned_workers: set[int | None] = set()
 
         started_at = time.perf_counter()
         self._episode_ranges = self._build_episode_ranges()
@@ -198,13 +164,12 @@ class BehaviorPromptLeRobotDataset(Dataset):
         self._current_task_names = self._build_task_index_to_name(self.current_ds)
         self._prompt_task_names = self._build_task_index_to_name(self.prompt_ds)
         self._task_to_episodes = self._build_task_to_episodes()
-        if self.prompt_cfg.prompt_task_scope == "task":
-            missing_prompt_tasks = sorted(set(self._current_task_names.values()) - set(self._task_to_episodes))
-            if missing_prompt_tasks:
-                raise ValueError(
-                    "Prompt dataset is missing task name(s) required by the current dataset: "
-                    f"{missing_prompt_tasks}"
-                )
+        missing_prompt_tasks = sorted(set(self._current_task_names.values()) - set(self._task_to_episodes))
+        if missing_prompt_tasks:
+            raise ValueError(
+                "Prompt dataset is missing task name(s) required by the current dataset: "
+                f"{missing_prompt_tasks}"
+            )
         logger.info(
             "Built behavior-prompt task map for %d episodes in %.3fs",
             len(self._episode_ranges),
@@ -475,43 +440,11 @@ class BehaviorPromptLeRobotDataset(Dataset):
         return {task_name: sorted(episodes) for task_name, episodes in task_to_episodes.items()}
 
     def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: str) -> int:
-        """Sample a prompt episode, preferring the same task and obeying same-episode policy."""
-        candidates = (
-            sorted(self._episode_ranges)
-            if self.prompt_cfg.prompt_task_scope == "dataset"
-            else list(self._task_to_episodes.get(current_task_identity, []))
-        )
+        """Randomly sample a prompt episode from the same task in the current repo."""
+        del current_episode_idx
+        candidates = list(self._task_to_episodes.get(current_task_identity, []))
         if not candidates:
-            if not self.prompt_cfg.prompt_episode_namespace_shared:
-                raise RuntimeError(f"No cached behavior-prompt episodes for task {current_task_identity!r}")
-            candidates = sorted(self._episode_ranges.keys())
-
-        if not self.prompt_cfg.prompt_episode_namespace_shared:
-            return self.rng.choice(candidates)
-
-        if self.prompt_cfg.same_episode_policy == "neighbor":
-            task_episodes = self._task_to_episodes.get(current_task_identity, [])
-            if current_episode_idx in task_episodes:
-                position = task_episodes.index(current_episode_idx)
-                neighbors = task_episodes[max(0, position - 1) : position]
-                neighbors.extend(task_episodes[position + 1 : position + 2])
-                if neighbors:
-                    return self.rng.choice(neighbors)
-
-            # No usable same-task neighbor: preserve the existing soft-avoid fallback.
-            different_episode_candidates = [ep for ep in candidates if ep != current_episode_idx]
-            if different_episode_candidates:
-                candidates = different_episode_candidates
-
-        if self.prompt_cfg.same_episode_policy in {"avoid", "forbid"}:
-            different_episode_candidates = [ep for ep in candidates if ep != current_episode_idx]
-            if different_episode_candidates:
-                candidates = different_episode_candidates
-            elif self.prompt_cfg.same_episode_policy == "forbid":
-                raise RuntimeError(
-                    f"No different prompt episode for episode={current_episode_idx}, task={current_task_identity}"
-                )
-
+            candidates = sorted(self._episode_ranges)
         return self.rng.choice(candidates)
 
     def _resolve_num_chunks(self, trajectory_len: int) -> int:
@@ -601,45 +534,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
         )
 
         # LeRobotDataset.__getitem__ indexes the loaded hf_dataset, so subset datasets require local indices.
-        get_items = getattr(self.prompt_ds, "get_items", None)
-        if not self.prompt_cfg.batch_prompt_video_decode or not callable(get_items):
-            prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
-        else:
-            try:
-                prompt_samples = get_items(prompt_local_indices, batch_video_decode=True)
-            except BatchedVideoDecodeError:
-                worker = get_worker_info()
-                worker_id = None if worker is None else worker.id
-                if worker_id not in self._batch_decode_warned_workers:
-                    logger.warning(
-                        "Batched behavior-prompt video decode failed; falling back to item-wise decode",
-                        exc_info=True,
-                    )
-                    self._batch_decode_warned_workers.add(worker_id)
-                prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
-            else:
-                if len(prompt_samples) != len(prompt_local_indices):
-                    raise ValueError(
-                        f"Batch prompt API returned {len(prompt_samples)} samples for "
-                        f"{len(prompt_local_indices)} requested rows"
-                    )
-                expected_indices = [
-                    self._to_int(self.prompt_ds.hf_dataset[idx]["index"]) for idx in prompt_local_indices
-                ]
-                for local_idx, expected_index, sample in zip(
-                    prompt_local_indices, expected_indices, prompt_samples, strict=True
-                ):
-                    actual_index = self._to_int(sample["index"])
-                    if actual_index != expected_index:
-                        raise ValueError(
-                            f"Batch prompt sample for local row {local_idx} has index={actual_index}, "
-                            f"expected {expected_index}"
-                        )
-                    missing_cameras = set(self.prompt_ds.active_visual_keys).difference(sample)
-                    if missing_cameras:
-                        raise ValueError(
-                            f"Batch prompt sample is missing camera keys: {sorted(missing_cameras)}"
-                        )
+        prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
         image_keys = list(self.prompt_ds.active_visual_keys)
         prompt_images = {
             key: torch.stack([sample[key] for sample in prompt_samples], dim=0)

@@ -5,7 +5,6 @@ from typing import ClassVar
 
 from lerobot.configs.default import DatasetConfig
 from lerobot.configs.policies import PreTrainedConfig
-from lerobot.datasets.behavior_prompt_dataset import normalize_bp_same_episode_policy
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1Config, TBotSA1DatasetConfig
 from lerobot.policies.TBot_SA1.da3_teacher import resolve_da3_backbone_defaults
 from lerobot.utils.constants import OBS_IMAGES
@@ -49,9 +48,7 @@ class BPVADatasetConfig(TBotSA1DatasetConfig):
 
     _canonical_type: ClassVar[str] = BPVA
     bp_num_chunks: int = 4
-    bp_same_episode_policy: str = "avoid"
     bp_seed: int = 0
-    batch_prompt_video_decode: bool = False
     bp_camera_keys: list[str] = field(
         default_factory=lambda: [
             f"{OBS_IMAGES}.image0",
@@ -94,7 +91,6 @@ class BPVADatasetConfig(TBotSA1DatasetConfig):
 
     def __post_init__(self):
         """Propagate local BP camera, Qwen processor, and delta-action settings to transforms."""
-        self.bp_same_episode_policy = normalize_bp_same_episode_policy(self.bp_same_episode_policy)
         original_action_mode = self.action_mode
         if str(original_action_mode).lower() == "obs":
             # Parent configs only validate abs/delta; BPVA treats obs as an input-only path.

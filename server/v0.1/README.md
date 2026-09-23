@@ -43,8 +43,34 @@ CKPT=/vla/workspace/models/tbot_ckpts/MytbotBase/v2/sft-robotwin_10
 CKPT=/vla/workspace/models/BPVA/v2/sft-robotwin_10+10w
 CKPT=/vla/workspace/models/BPVA/v2/v2.1.x/robotwin-clean-sft/025000/pretrained_model
 ### 通用启动
+
+日常改 `server/serve_policy.py` 顶部大写常量（`POLICY`、`CKPT_PATH`、`DEBUG` 等），再启动。命令行只在显式传入时覆盖常量。`POLICY=auto` 时按 checkpoint 的 `type` 选择 tbot / bpvav2 / q35。
+
 ```bash
-python server/serve_lerobot_policy_history_batch.py \
+python server/serve_policy.py
+
+python server/serve_policy.py \
+  --ckpt_path $CKPT \
+  --policy auto \
+  --max_batch_size 4 \
+  --batch_wait_ms 10 \
+  --queue_size 64 \
+  --host 0.0.0.0 \
+  --port 8000
+```
+
+`DEBUG=True` 时：bpvav2 把示教轨迹写到 `server/debug_logs/<run>/bp/`；tbot 和 q35 把每个 client 的第一次请求（任务文本、字段摘要、图像）写到 `server/debug_logs/<run>/vla/`。
+
+tbot / bpvav2 默认要求每个已提供相机带两帧历史 `[past, current]`。q35 只使用当前帧；如果客户端传来多帧，取最后一帧。
+
+新增策略时，在 `server/policy_runtime/` 下增加一个模块并导出 `ADAPTER`。
+
+### v0.1 启动
+
+旧脚本在 `server/v0.1/`。
+
+```bash
+python server/v0.1/serve_lerobot_policy_history_batch.py \
   --ckpt_path $CKPT \
   --max_batch_size 4 \
   --batch_wait_ms 10 \
@@ -52,7 +78,7 @@ python server/serve_lerobot_policy_history_batch.py \
   --host 0.0.0.0 \
   --port 8000
 
-python server/bpva_serve_batch.py \
+python server/v0.1/bpva_serve_batch.py \
   --ckpt_path $CKPT \
   --max_batch_size 4 \
   --batch_wait_ms 10 \
@@ -60,21 +86,21 @@ python server/bpva_serve_batch.py \
   --host 0.0.0.0 \
   --port 8000
 
-python server/bpva_serve_history_debug_batch.py \
+python server/v0.1/bpva_serve_history_debug_batch.py \
   --ckpt_path $CKPT \
-  --bp_mapping_path /vla/workspace/my_tbot/server/bpva_task_bps.yml \
+  --bp_mapping_path /vla/workspace/my_tbot/server/v0.1/bpva_task_bps.yml \
   --action_mode delta \
   --max_batch_size 4 \
   --batch_wait_ms 10 \
   --queue_size 64 \
   --host 0.0.0.0 \
   --port 8000
-# /vla/workspace/my_tbot/server/bpva_task_bps_rand.yml 
-# /vla/workspace/my_tbot/server/bpva_task_bps.yml
+# /vla/workspace/my_tbot/server/v0.1/bpva_task_bps_rand.yml
+# /vla/workspace/my_tbot/server/v0.1/bpva_task_bps.yml
 ```
 
 ### 压测
-python server/gpu_cuda_stress_test.py \
+python server/v0.1/gpu_cuda_stress_test.py \
   --device 0,1,2,3 \
   --duration_sec 60000 \
   --memory_fraction 0.9 

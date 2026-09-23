@@ -11,29 +11,6 @@ from lerobot.datasets.bp_cache import (
     resolve_bp_cache_root,
     validate_bp_cache_dataset,
 )
-from lerobot.policies.BPVAv2.configuration_bpva import BPVAv2DatasetConfig
-
-
-def test_bpvav2_original_defaults_are_backward_compatible():
-    cfg = BPVAv2DatasetConfig(repo_id="fake/repo")
-    assert cfg.bp_prompt_source == "original"
-    assert cfg.bp_cache_root_file is None
-
-
-def test_bpvav2_cache_fields_normalize_and_validate():
-    cfg = BPVAv2DatasetConfig(
-        repo_id="fake/repo", bp_prompt_source=" CACHE ", bp_cache_root_file=" /tmp/cache-map.yaml ",
-        bp_same_episode_policy="allow",
-    )
-    assert cfg.bp_prompt_source == "cache"
-    assert cfg.bp_cache_root_file == "/tmp/cache-map.yaml"
-    with pytest.raises(ValueError, match="bp_cache_root_file is required"):
-        BPVAv2DatasetConfig(repo_id="fake/repo", bp_prompt_source="cache", bp_cache_root_file=" ")
-    with pytest.raises(ValueError, match="forbid.*unsupported"):
-        BPVAv2DatasetConfig(
-            repo_id="fake/repo", bp_prompt_source="cache", bp_cache_root_file="/tmp/map.yaml",
-            bp_same_episode_policy="forbid",
-        )
 
 
 def test_mapping_exact_hit_missing_and_invalid(tmp_path):
@@ -173,20 +150,6 @@ def test_cache_rejects_manifest_camera_mismatch(tmp_path):
     with pytest.raises(BPCacheValidationError, match="actual_camera_keys mismatch"):
         validate_bp_cache_dataset(
             "org/source", root, SimpleNamespace(info=info), ["observation.images.image0"]
-        )
-
-
-def test_cache_config_warns_for_avoid_and_rejects_forbid(caplog):
-    with caplog.at_level("WARNING"):
-        BPVAv2DatasetConfig(
-            repo_id="fake/repo", bp_prompt_source="cache", bp_cache_root_file="/tmp/map.yaml",
-            bp_same_episode_policy="avoid",
-        )
-    assert "Prefer 'allow'" in caplog.text
-    with pytest.raises(ValueError, match="forbid.*unsupported"):
-        BPVAv2DatasetConfig(
-            repo_id="fake/repo", bp_prompt_source="cache", bp_cache_root_file="/tmp/map.yaml",
-            bp_same_episode_policy="forbid",
         )
 
 

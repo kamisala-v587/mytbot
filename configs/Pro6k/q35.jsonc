@@ -1,4 +1,4 @@
-{
+{"dataloader_in_order": false,
     "dataset": {
         "type": "q35",  // 数据集管线注册名，必须与 policy.type 一致
         "repo_id": "q35_pretrain_test",  // 逻辑数据集名，仅用于日志/输出标识

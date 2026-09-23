@@ -7,7 +7,6 @@ import torch
 
 from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 from lerobot.datasets.lerobot_dataset import BatchedVideoDecodeError, LeRobotDataset
-from lerobot.policies.BPVA.configuration_bpva import BPVADatasetConfig
 
 
 class FakeHFDataset:
@@ -159,36 +158,21 @@ class PromptDataset:
         return {'camera': torch.tensor([float(index)]), 'index': torch.tensor(10 + index)}
 
 
-def make_behavior(prompt_dataset, *, enabled):
+def make_behavior(prompt_dataset):
     dataset = object.__new__(BehaviorPromptLeRobotDataset)
     dataset.prompt_ds = prompt_dataset
     dataset.current_ds = SimpleNamespace(_missing_state_action_placeholder_dim=1)
-    dataset.prompt_cfg = BehaviorPromptConfig(
-        prompt_action_chunk_size=1, num_chunks=2, batch_prompt_video_decode=enabled
-    )
+    dataset.prompt_cfg = BehaviorPromptConfig(prompt_action_chunk_size=1, num_chunks=2)
     dataset._episode_ranges = {3: (0, 2, 10)}
     dataset._current_task_names = {0: 'task-zero'}
-    dataset._batch_decode_warned_workers = set()
     dataset._sample_prompt_episode = lambda current_episode, current_task: 3
     return dataset
 
 
-def test_behavior_prompt_uses_batch_api_and_falls_back_on_specialized_error(caplog):
-    successful = PromptDataset()
-    make_behavior(successful, enabled=True)._build_prompt(
+def test_behavior_prompt_decodes_each_keyframe():
+    prompt_dataset = PromptDataset()
+    make_behavior(prompt_dataset)._build_prompt(
         {'episode_index': torch.tensor(0), 'task_index': torch.tensor(0)}
     )
-    assert successful.batch_calls == [([0, 1], True)]
-
-    failing = PromptDataset(fail_batch=True)
-    behavior = make_behavior(failing, enabled=True)
-    current = {'episode_index': torch.tensor(0), 'task_index': torch.tensor(0)}
-    behavior._build_prompt(current)
-    behavior._build_prompt(current)
-    assert failing.item_calls == [0, 1, 0, 1]
-    assert caplog.text.count('falling back to item-wise decode') == 1
-
-
-def test_batch_decode_config_defaults_off():
-    assert BehaviorPromptConfig().batch_prompt_video_decode is False
-    assert BPVADatasetConfig(repo_id='fake/repo').batch_prompt_video_decode is False
+    assert prompt_dataset.batch_calls == []
+    assert prompt_dataset.item_calls == [0, 1]
