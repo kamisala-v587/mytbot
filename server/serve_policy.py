@@ -4,7 +4,7 @@
 
 日常直接改本文件最上方的大写常量。命令行参数只在显式传入时覆盖对应常量。
 
-目前内置 tbot、bpvav2、q35。新增策略时在 ``policy_runtime/`` 下增加模块并导出
+目前内置 tbot、bpvav2、bpvav3、q35。新增策略时在 ``policy_runtime/`` 下增加模块并导出
 ``ADAPTER``，把 ``POLICY`` 设为 ``auto`` 后会按 checkpoint 的 type 自动选择。
 
 .. code-block:: bash
@@ -38,7 +38,7 @@ from policy_runtime.registry import create_policy  # noqa: E402
 # 配置：日常改这里。只有命令行显式传入的参数才会覆盖对应常量。
 # =============================================================================
 
-# auto 按 checkpoint config.json 的 type 选择；也可写 tbot / bpvav2 / q35
+# auto 按 checkpoint config.json 的 type 选择；也可写 tbot / bpvav2 / bpvav3 / q35
 POLICY = "auto"
 
 CKPT_PATH = ""
@@ -49,7 +49,9 @@ DEVICE = "auto"  # auto | cuda | cuda:0 | cpu
 DTYPE = "bfloat16"  # bfloat16 | float32
 
 DEBUG = True
-# 相对路径相对于 server/ 目录。BP 示教视频在 <run>/bp，VLA 首次请求在 <run>/vla。
+# 相对路径相对于 server/ 目录。
+# 示教视频固定缓存在 debug_logs/bp_video_cache/<adapter>/。
+# DEBUG 打开时，每次启动的首次 client 输入写到 debug_logs/<时间戳>/vla 或 bp。
 DEBUG_DIR = "debug_logs"
 
 MAX_BATCH_SIZE = 4
@@ -72,7 +74,7 @@ REQUEST_IMAGE_HEIGHT = 480
 REQUEST_IMAGE_WIDTH = 640
 NUM_INFERENCE_STEPS = None
 
-BP_MAPPING_PATH = "/vla/workspace/my_tbot/server/v0.1/bpva_task_bps.yml"
+BP_MAPPING_PATH = "/vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps.yml"
 
 QWEN3_VL_PATH = "/vla/workspace/models/Qwen3-VL-2B-Instruct"
 QWEN3_5_PATH = "/vla/workspace/shiliangchao/models/Qwen35_0_8"
@@ -90,7 +92,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="通用 LeRobot policy WebSocket 服务。未传入的参数使用文件顶部常量。",
     )
-    parser.add_argument("--policy", default=None, help="auto | tbot | bpvav2 | q35")
+    parser.add_argument("--policy", default=None, help="auto | tbot | bpvav2 | bpvav3 | q35")
     parser.add_argument("--ckpt_path", default=None)
     parser.add_argument("--host", default=None)
     parser.add_argument("--port", type=int, default=None)

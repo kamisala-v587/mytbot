@@ -83,6 +83,20 @@ class BPVAv3Model(Q35Model):
         torch.nn.init.normal_(self.align_queries, std=0.02)
         if float(config.lambda_bp_encoder) == 0.0:
             self.align_queries.requires_grad_(False)
+        if config.frozen_bp_encoder:
+            self.freeze_bp_encoder()
+
+    def freeze_bp_encoder(self) -> None:
+        """冻结 BP compressor。policy.train() 之后仍保持 eval，避免被重新打开。"""
+        self.bp_obs_encoder.eval()
+        for parameter in self.bp_obs_encoder.parameters():
+            parameter.requires_grad_(False)
+
+    def train(self, mode: bool = True):
+        super().train(mode)
+        if self.config.frozen_bp_encoder:
+            self.bp_obs_encoder.eval()
+        return self
 
     @dynamo_disable
     def _visual_features(self, pixels: torch.Tensor, grids: torch.Tensor) -> list[torch.Tensor]:

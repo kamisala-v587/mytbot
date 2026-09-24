@@ -91,7 +91,7 @@ from lerobot.transforms.core_bp import (  # noqa: E402
 )
 from lerobot.utils.constants import ACTION, OBS_IMAGES, OBS_STATE  # noqa: E402
 
-DEFAULT_MAPPING_PATH = SCRIPT_DIR / "bpva_task_bps.yml"
+DEFAULT_MAPPING_PATH = SCRIPT_DIR.parent / "policy_runtime" / "bpva_task_bps.yml"
 DEFAULT_QWEN3_VL_PATH = Path("/vla/workspace/models/Qwen3-VL-2B-Instruct")
 DEFAULT_COSMOS_TOKENIZER_PATH = Path("/vla/workspace/models/Cosmos-Tokenizer-CI8x8")
 DEFAULT_DA3_MODEL_PATH = Path("/vla/workspace/models/DA3-LARGE-1.1")

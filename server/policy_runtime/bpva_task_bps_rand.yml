@@ -1,5 +1,5 @@
-# BPVA/BPVAv2 推理时的 RoboTwin task_type -> randomized LeRobot BP 数据集映射。
-# 服务端会确定性选取第一条可读取 episode 并按 task_type 缓存。
+# RoboTwin task_type -> 指定的 randomized 数据集。
+# 缓存未命中时在该数据集中随机选一条可解码示教，并写入固定 mp4 缓存。
 version: 1
 tasks:
   adjust_bottle:

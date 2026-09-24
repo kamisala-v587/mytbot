@@ -89,6 +89,8 @@
         // 0 只算 action loss。阶段 2 设成 0.1 到 0.5，同时 dataset.align_bp_encoder=true，
         // 并且 bp_sampling_mode 用 random 或 avoid。origin 不能和这个系数同时打开。
         "lambda_bp_encoder": 0.5,
+        // true 时冻结 bp_obs_encoder，不更新投影和 compressor。共享 Qwen3.5 ViT 仍可训练。
+        "frozen_bp_encoder": false,
 
         "time_sampling_beta_alpha": 1.5,
         "time_sampling_beta_beta": 1.0,

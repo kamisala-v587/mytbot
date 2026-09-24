@@ -1,0 +1,107 @@
+# BPVA 推理时的 RoboTwin task_type -> 数据集仓库映射。
+# 路径如果是仓库目录，缓存未命中时会随机选择其中一个 LeRobot 数据集，再随机选一条可解码示教。
+# 路径如果本身就是数据集，则直接在该数据集里随机选示教。结果写入固定 mp4 缓存。
+version: 1
+tasks:
+  adjust_bottle:
+    dataset_path: /vla/workspace/data/robotwin2.0/adjust_bottle
+  beat_block_hammer:
+    dataset_path: /vla/workspace/data/robotwin2.0/beat_block_hammer
+  blocks_ranking_rgb:
+    dataset_path: /vla/workspace/data/robotwin2.0/blocks_ranking_rgb
+  blocks_ranking_size:
+    dataset_path: /vla/workspace/data/robotwin2.0/blocks_ranking_size
+  click_alarmclock:
+    dataset_path: /vla/workspace/data/robotwin2.0/click_alarmclock
+  click_bell:
+    dataset_path: /vla/workspace/data/robotwin2.0/click_bell
+  dump_bin_bigbin:
+    dataset_path: /vla/workspace/data/robotwin2.0/dump_bin_bigbin
+  grab_roller:
+    dataset_path: /vla/workspace/data/robotwin2.0/grab_roller
+  handover_block:
+    dataset_path: /vla/workspace/data/robotwin2.0/handover_block
+  handover_mic:
+    dataset_path: /vla/workspace/data/robotwin2.0/handover_mic
+  hanging_mug:
+    dataset_path: /vla/workspace/data/robotwin2.0/hanging_mug
+  lift_pot:
+    dataset_path: /vla/workspace/data/robotwin2.0/lift_pot
+  move_can_pot:
+    dataset_path: /vla/workspace/data/robotwin2.0/move_can_pot
+  move_pillbottle_pad:
+    dataset_path: /vla/workspace/data/robotwin2.0/move_pillbottle_pad
+  move_playingcard_away:
+    dataset_path: /vla/workspace/data/robotwin2.0/move_playingcard_away
+  move_stapler_pad:
+    dataset_path: /vla/workspace/data/robotwin2.0/move_stapler_pad
+  open_laptop:
+    dataset_path: /vla/workspace/data/robotwin2.0/open_laptop
+  open_microwave:
+    dataset_path: /vla/workspace/data/robotwin2.0/open_microwave
+  pick_diverse_bottles:
+    dataset_path: /vla/workspace/data/robotwin2.0/pick_diverse_bottles
+  pick_dual_bottles:
+    dataset_path: /vla/workspace/data/robotwin2.0/pick_dual_bottles
+  place_a2b_left:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_a2b_left
+  place_a2b_right:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_a2b_right
+  place_bread_basket:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_bread_basket
+  place_bread_skillet:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_bread_skillet
+  place_burger_fries:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_burger_fries
+  place_can_basket:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_can_basket
+  place_cans_plasticbox:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_cans_plasticbox
+  place_container_plate:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_container_plate
+  place_dual_shoes:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_dual_shoes
+  place_empty_cup:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_empty_cup
+  place_fan:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_fan
+  place_mouse_pad:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_mouse_pad
+  place_object_basket:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_object_basket
+  place_object_scale:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_object_scale
+  place_object_stand:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_object_stand
+  place_phone_stand:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_phone_stand
+  place_shoe:
+    dataset_path: /vla/workspace/data/robotwin2.0/place_shoe
+  press_stapler:
+    dataset_path: /vla/workspace/data/robotwin2.0/press_stapler
+  put_bottles_dustbin:
+    dataset_path: /vla/workspace/data/robotwin2.0/put_bottles_dustbin
+  put_object_cabinet:
+    dataset_path: /vla/workspace/data/robotwin2.0/put_object_cabinet
+  rotate_qrcode:
+    dataset_path: /vla/workspace/data/robotwin2.0/rotate_qrcode
+  scan_object:
+    dataset_path: /vla/workspace/data/robotwin2.0/scan_object
+  shake_bottle:
+    dataset_path: /vla/workspace/data/robotwin2.0/shake_bottle
+  shake_bottle_horizontally:
+    dataset_path: /vla/workspace/data/robotwin2.0/shake_bottle_horizontally
+  stack_blocks_three:
+    dataset_path: /vla/workspace/data/robotwin2.0/stack_blocks_three
+  stack_blocks_two:
+    dataset_path: /vla/workspace/data/robotwin2.0/stack_blocks_two
+  stack_bowls_three:
+    dataset_path: /vla/workspace/data/robotwin2.0/stack_bowls_three
+  stack_bowls_two:
+    dataset_path: /vla/workspace/data/robotwin2.0/stack_bowls_two
+  stamp_seal:
+    dataset_path: /vla/workspace/data/robotwin2.0/stamp_seal
+  turn_switch:
+    dataset_path: /vla/workspace/data/robotwin2.0/turn_switch
+  myblocks_ranking_rgb:
+    dataset_path: /vla/workspace/data/my_demo_clean_processed_Lerobot

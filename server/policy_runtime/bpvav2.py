@@ -1,9 +1,11 @@
-"""BPVAv2：按 task_type 缓存首个可读示教，并支持两帧历史观测。"""
+"""BPVAv2：按 task_type 使用固定示教缓存，未命中时随机选数据集和 episode。"""
 
 from __future__ import annotations
 
+import json
 import logging
 import math
+import random
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,12 +42,13 @@ from lerobot.transforms.core_bp import (
 )
 
 BP_PREFIX = "behavior_prompt"
+BP_VIDEO_CACHE_DIRNAME = "bp_video_cache"
 
 
 @dataclass(frozen=True)
 class BPTaskSource:
     task_type: str
-    dataset_path: Path
+    dataset_paths: tuple[Path, ...]
     video_backend: str = "pyav"
 
 
@@ -65,23 +68,67 @@ def load_bp_task_sources(mapping_path: str | Path) -> tuple[Path, dict[str, BPTa
         task = str(raw_task).strip()
         if not task or not isinstance(entry, dict):
             raise ValueError(f"非法 task 映射: {raw_task!r}: {entry!r}")
-        configured = entry.get("dataset_path")
-        if not isinstance(configured, str) or not configured.strip():
-            raise ValueError(f"task={task!r} 缺少非空 dataset_path。")
-        dataset_path = Path(configured).expanduser()
-        if not dataset_path.is_absolute():
-            dataset_path = (path.parent / dataset_path).resolve()
-        else:
-            dataset_path = dataset_path.resolve()
-        if not (dataset_path / "meta" / "info.json").is_file():
-            raise FileNotFoundError(f"task={task!r} 的 LeRobot 数据集无 meta/info.json: {dataset_path}")
+        configured = entry.get("dataset_paths", entry.get("dataset_path"))
+        if isinstance(configured, str):
+            configured = [configured]
+        if not isinstance(configured, list) or not configured:
+            raise ValueError(f"task={task!r} 需要 dataset_path 或非空 dataset_paths。")
+        dataset_paths = []
+        for item in configured:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError(f"task={task!r} 包含空的数据集路径。")
+            dataset_path = Path(item).expanduser()
+            if not dataset_path.is_absolute():
+                dataset_path = (path.parent / dataset_path).resolve()
+            else:
+                dataset_path = dataset_path.resolve()
+            dataset_paths.append(dataset_path)
         video_backend = str(entry.get("video_backend", "pyav")).strip() or "pyav"
-        sources[task] = BPTaskSource(task, dataset_path, video_backend)
+        sources[task] = BPTaskSource(task, tuple(dataset_paths), video_backend)
     return path, sources
 
 
+def fixed_bp_video_cache_dir(debug_dir: str, adapter_name: str) -> Path:
+    """示教视频的固定缓存。启动时创建目录，并报告已经存在的 mp4。"""
+    root = Path(debug_dir).expanduser()
+    if not root.is_absolute():
+        root = Path(__file__).resolve().parents[1] / root
+    cache_dir = (root / BP_VIDEO_CACHE_DIRNAME / adapter_name).resolve()
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    videos = sorted(cache_dir.glob("*.mp4"))
+    if videos:
+        logging.info(
+            "检测到固定 BP 示教缓存 | adapter=%s | path=%s | mp4=%d",
+            adapter_name,
+            cache_dir,
+            len(videos),
+        )
+        for video in videos:
+            logging.info("缓存示教视频 | %s", video.name)
+    else:
+        logging.info(
+            "固定 BP 示教缓存为空，首次请求时写入 | adapter=%s | path=%s",
+            adapter_name,
+            cache_dir,
+        )
+    return cache_dir
+
+
+def _dataset_candidates(path: Path) -> list[Path]:
+    if (path / "meta" / "info.json").is_file():
+        return [path]
+    if not path.is_dir():
+        raise FileNotFoundError(f"BP 数据集路径不存在: {path}")
+    children = sorted(child for child in path.iterdir() if (child / "meta" / "info.json").is_file())
+    if not children:
+        raise FileNotFoundError(f"BP 路径下没有 LeRobot 数据集: {path}")
+    return children
+
+
 class BehaviorPromptCache:
-    """每个 task_type 懒加载并缓存一条确定性的 behavior prompt。"""
+    """按 task_type 读取固定目录里的示教缓存；没有命中时随机选一个数据集和可解码 episode。"""
+
+    adapter_name = "bpvav2"
 
     def __init__(
         self,
@@ -92,12 +139,15 @@ class BehaviorPromptCache:
         action_stats: dict[str, dict[str, np.ndarray]],
         action_mode: str,
         qwen_path: str,
+        cache_dir: Path,
     ) -> None:
         self.sources = dict(sources)
         self.config = config
         self.norm_stats = {**state_stats, **action_stats}
         self.action_mode = action_mode
         self.qwen_path = qwen_path
+        self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._cache: dict[str, dict[str, Any]] = {}
         self._lock = threading.Lock()
 
@@ -107,28 +157,116 @@ class BehaviorPromptCache:
             raise KeyError(f"未知 task_type={task_type!r}；已配置任务: {configured}")
         with self._lock:
             if task_type not in self._cache:
-                prompt, episode = self._build_first_readable(self.sources[task_type])
-                self._validate(prompt, task_type)
+                prompt = self._try_load(task_type)
+                if prompt is None:
+                    prompt, episode, dataset_path = self._build_random(self.sources[task_type])
+                    prompt = self._persistable_prompt(prompt)
+                    self._validate(prompt, task_type)
+                    self._store(task_type, prompt, episode, dataset_path)
                 self._cache[task_type] = prompt
-                logging.info("BP 已缓存 | task_type=%s | episode=%d", task_type, episode)
             return self._cache[task_type]
 
-    def _build_first_readable(self, source: BPTaskSource) -> tuple[dict[str, Any], int]:
-        meta = LeRobotDatasetMetadata(str(source.dataset_path))
-        errors: list[str] = []
-        for episode_idx in range(meta.total_episodes):
-            try:
-                return self._build_episode(source, meta, episode_idx), episode_idx
-            except Exception as exc:
-                errors.append(f"episode={episode_idx}: {type(exc).__name__}: {exc}")
-                logging.warning("跳过不可读取 BP episode | task=%s | %s", source.task_type, errors[-1])
-        detail = "\n".join(errors[-5:])
-        raise RuntimeError(f"task={source.task_type!r} 没有可读取 episode。最近错误:\n{detail}")
+    def _cache_paths(self, task_type: str) -> tuple[Path, Path, Path]:
+        stem = safe_name(task_type)
+        return (
+            self.cache_dir / f"{stem}.json",
+            self.cache_dir / f"{stem}.pt",
+            self.cache_dir / f"{stem}.mp4",
+        )
 
-    def _build_episode(self, source: BPTaskSource, meta: LeRobotDatasetMetadata, episode_idx: int) -> dict[str, Any]:
+    def _signature(self) -> dict[str, Any]:
+        height, width = tuple(getattr(self.config, "image_resolution", (224, 224)))
+        return {
+            "adapter": self.adapter_name,
+            "bp_num_chunks": int(getattr(self.config, "bp_num_chunks")),
+            "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
+            "bp_camera_keys": list(getattr(self.config, "bp_camera_keys")),
+            "max_state_dim": int(getattr(self.config, "max_state_dim")),
+            "max_action_dim": int(getattr(self.config, "max_action_dim")),
+            "image_resolution": [int(height), int(width)],
+            "action_mode": self.action_mode,
+            "qwen_path": str(self.qwen_path),
+        }
+
+    def _try_load(self, task_type: str) -> dict[str, Any] | None:
+        meta_path, tensor_path, video_path = self._cache_paths(task_type)
+        if not (meta_path.is_file() and tensor_path.is_file() and video_path.is_file()):
+            return None
+        try:
+            record = json.loads(meta_path.read_text(encoding="utf-8"))
+            if record.get("signature") != self._signature():
+                logging.info("BP 缓存签名变化，重新生成 | task_type=%s | path=%s", task_type, video_path)
+                return None
+            prompt = torch.load(tensor_path, map_location="cpu", weights_only=False)
+            self._validate(prompt, task_type)
+        except Exception:
+            logging.exception("BP 缓存损坏，重新生成 | task_type=%s", task_type)
+            return None
+        logging.info("从固定缓存加载 BP 示教 | task_type=%s | mp4=%s", task_type, video_path)
+        return prompt
+
+    def _store(self, task_type: str, prompt: dict[str, Any], episode_idx: int, dataset_path: Path) -> None:
+        meta_path, tensor_path, video_path = self._cache_paths(task_type)
+        self._write_episode_video(dataset_path, self.sources[task_type].video_backend, episode_idx, video_path)
+        torch.save(prompt, tensor_path)
+        record = {
+            "task_type": task_type,
+            "dataset_path": str(dataset_path),
+            "episode_index": int(episode_idx),
+            "video": video_path.name,
+            "signature": self._signature(),
+        }
+        meta_path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        logging.info(
+            "BP 示教已写入固定缓存 | task_type=%s | dataset=%s | episode=%d | mp4=%s",
+            task_type,
+            dataset_path,
+            episode_idx,
+            video_path,
+        )
+
+    def _build_random(self, source: BPTaskSource) -> tuple[dict[str, Any], int, Path]:
+        candidates: list[Path] = []
+        for root in source.dataset_paths:
+            candidates.extend(_dataset_candidates(root))
+        order = list(dict.fromkeys(candidates))
+        random.shuffle(order)
+        errors: list[str] = []
+        for dataset_path in order:
+            try:
+                meta = LeRobotDatasetMetadata(str(dataset_path))
+            except Exception as exc:
+                errors.append(f"{dataset_path}: {type(exc).__name__}: {exc}")
+                logging.warning("跳过不可读取 BP 数据集 | task=%s | %s", source.task_type, errors[-1])
+                continue
+            episodes = list(range(meta.total_episodes))
+            random.shuffle(episodes)
+            for episode_idx in episodes:
+                try:
+                    prompt = self._build_episode(source, dataset_path, meta, episode_idx)
+                    return prompt, episode_idx, dataset_path
+                except Exception as exc:
+                    errors.append(f"{dataset_path} episode={episode_idx}: {type(exc).__name__}: {exc}")
+                    logging.warning("跳过不可读取 BP episode | task=%s | %s", source.task_type, errors[-1])
+        detail = "\n".join(errors[-5:])
+        raise RuntimeError(f"task={source.task_type!r} 没有可读取的示教视频。最近错误:\n{detail}")
+
+    def _apply_image_transform(self, data: dict[str, Any]) -> dict[str, Any]:
+        return BPVAv2QwenImageTransformFn(pretrained_model_name_or_path=self.qwen_path)(data)
+
+    def _persistable_prompt(self, prompt: dict[str, Any]) -> dict[str, Any]:
+        return prompt
+
+    def _build_episode(
+        self,
+        source: BPTaskSource,
+        dataset_path: Path,
+        meta: LeRobotDatasetMetadata,
+        episode_idx: int,
+    ) -> dict[str, Any]:
         action_steps = int(getattr(self.config, "bp_action_chunk_size"))
         dataset = LeRobotDataset(
-            str(source.dataset_path),
+            str(dataset_path),
             episodes=[episode_idx],
             delta_timestamps={ACTION: [step / meta.fps for step in range(action_steps)]},
             video_backend=source.video_backend,
@@ -161,7 +299,7 @@ class BehaviorPromptCache:
         data = BPPadOrSampleChunksFn(num_chunks=int(getattr(self.config, "bp_num_chunks")))(data)
         height, width = tuple(getattr(self.config, "image_resolution", (224, 224)))
         data = BPResizeImagesWithPadFn(height=int(height), width=int(width))(data)
-        data = BPVAv2QwenImageTransformFn(pretrained_model_name_or_path=self.qwen_path)(data)
+        data = self._apply_image_transform(data)
         if self.action_mode == "delta":
             mask = get_mask_mapping(dataset.meta.robot_type, dataset.meta.features)
             data = BPDeltaActionTransformFn(mask=mask)(data)
@@ -192,52 +330,29 @@ class BehaviorPromptCache:
         if tuple(prompt["mask"].shape) != (chunks,):
             raise ValueError(f"task={task_type!r} BP mask shape 非法")
 
-
-class LoggingBehaviorPromptCache(BehaviorPromptCache):
-    """缓存示教时，把主相机轨迹写成 MP4。失败不影响推理。"""
-
-    def __init__(self, *args: Any, run_log_dir: Path, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.run_log_dir = run_log_dir
-
-    def _build_first_readable(self, source: BPTaskSource) -> tuple[dict[str, Any], int]:
-        prompt, episode_idx = super()._build_first_readable(source)
-        try:
-            output = self._write_episode_video(source, episode_idx)
-            logging.info(
-                "BP 示教轨迹已保存 | task_type=%s | episode=%d | path=%s",
-                source.task_type,
-                episode_idx,
-                output,
-            )
-        except Exception:
-            logging.exception(
-                "BP 示教轨迹保存失败，继续推理 | task_type=%s | episode=%d",
-                source.task_type,
-                episode_idx,
-            )
-        return prompt, episode_idx
-
-    def _write_episode_video(self, source: BPTaskSource, episode_idx: int) -> Path:
+    def _write_episode_video(
+        self,
+        dataset_path: Path,
+        video_backend: str,
+        episode_idx: int,
+        output: Path,
+    ) -> Path:
         try:
             import av
         except ImportError as exc:
             raise RuntimeError("导出 MP4 需要 PyAV。") from exc
 
-        meta = LeRobotDatasetMetadata(str(source.dataset_path))
+        meta = LeRobotDatasetMetadata(str(dataset_path))
         camera_key = _select_main_camera(list(meta.camera_keys))
         dataset = LeRobotDataset(
-            str(source.dataset_path),
+            str(dataset_path),
             episodes=[episode_idx],
-            video_backend=source.video_backend,
+            video_backend=video_backend,
         )
         if len(dataset) == 0:
             raise ValueError("待记录的 BP episode 为空。")
         first_frame = _tensor_to_rgb_uint8(dataset[0][camera_key])
         height, width = first_frame.shape[:2]
-        output = self.run_log_dir / (
-            f"{safe_name(source.task_type)}_episode_{episode_idx:06d}_{safe_name(camera_key)}.mp4"
-        )
         output.parent.mkdir(parents=True, exist_ok=True)
         with av.open(str(output), mode="w") as container:
             stream = container.add_stream("libx264", rate=max(1, round(float(meta.fps))))
@@ -311,33 +426,25 @@ class BPVAv2Adapter(PolicyAdapter):
         if not self.args.bp_mapping_path:
             raise ValueError("BPVAv2 需要 BP_MAPPING_PATH。")
         self.mapping_path, sources = load_bp_task_sources(self.args.bp_mapping_path)
-        cache_kwargs = dict(
-            sources=sources,
+        cache_dir = fixed_bp_video_cache_dir(self.args.debug_dir, self.name)
+        self.bp_cache = BehaviorPromptCache(
+            sources,
             config=self.config,
             state_stats=self.state_stats,
             action_stats=self.action_stats,
             action_mode=self.action_mode,
             qwen_path=str(processor_path),
+            cache_dir=cache_dir,
         )
-        if self.args.debug:
-            if not self.args.debug_run_dir:
-                raise RuntimeError("DEBUG=True 时必须提供 debug 目录。")
-            run_log_dir = Path(self.args.debug_run_dir) / "bp"
-            self.bp_cache = LoggingBehaviorPromptCache(**cache_kwargs, run_log_dir=run_log_dir)
-            self._metadata_extra = {"bp_video_logging": True, "bplogs_run_dir": str(run_log_dir)}
-        else:
-            self.bp_cache = BehaviorPromptCache(**cache_kwargs)
-            self._metadata_extra = {"bp_video_logging": False}
-        self._metadata_extra.update(
-            {
-                "bp_mapping_path": str(self.mapping_path),
-                "bp_selection": "first_readable_episode",
-                "bp_configured_tasks": sorted(sources),
-                "bp_num_chunks": int(getattr(self.config, "bp_num_chunks")),
-                "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
-                "required_image_history": 2 if self.args.strict_history else 1,
-            }
-        )
+        self._metadata_extra = {
+            "bp_mapping_path": str(self.mapping_path),
+            "bp_video_cache_dir": str(cache_dir),
+            "bp_selection": "cached_or_random_dataset_episode",
+            "bp_configured_tasks": sorted(sources),
+            "bp_num_chunks": int(getattr(self.config, "bp_num_chunks")),
+            "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
+            "required_image_history": 2 if self.args.strict_history else 1,
+        }
         logging.info("BPVAv2 任务映射 | tasks=%d | path=%s", len(sources), self.mapping_path)
 
     def build_metadata(self, chunk_size: int) -> dict[str, Any]:

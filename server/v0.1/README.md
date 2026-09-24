@@ -88,15 +88,15 @@ python server/v0.1/bpva_serve_batch.py \
 
 python server/v0.1/bpva_serve_history_debug_batch.py \
   --ckpt_path $CKPT \
-  --bp_mapping_path /vla/workspace/my_tbot/server/v0.1/bpva_task_bps.yml \
+  --bp_mapping_path /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps.yml \
   --action_mode delta \
   --max_batch_size 4 \
   --batch_wait_ms 10 \
   --queue_size 64 \
   --host 0.0.0.0 \
   --port 8000
-# /vla/workspace/my_tbot/server/v0.1/bpva_task_bps_rand.yml
-# /vla/workspace/my_tbot/server/v0.1/bpva_task_bps.yml
+# /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_rand.yml
+# /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps.yml
 ```
 
 ### 压测

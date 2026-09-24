@@ -82,10 +82,13 @@ class PolicyAdapter:
         self._init_action_transforms()
         self._dumper = None
         self.setup_policy()
-        if self.args.debug and self.family == "vla":
+        if self.args.debug and self.family in {"vla", "bp"}:
             if not self.args.debug_run_dir:
                 raise RuntimeError("DEBUG=True 时必须提供 debug 目录。")
-            self._dumper = FirstRequestDumper(Path(self.args.debug_run_dir) / "vla")
+            self._dumper = FirstRequestDumper(
+                Path(self.args.debug_run_dir) / self.family,
+                label=self.family.upper(),
+            )
         self._metadata = self.build_metadata(chunk_size)
         logging.info(
             "Server 就绪 | adapter=%s | type=%s | device=%s | horizon=%d | action_mode=%s",

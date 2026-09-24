@@ -444,8 +444,9 @@ def save_rgb_image(path: Path, frame_hwc: np.ndarray) -> Path:
 class FirstRequestDumper:
     """每个 client 只记录第一次请求：任务文本、字段摘要和图像文件。"""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, label: str = "VLA") -> None:
         self.root = root
+        self.label = label
         self._seen: set[str] = set()
         self._lock = threading.Lock()
 
@@ -473,11 +474,12 @@ class FirstRequestDumper:
                 encoding="utf-8",
             )
         except Exception:
-            logging.exception("VLA 首次请求落盘失败 | client=%s", connection_id)
+            logging.exception("%s 首次请求落盘失败 | client=%s", self.label, connection_id)
             return
-        logging.info("VLA 首次请求 | client=%s | task=%s | images=%s", connection_id, task_text, saved)
+        logging.info("%s 首次请求 | client=%s | task=%s | images=%s", self.label, connection_id, task_text, saved)
         logging.info(
-            "VLA 首次请求内容 | client=%s | %s",
+            "%s 首次请求内容 | client=%s | %s",
+            self.label,
             connection_id,
             json.dumps(summarize_value(obs), ensure_ascii=False, default=str),
         )

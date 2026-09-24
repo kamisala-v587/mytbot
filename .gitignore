@@ -194,3 +194,7 @@ evaluation/RoboTwin/**/*.mp4
 rjob*
 norm_stats_cache/
 /norm_stats/
+
+# 训练侧 BP 缓存，以及 server 示教视频 / 调试日志
+bp_cache/
+server/debug_logs/
