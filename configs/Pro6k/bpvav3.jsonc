@@ -37,7 +37,9 @@
         // 只过滤 future_prompt 里锚点早于当前帧的 chunk。
         "future_filter": true,
         "bp_camera_keys": [
-            "observation.images.image0"
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
         ],
 
         "image_transforms": {
@@ -78,8 +80,9 @@
         "bp_num_chunks": 8,
         "bp_action_chunk_size": 50,
         "bp_camera_keys": [
-            "observation.images.image0"
-
+            "observation.images.image0",
+            "observation.images.image1",
+            "observation.images.image2"
         ],
         "bp_compressor_dim": 512,
         "bp_state_action_hidden_dim": 256,
@@ -116,7 +119,7 @@
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
         "scheduler_warmup_steps": 1000,
-        "scheduler_decay_steps": 10000,
+        "scheduler_decay_steps": 16000,
         "scheduler_decay_lr": 5e-6
     },
 
@@ -125,9 +128,9 @@
     "resume": false,
     "seed": 42,
     "num_workers": 20,
-    "batch_size": 32,
+    "batch_size": 24,
     "gradient_accumulation_steps": 1,
-    "steps": 10000,
+    "steps": 16000,
     "eval_freq": 0,
     "log_freq": 50,
     "save_checkpoint": true,

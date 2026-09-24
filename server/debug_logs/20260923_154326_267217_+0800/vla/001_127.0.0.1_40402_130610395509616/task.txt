@@ -1,1 +1,0 @@
-Move large block with the left arm, medium block with the right arm, and small block with the left arm to sort them.

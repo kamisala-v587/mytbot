@@ -1,1 +1,0 @@
-Position large block, medium block, and small block centrally, ordered from largest to smallest.

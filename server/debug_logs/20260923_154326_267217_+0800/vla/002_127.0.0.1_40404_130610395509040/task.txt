@@ -1,1 +1,0 @@
-Start with red block on the left, add green block next to it, and then place blue block on the right.
