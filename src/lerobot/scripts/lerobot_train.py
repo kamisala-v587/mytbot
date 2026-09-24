@@ -46,6 +46,7 @@ from lerobot.policies.names import (
     TBOT_SA1_WAN,
     TBOT_SA1_WAN_ALIASES,
     TBOT_SA1_WAN_LEGACY_ALIASES,
+    is_bpvav3,
     is_tbot_sa1,
     is_tbot_sa1_wan,
 )
@@ -402,7 +403,15 @@ def update_policy(
             accelerator.unwrap_model(policy, keep_fp32_wrapper=True).update()
 
     train_metrics.loss = loss.item()
-    for metric_name in ("loss_action", "loss_video", "loss_gen", "loss_3d", "time_3d_teacher_forward_s"):
+    for metric_name in (
+        "loss_action",
+        "loss_align",
+        "loss_align_w",
+        "loss_video",
+        "loss_gen",
+        "loss_3d",
+        "time_3d_teacher_forward_s",
+    ):
         if metric_name in output_dict and metric_name in train_metrics.metrics:
             setattr(train_metrics, metric_name, _metric_to_float(output_dict[metric_name]))
     if accelerator.sync_gradients and grad_norm is not None:
@@ -538,6 +547,14 @@ def _format_train_status_line(
         lambda_gen = float(getattr(cfg.policy, "lambda_gen", 1.0))
         loss_parts.append(f"gen:{loss_gen:.3f}")
         loss_parts.append(f"gen_w:{lambda_gen * loss_gen:.3f}")
+    if "loss_align" in train_tracker.metrics:
+        loss_align = loss_overrides.get("loss_align", _meter_avg_or_val(train_tracker.loss_align))
+        loss_parts.append(f"align:{loss_align:.3f}")
+        loss_align_w = loss_overrides.get(
+            "loss_align_w",
+            _meter_avg_or_val(train_tracker.loss_align_w) if "loss_align_w" in train_tracker.metrics else loss_align,
+        )
+        loss_parts.append(f"bp_w:{loss_align_w:.3f}")
     if "loss_3d" in train_tracker.metrics:
         loss_3d = loss_overrides.get("loss_3d", _meter_avg_or_val(train_tracker.loss_3d))
         lambda_3d = float(getattr(cfg.policy, "lambda_3d", 1.0))
@@ -1020,6 +1037,17 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             train_metrics["loss_3d"] = AverageMeter("loss_3d", ":.3f")
             if getattr(cfg.policy, "log_da3_teacher_timing", False):
                 train_metrics["time_3d_teacher_forward_s"] = AverageMeter("da3_s", ":.3f")
+    elif is_bpvav3(cfg.policy.type):
+        train_metrics = {
+            "loss": AverageMeter("loss", ":.3f"),
+            "loss_action": AverageMeter("action", ":.3f"),
+            "loss_align": AverageMeter("align", ":.3f"),
+            "loss_align_w": AverageMeter("bp_w", ":.3f"),
+            "grad_norm": AverageMeter("grdn", ":.3f"),
+            "lr": AverageMeter("lr", ":0.1e"),
+            "update_s": AverageMeter("updt_s", ":.3f"),
+            "dataloading_s": AverageMeter("data_s", ":.3f"),
+        }
     else:
         train_metrics = {
             "loss": AverageMeter("loss", ":.3f"),
@@ -1125,6 +1153,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
                 for name, value in {
                     "loss": _meter_avg_or_val(train_tracker.loss) if "loss" in train_tracker.metrics else None,
                     "loss_action": _meter_avg_or_val(train_tracker.loss_action) if "loss_action" in train_tracker.metrics else None,
+                    "loss_align": _meter_avg_or_val(train_tracker.loss_align) if "loss_align" in train_tracker.metrics else None,
+                    "loss_align_w": _meter_avg_or_val(train_tracker.loss_align_w) if "loss_align_w" in train_tracker.metrics else None,
                     "loss_video": _meter_avg_or_val(train_tracker.loss_video) if "loss_video" in train_tracker.metrics else None,
                     "loss_gen": _meter_avg_or_val(train_tracker.loss_gen) if "loss_gen" in train_tracker.metrics else None,
                     "loss_3d": _meter_avg_or_val(train_tracker.loss_3d) if "loss_3d" in train_tracker.metrics else None,

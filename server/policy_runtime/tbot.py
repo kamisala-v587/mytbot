@@ -1,4 +1,4 @@
-"""TBot-SA1：严格两帧历史输入。"""
+"""TBot-SA1：两帧历史输入。只给一帧时复制补齐。"""
 
 from __future__ import annotations
 

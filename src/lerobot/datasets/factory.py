@@ -48,6 +48,11 @@ from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1DatasetConfi
 from lerobot.policies.q35.configuration_q35 import Q35DatasetConfig  # noqa: F401
 from lerobot.policies.BPVA.configuration_bpva import BPVADatasetConfig
 from lerobot.policies.BPVAv2.configuration_bpva import BPVAv2Config, BPVAv2DatasetConfig
+from lerobot.policies.BPVAv3.configuration_bpvav3 import (
+    BPVAv3Config,
+    BPVAv3DatasetConfig,
+    validate_bpvav3_stage_pair,
+)
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
@@ -978,24 +983,33 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         image_transforms = None
 
 
-    if isinstance(cfg.dataset, (BPVADatasetConfig, BPVAv2DatasetConfig)):
-        if isinstance(cfg.dataset, BPVAv2DatasetConfig):
-            if not isinstance(cfg.policy, BPVAv2Config):
+    if isinstance(cfg.dataset, (BPVADatasetConfig, BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
+        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
+            if isinstance(cfg.dataset, BPVAv2DatasetConfig) and not isinstance(cfg.policy, BPVAv2Config):
                 raise ValueError("dataset.type=bpvav2 requires policy.type=bpvav2")
+            if isinstance(cfg.dataset, BPVAv3DatasetConfig) and not isinstance(cfg.policy, BPVAv3Config):
+                raise ValueError("dataset.type=bpvav3 requires policy.type=bpvav3")
+            if isinstance(cfg.dataset, BPVAv3DatasetConfig) and bool(cfg.dataset.use_language) != bool(cfg.policy.use_language):
+                raise ValueError(
+                    "BPVAv3 dataset/policy use_language mismatch: "
+                    f"{cfg.dataset.use_language} != {cfg.policy.use_language}"
+                )
+            if isinstance(cfg.dataset, BPVAv3DatasetConfig):
+                validate_bpvav3_stage_pair(cfg.dataset, cfg.policy)
             dataset_bp_keys = set(cfg.dataset.bp_camera_keys)
             policy_bp_keys = set(cfg.policy.bp_camera_keys)
             if not dataset_bp_keys:
-                raise ValueError("BPVAv2 dataset bp_camera_keys must be a non-empty policy-key subset")
+                raise ValueError("BP dataset bp_camera_keys must be a non-empty policy-key subset")
             unknown_bp_keys = dataset_bp_keys - policy_bp_keys
             if unknown_bp_keys:
                 raise ValueError(
-                    "BPVAv2 dataset declares camera keys absent from policy slots: "
+                    "BP dataset declares camera keys absent from policy slots: "
                     f"{sorted(unknown_bp_keys)}"
                 )
             missing_policy_slots = policy_bp_keys - dataset_bp_keys
             if missing_policy_slots:
                 logging.warning(
-                    "BPVAv2 dataset uses a camera subset; policy slots %s will be zero-token/mask padded.",
+                    "BP dataset uses a camera subset; policy slots %s will be zero-token/mask padded.",
                     sorted(missing_policy_slots),
                 )
         if cfg.dataset.streaming:
@@ -1083,18 +1097,20 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
 
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 
-        if isinstance(cfg.dataset, BPVAv2DatasetConfig):
+        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
             if cfg.dataset.bp_num_chunks != cfg.policy.bp_num_chunks:
+                dataset_type = getattr(cfg.dataset, "_canonical_type", cfg.dataset.__class__.__name__)
                 raise ValueError(
-                    "BPVAv2 dataset/policy bp_num_chunks mismatch: "
+                    f"{dataset_type} dataset/policy bp_num_chunks mismatch: "
                     f"{cfg.dataset.bp_num_chunks} != {cfg.policy.bp_num_chunks}"
                 )
             for dim_name in ("max_state_dim", "max_action_dim"):
                 dataset_dim = int(getattr(cfg.dataset, dim_name))
                 policy_dim = int(getattr(cfg.policy, dim_name))
                 if dataset_dim != policy_dim:
+                    dataset_type = getattr(cfg.dataset, "_canonical_type", cfg.dataset.__class__.__name__)
                     raise ValueError(
-                        f"BPVAv2 dataset/policy {dim_name} mismatch: {dataset_dim} != {policy_dim}"
+                        f"{dataset_type} dataset/policy {dim_name} mismatch: {dataset_dim} != {policy_dim}"
                     )
 
         bp_datasets = []
@@ -1148,7 +1164,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             prompt_image_mapping = get_image_mapping(ds_meta.robot_type, ds_meta.features)
             canonical_to_dataset_camera = {canonical: actual for actual, canonical in prompt_image_mapping.items()}
             active_prompt_camera_keys = None
-            if isinstance(cfg.dataset, BPVAv2DatasetConfig):
+            if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
                 missing_canonical = [
                     key for key in cfg.dataset.bp_camera_keys if key not in canonical_to_dataset_camera
                 ]
@@ -1157,7 +1173,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 ]
                 if not available_canonical:
                     raise ValueError(
-                        f"BPVAv2 cameras are unavailable for prompt repo {repo_id!r}: "
+                        f"BP cameras are unavailable for prompt repo {repo_id!r}: "
                         f"{missing_canonical}"
                     )
                 if missing_canonical:
@@ -1184,20 +1200,30 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             _configure_vision_only_dataset(current_ds, cfg.policy)
             _load_external_stats_for_dataset(cfg, current_ds)
             prompt_ds.meta.stats.update(current_ds.meta.stats)
-            prompt_cfg = BehaviorPromptConfig(
-                prompt_action_chunk_size=bp_action_chunk_size,
-                seed=int(cfg.dataset.bp_seed),
-                num_chunks=cfg.dataset.bp_num_chunks,
-                height=cfg.dataset.height,
-                width=cfg.dataset.width,
-                max_state_dim=cfg.dataset.max_state_dim,
-                max_action_dim=cfg.dataset.max_action_dim,
-                qwen3_vl_processor_path=cfg.dataset.qwen3_vl_processor_path,
-                bp_camera_keys=list(cfg.dataset.bp_camera_keys),
-                action_mode=cfg.dataset.action_mode,
-                dynamic_bp_cameras=isinstance(cfg.dataset, BPVAv2DatasetConfig),
-            )
-            bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, prompt_ds, prompt_cfg)
+            if isinstance(cfg.dataset, BPVAv3DatasetConfig):
+                from lerobot.policies.BPVAv3.dataset import make_bpvav3_behavior_dataset
+
+                bp_dataset = make_bpvav3_behavior_dataset(
+                    current_ds,
+                    prompt_ds,
+                    cfg.dataset,
+                    bp_action_chunk_size=bp_action_chunk_size,
+                )
+            else:
+                prompt_cfg = BehaviorPromptConfig(
+                    prompt_action_chunk_size=bp_action_chunk_size,
+                    seed=int(cfg.dataset.bp_seed),
+                    num_chunks=cfg.dataset.bp_num_chunks,
+                    height=cfg.dataset.height,
+                    width=cfg.dataset.width,
+                    max_state_dim=cfg.dataset.max_state_dim,
+                    max_action_dim=cfg.dataset.max_action_dim,
+                    qwen3_vl_processor_path=cfg.dataset.qwen3_vl_processor_path,
+                    bp_camera_keys=list(cfg.dataset.bp_camera_keys),
+                    action_mode=cfg.dataset.action_mode,
+                    dynamic_bp_cameras=isinstance(cfg.dataset, BPVAv2DatasetConfig),
+                )
+                bp_dataset = BehaviorPromptLeRobotDataset.with_default_transforms(current_ds, prompt_ds, prompt_cfg)
             bp_datasets.append(bp_dataset)
             resolved_robot_type = infer_embodiment_variant(current_ds.meta.robot_type, current_ds.meta.features)
             data_stats[resolved_robot_type] = current_ds.meta.stats

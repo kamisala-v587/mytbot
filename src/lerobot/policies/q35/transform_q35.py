@@ -30,9 +30,11 @@ class Q35DeltaActionTransformFn(DeltaActionTransformFn):
         if self.skip:
             return data
         state_keys = self.mapping[OBS_STATE]
+        action_keys = self.mapping[ACTION]
+        if not all(key in data for key in state_keys + action_keys):
+            return data
         state_list, _ = self._align_for_cat([data[key] for key in state_keys])
         state = torch.cat(state_list, dim=-1)
-        action_keys = self.mapping[ACTION]
         action_list, sizes = self._align_for_cat([data[key] for key in action_keys])
         action = torch.cat(action_list, dim=-1)
         mask = self.mask if self.mask is not None else torch.tensor([True] * state.shape[-1])

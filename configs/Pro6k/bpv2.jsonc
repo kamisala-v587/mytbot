@@ -3,17 +3,17 @@
     "dataset": {
         "type": "bpvav2",
         "repo_id": "bpva_pretrain_data",
-        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/Baidunyun/pretrain-bpdata.txt",
+        "repo_id_file": "数据集路径需要自定义",
         "action_mode": "delta",
         "use_external_stats": true,
-        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
+        "external_stats_root": "norm_stats路径需要自定义",
         "use_imagenet_stats": true,
         "video_backend": "pyav", 
         "homogeneous_batch": true, 
         "skip_video_file_validation": true, 
         "streaming": false,
         "dist_loading": true,
-        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules_bp.yaml",
+        "weight_rules_path": "weight_rules_bp.yaml路径需要自定义",
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
@@ -21,7 +21,6 @@
         "qwen3_vl_processor_path": "/vla/workspace/models/Qwen3-VL-2B-Instruct",
 
         "bp_num_chunks": 8,
-        "bp_seed": 0,
         "bp_camera_keys": [
             "observation.images.image0",
             "observation.images.image1",
@@ -37,7 +36,7 @@
     "env": null,
     "policy": {
         "type": "bpvav2",
-        "pretrained_path": null,
+        "pretrained_path": "/vla/workspace/models/BPVA/v2/sft-robotwin_10+10w", // TBOT预训练+ bp robotwin 后训练
         "push_to_hub": false,
         "device": null,
 
@@ -54,7 +53,7 @@
         "attention_mask_mode": "default",
         "num_inference_steps": 10,
         "image_resolution": [224, 224],
-        "image_delta_indices": [-50, 0, 50],
+        "image_delta_indices": [-15, 0, 15],
 
         // 以下 BP 字段决定 checkpoint 参数结构，不能随意改变，否则 pretrained 加载会结构不兼容。
         "bp_num_chunks": 8,

@@ -64,6 +64,10 @@ class BehaviorPromptConfig:
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
     seed: int = 0
+    # random 可抽到当前 episode；origin 固定当前轨迹；avoid 排除当前 episode。
+    bp_sampling_mode: str = "random"
+    align_bp_encoder: bool = False
+    future_filter: bool = True
 
     # BPVA 默认数据变换配置。
     num_chunks: int = 4
@@ -83,6 +87,11 @@ class BehaviorPromptConfig:
                 f"{OBS_IMAGES}.image1",
                 f"{OBS_IMAGES}.image2",
             ]
+        if self.bp_sampling_mode not in {"random", "origin", "avoid"}:
+            raise ValueError(
+                "bp_sampling_mode must be 'random', 'origin', or 'avoid', "
+                f"got {self.bp_sampling_mode!r}"
+            )
 
 
 def _make_bpva_transform_fns(prompt_cfg: BehaviorPromptConfig) -> list[DataTransformFn]:
@@ -439,12 +448,32 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 task_to_episodes[task_name].add(episode_idx)
         return {task_name: sorted(episodes) for task_name, episodes in task_to_episodes.items()}
 
+    def _bp_sampling_mode(self) -> str:
+        prompt_cfg = getattr(self, "prompt_cfg", None)
+        mode = "random" if prompt_cfg is None else str(getattr(prompt_cfg, "bp_sampling_mode", "random"))
+        if mode not in {"random", "origin", "avoid"}:
+            raise ValueError(
+                "bp_sampling_mode must be 'random', 'origin', or 'avoid', "
+                f"got {mode!r}"
+            )
+        return mode
+
     def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: str) -> int:
-        """Randomly sample a prompt episode from the same task in the current repo."""
-        del current_episode_idx
+        """按 bp_sampling_mode 从同任务里选示教 episode。"""
         candidates = list(self._task_to_episodes.get(current_task_identity, []))
         if not candidates:
             candidates = sorted(self._episode_ranges)
+        mode = self._bp_sampling_mode()
+        if mode == "origin":
+            return current_episode_idx
+        if mode == "avoid":
+            others = [episode for episode in candidates if episode != current_episode_idx]
+            if not others:
+                raise RuntimeError(
+                    "bp_sampling_mode='avoid' found no other episode for "
+                    f"task {current_task_identity!r} (current episode {current_episode_idx})"
+                )
+            candidates = others
         return self.rng.choice(candidates)
 
     def _resolve_num_chunks(self, trajectory_len: int) -> int:
@@ -512,15 +541,33 @@ class BehaviorPromptLeRobotDataset(Dataset):
                 f"robot_type={robot_type!r}; expected_keys={expected_keys}, shapes={shapes}"
             ) from exc
 
-    def _build_prompt(self, current_sample: DataDict) -> dict[str, Any]:
+    def _current_frame_offset(self, current_sample: DataDict, episode_idx: int) -> int:
+        """当前样本在 episode 内的帧号，和 linspace 锚点用同一套下标。"""
+        if "frame_index" in current_sample:
+            return self._to_int(current_sample["frame_index"])
+        local_start, local_end, absolute_start = self._episode_ranges[episode_idx]
+        if "index" in current_sample:
+            offset = self._to_int(current_sample["index"]) - int(absolute_start)
+            trajectory_len = local_end - local_start
+            if 0 <= offset < trajectory_len:
+                return offset
+        raise KeyError("future_prompt requires frame_index or an in-episode index")
+
+    def _build_prompt(self, current_sample: DataDict, episode_idx: int | None = None) -> dict[str, Any]:
         """Build the raw behavior_prompt dict before BP transforms.
 
         每个关键帧只访问一次 prompt_ds，同时取得三路当前图像、state 和未来 action window。
+        episode_idx 给定时不再采样，future_prompt 用它固定到当前 episode。
         """
         current_episode_idx = self._to_int(current_sample["episode_index"])
         current_task_idx = self._to_int(current_sample.get("task_index", 0))
         current_task_identity = self._current_task_identity(current_task_idx)
-        prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_identity)
+        if episode_idx is None:
+            prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_identity)
+        else:
+            prompt_episode_idx = int(episode_idx)
+            if prompt_episode_idx not in self._episode_ranges:
+                raise KeyError(f"Prompt episode {prompt_episode_idx} is not in this dataset")
         local_start, local_end, absolute_start = self._episode_ranges[prompt_episode_idx]
         trajectory_len = local_end - local_start
         prompt_num_chunks = self._resolve_num_chunks(trajectory_len)

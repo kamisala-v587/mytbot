@@ -64,7 +64,7 @@ INFER_HORIZON = None
 STATS_PATH = None
 STATS_KEY = None
 
-# tbot / bpvav2：True 时每个已提供相机必须是两帧 [past, current]
+# tbot / bpvav2：True 时多帧输入必须正好是所需帧数；只给 1 帧时复制补齐。
 STRICT_HISTORY = True
 
 RESIZE_SIZE = 224

@@ -181,23 +181,36 @@ def to_hwc_uint8(image: Any) -> np.ndarray:
     return np.ascontiguousarray(hwc)
 
 
-def coerce_history(image_value: Any) -> np.ndarray:
-    """把单帧复制成两帧；多帧保留首帧和末帧。"""
+def _frame_at(array: np.ndarray, index: int) -> np.ndarray:
+    frame = array[index]
+    if frame.shape[-1] not in (1, 3, 4):
+        frame = np.transpose(frame, (1, 2, 0))
+    return to_hwc_uint8(frame)
+
+
+def repeat_frame(frame: np.ndarray, frames: int) -> np.ndarray:
+    """把一帧复制成所需历史长度，时间维在第 0 维。"""
+    image = to_hwc_uint8(frame)
+    return np.stack([image] * frames, axis=0)
+
+
+def coerce_history(image_value: Any, frames: int = 2) -> np.ndarray:
+    """整理成 [frames,H,W,3]。只有 1 帧时复制补齐；多帧保留首帧和末帧。"""
+    if frames < 1:
+        raise ValueError(f"frames 必须 >= 1，收到 {frames}")
     array = np.asarray(image_value)
     if array.ndim == 3:
-        frame = to_hwc_uint8(array)
-        return np.stack([frame, frame], axis=0)
+        return repeat_frame(array, frames)
     if array.ndim != 4:
         raise ValueError(f"不支持的时序图像 shape: {array.shape}")
-    if array.shape[-1] in (1, 3, 4):
-        frames = [to_hwc_uint8(array[idx]) for idx in range(array.shape[0])]
-    elif array.shape[1] in (1, 3, 4):
-        frames = [to_hwc_uint8(array[idx]) for idx in range(array.shape[0])]
-    else:
+    if array.shape[-1] not in (1, 3, 4) and array.shape[1] not in (1, 3, 4):
         raise ValueError(f"不支持的时序图像 shape: {array.shape}")
-    if len(frames) == 1:
-        return np.stack([frames[0], frames[0]], axis=0)
-    return np.stack([frames[0], frames[-1]], axis=0)
+    extracted = [_frame_at(array, idx) for idx in range(array.shape[0])]
+    if len(extracted) == 1:
+        return np.stack([extracted[0]] * frames, axis=0)
+    if frames == 1:
+        return np.stack([extracted[-1]], axis=0)
+    return np.stack([extracted[0], extracted[-1]], axis=0)
 
 
 def _blank_history(height: int, width: int, frames: int) -> np.ndarray:
@@ -221,28 +234,27 @@ def resolve_image_history(
     if value is None:
         return _blank_history(height, width, frames), False
     raw = np.asarray(value)
+    single_frame = raw.ndim == 3 or (raw.ndim == 4 and raw.shape[0] == 1)
+    if single_frame:
+        frame = raw if raw.ndim == 3 else _frame_at(raw, 0)
+        return repeat_frame(frame, frames), True
     if strict:
         if raw.ndim != 4 or raw.shape[0] != frames:
             raise ValueError(
-                f"相机 {standardized_key} 必须显式提供 {frames} 帧历史，收到 shape={raw.shape}。"
-                "时间维放在第 0 维，例如 [2,H,W,3]。"
+                f"相机 {standardized_key} 需要 {frames} 帧历史，或只提供 1 帧用于自动填充，收到 shape={raw.shape}。"
+                "单帧会复制补齐；多帧时时间维放在第 0 维，例如 [2,H,W,3]。"
             )
-        history = coerce_history(raw) if frames == 2 else np.stack(
-            [to_hwc_uint8(raw[idx] if raw.shape[-1] in (1, 3, 4) else np.transpose(raw[idx], (1, 2, 0))) for idx in range(frames)],
+        history = coerce_history(raw, frames) if frames <= 2 else np.stack(
+            [_frame_at(raw, idx) for idx in range(frames)],
             axis=0,
         )
         if history.shape[0] != frames:
             raise RuntimeError(f"相机 {standardized_key} 转换后帧数异常: {history.shape}")
         return history, True
     if frames == 2:
-        return coerce_history(raw), True
-    if raw.ndim == 3:
-        return np.stack([to_hwc_uint8(raw)], axis=0), True
+        return coerce_history(raw, frames), True
     if raw.ndim == 4:
-        frame = raw[-1]
-        if frame.shape[-1] not in (1, 3, 4):
-            frame = np.transpose(frame, (1, 2, 0))
-        return np.stack([to_hwc_uint8(frame)], axis=0), True
+        return np.stack([_frame_at(raw, -1)], axis=0), True
     raise ValueError(f"不支持的图像 shape: {raw.shape}")
 
 

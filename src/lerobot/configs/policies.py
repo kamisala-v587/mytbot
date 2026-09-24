@@ -29,12 +29,32 @@ from huggingface_hub.errors import HfHubHTTPError
 from lerobot.configs.types import FeatureType, PolicyFeature
 from lerobot.optim.optimizers import OptimizerConfig
 from lerobot.optim.schedulers import LRSchedulerConfig
-from lerobot.utils.constants import ACTION, OBS_STATE
+from lerobot.utils.constants import ACTION, OBS_STATE, PRETRAINED_MODEL_DIR
 from lerobot.utils.hub import HubMixin
 from lerobot.utils.utils import auto_select_torch_device, is_amp_available, is_torch_device_available
 
 T = TypeVar("T", bound="PreTrainedConfig")
 logger = getLogger(__name__)
+
+
+def resolve_local_pretrained_dir(pretrained_name_or_path: str | Path) -> str:
+    """Map a training step dir to its `pretrained_model/` folder when needed.
+
+    LeRobot saves `config.json` and `model.safetensors` under
+    `checkpoints/<step>/pretrained_model`. Pointing `pretrained_path` at the
+    step directory itself used to look like an empty policy config and then a
+    HuggingFace repo id.
+    """
+    path = Path(pretrained_name_or_path)
+    if not path.is_dir():
+        return str(pretrained_name_or_path)
+    if (path / CONFIG_NAME).is_file():
+        return str(path)
+    nested = path / PRETRAINED_MODEL_DIR
+    if (nested / CONFIG_NAME).is_file():
+        logger.info("Resolved checkpoint directory %s -> %s", path, nested)
+        return str(nested)
+    return str(path)
 
 
 @dataclass
@@ -169,13 +189,16 @@ class PreTrainedConfig(draccus.ChoiceRegistry, HubMixin, abc.ABC):  # type: igno
         revision: str | None = None,
         **policy_kwargs: Any,
     ) -> T:
-        model_id = str(pretrained_name_or_path)
+        model_id = resolve_local_pretrained_dir(pretrained_name_or_path)
         config_file: str | None = None
         if Path(model_id).is_dir():
             if CONFIG_NAME in os.listdir(model_id):
                 config_file = os.path.join(model_id, CONFIG_NAME)
             else:
-                logger.error(f"{CONFIG_NAME} not found in {Path(model_id).resolve()}")
+                raise FileNotFoundError(
+                    f"{CONFIG_NAME} not found in {Path(model_id).resolve()}. "
+                    f"If this is a training checkpoint, use the `{PRETRAINED_MODEL_DIR}` subdirectory."
+                )
         else:
             try:
                 config_file = hf_hub_download(

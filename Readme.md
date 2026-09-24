@@ -44,6 +44,10 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export LEROBOT_PARALLEL_DATASET_LOAD=1
+export LEROBOT_TORCHCODEC_CACHE_SIZE=32
 
 ### Q35 训练脚本
-accelerate launch --num_processes=4 -m lerobot.scripts.lerobot_train --config_path=/vla/workspace/my_tbot/configs/Pro6k/q35.jsonc
+accelerate launch --num_processes=2 -m lerobot.scripts.lerobot_train --config_path=/vla/workspace/my_tbot/configs/Pro6k/q35.jsonc
+
+### bpvav3
+accelerate launch --num_processes=8 -m lerobot.scripts.lerobot_train --config_path=/vla/workspace/my_tbot/configs/Pro6k/bpvav3_plus.jsonc

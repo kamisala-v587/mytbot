@@ -4,6 +4,7 @@ TBOT_SA1 = "TBot_SA1"
 TBOT_SA1_WAN = "TBot_SA1_Wan"
 BPVA = "bpva"
 BPVAV2 = "bpvav2"
+BPVAV3 = "bpvav3"
 
 TBOT_SA1_LEGACY_ALIASES = frozenset()
 TBOT_SA1_WAN_LEGACY_ALIASES = frozenset()
@@ -12,6 +13,7 @@ TBOT_SA1_ALIASES = frozenset({TBOT_SA1, "tbot_sa1"})
 TBOT_SA1_WAN_ALIASES = frozenset({TBOT_SA1_WAN, "tbot_sa1_wan"})
 BPVA_ALIASES = frozenset({BPVA, "BPVA", "tbot_bp", "BP_TBot_v2", "bp_tbot_v2"})
 BPVAV2_ALIASES = frozenset({BPVAV2})
+BPVAV3_ALIASES = frozenset({BPVAV3})
 
 _LOGGED_LEGACY_POLICY_TYPES: set[str] = set()
 
@@ -30,6 +32,10 @@ def is_bpva(policy_type: str | None) -> bool:
 
 def is_bpvav2(policy_type: str | None) -> bool:
     return policy_type in BPVAV2_ALIASES
+
+
+def is_bpvav3(policy_type: str | None) -> bool:
+    return policy_type in BPVAV3_ALIASES
 
 
 def legacy_policy_target(policy_type: str | None) -> str | None:
@@ -51,4 +57,6 @@ def canonical_policy_type(policy_type: str | None) -> str | None:
         return BPVA
     if is_bpvav2(policy_type):
         return BPVAV2
+    if is_bpvav3(policy_type):
+        return BPVAV3
     return policy_type

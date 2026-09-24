@@ -1,0 +1,61 @@
+{
+  "connection_id": "('127.0.0.1', 40404):130610395509040",
+  "task": "Start with red block on the left, add green block next to it, and then place blue block on the right.",
+  "saved_images": [
+    "/vla/workspace/my_tbot/server/debug_logs/20260923_154326_267217_+0800/vla/002_127.0.0.1_40404_130610395509040/images/observation.images.cam_high_t0.png",
+    "/vla/workspace/my_tbot/server/debug_logs/20260923_154326_267217_+0800/vla/002_127.0.0.1_40404_130610395509040/images/observation.images.cam_left_wrist_t0.png",
+    "/vla/workspace/my_tbot/server/debug_logs/20260923_154326_267217_+0800/vla/002_127.0.0.1_40404_130610395509040/images/observation.images.cam_right_wrist_t0.png"
+  ],
+  "request": {
+    "observation.images.cam_high": {
+      "ndarray_shape": [
+        240,
+        320,
+        3
+      ],
+      "dtype": "uint8"
+    },
+    "observation.images.cam_left_wrist": {
+      "ndarray_shape": [
+        240,
+        320,
+        3
+      ],
+      "dtype": "uint8"
+    },
+    "observation.images.cam_right_wrist": {
+      "ndarray_shape": [
+        240,
+        320,
+        3
+      ],
+      "dtype": "uint8"
+    },
+    "observation.state": {
+      "ndarray_shape": [
+        14
+      ],
+      "dtype": "float32",
+      "value": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "task": "Start with red block on the left, add green block next to it, and then place blue block on the right.",
+    "task_type": "blocks_ranking_rgb",
+    "timestep": 0,
+    "reset": true
+  }
+}

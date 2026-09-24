@@ -13,6 +13,7 @@
 # limitations under the License.
 import abc
 import builtins
+import json
 import logging
 import os
 from importlib.resources import files
@@ -25,12 +26,13 @@ import packaging
 import safetensors
 from huggingface_hub import HfApi, ModelCard, ModelCardData, hf_hub_download
 from huggingface_hub.constants import SAFETENSORS_SINGLE_FILE
-from huggingface_hub.errors import HfHubHTTPError
+from huggingface_hub.errors import HfHubHTTPError, HFValidationError
 from safetensors.torch import load_model as load_model_as_safetensor, save_model as save_model_as_safetensor
 from torch import Tensor, nn
 from typing_extensions import Unpack
 
-from lerobot.configs.policies import PreTrainedConfig
+from lerobot.configs.policies import PreTrainedConfig, resolve_local_pretrained_dir
+from lerobot.utils.constants import PRETRAINED_MODEL_DIR
 from lerobot.configs.train import TrainPipelineConfig
 from lerobot.policies.utils import log_model_loading_keys
 from lerobot.utils.hub import HubMixin
@@ -125,6 +127,7 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
         The policy is set in evaluation mode by default using `policy.eval()` (dropout modules are
         deactivated). To train it, you should first set it back in training mode with `policy.train()`.
         """
+        pretrained_name_or_path = resolve_local_pretrained_dir(pretrained_name_or_path)
         source_config = None
         try:
             source_config = PreTrainedConfig.from_pretrained(
@@ -145,6 +148,13 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
             # deliberately skip incompatible modules instead of failing before weight loading.
             source_config_file = Path(pretrained_name_or_path) / "config.json"
             if not source_config_file.is_file():
+                local_path = Path(pretrained_name_or_path)
+                if local_path.is_absolute() or local_path.exists():
+                    raise FileNotFoundError(
+                        f"config.json not found in {local_path}. "
+                        f"If this is a training checkpoint, point pretrained_path to "
+                        f"`{local_path / PRETRAINED_MODEL_DIR}`."
+                    )
                 try:
                     source_config_file = Path(
                         hf_hub_download(
@@ -159,7 +169,7 @@ class PreTrainedPolicy(nn.Module, HubMixin, abc.ABC):
                             local_files_only=local_files_only,
                         )
                     )
-                except HfHubHTTPError:
+                except (HfHubHTTPError, HFValidationError):
                     raise
             with source_config_file.open() as source_file:
                 raw_source_config = json.load(source_file)

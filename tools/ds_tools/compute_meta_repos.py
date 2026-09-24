@@ -27,7 +27,7 @@ import yaml
 # 配置（优先改这里；命令行未接入，保证一处配置即可跑）
 # ---------------------------------------------------------------------------
 DS_IDS_FILE = Path(
-    "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-data.txt"
+    "/vla/workspace/my_tbot/configs/ds_ids/pro6k/repos.txt"
 )
 # 相对路径会拼到该 root 下；绝对路径不受影响。设为 None 表示不做拼接。
 REPO_ROOT: Path | None = None

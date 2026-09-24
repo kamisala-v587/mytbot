@@ -1,0 +1,1 @@
+Pick up red block, green block, and blue block in sequence and position them in a left-to-right row.

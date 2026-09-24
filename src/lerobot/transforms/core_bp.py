@@ -65,6 +65,8 @@ class BPPadOrSampleChunksFn(DataTransformFn):
             "state_is_available",
             "chunk_indices",
             "source_time_ratio",
+            "source_frame_offsets",
+            "source_indices",
         ]:
             if key in prompt:
                 prompt[key] = prompt[key].index_select(0, select.to(prompt[key].device))

@@ -14,6 +14,7 @@ python server/serve_policy.py
 python server/serve_policy.py \
   --ckpt_path $CKPT \
   --policy auto \
+  --device cuda:0 \
   --max_batch_size 4 \
   --batch_wait_ms 10 \
   --queue_size 64 \
@@ -24,3 +25,16 @@ python server/serve_policy.py \
 ### CKPT
 **q35**
 CKPT=/vla/workspace/my_tbot/outputs/Q35/pretrain/2026-09-22/17-33-51_q35-pretrain/checkpoints/020000/pretrained_model
+
+CKPT=/vla/workspace/my_tbot/outputs/Q35/pretrain/2026-09-22/17-33-51_q35-pretrain/checkpoints/010000/pretrained_model
+conda activate q35va
+cd /vla/workspace/my_tbot
+python server/serve_policy.py \
+  --ckpt_path $CKPT \
+  --policy auto \
+  --device cuda:7 \
+  --max_batch_size 4 \
+  --batch_wait_ms 10 \
+  --queue_size 64 \
+  --host 0.0.0.0 \
+  --port 8000

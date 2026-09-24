@@ -166,6 +166,9 @@ class Q35Core(nn.Module):
         )
 
     def _action_inputs(self, actions: torch.Tensor, time: torch.Tensor) -> torch.Tensor:
+        # denoise_cached 的速度输出是 float32，下一采样步会把动作提升成 float32。
+        # 投影权重在 bfloat16 推理时必须先对齐，否则 Linear 会报 dtype 不一致。
+        actions = actions.to(dtype=self.action_projection.weight.dtype)
         action = self.action_projection(actions)
         time_embedding = sinusoidal_time_embedding(
             time,
