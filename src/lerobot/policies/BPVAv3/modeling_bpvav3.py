@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from contextlib import nullcontext
 
 import torch
 import torch.nn.functional as F
@@ -85,6 +86,8 @@ class BPVAv3Model(Q35Model):
             self.align_queries.requires_grad_(False)
         if config.frozen_bp_encoder:
             self.freeze_bp_encoder()
+        if config.frozen_vit:
+            self.freeze_vit()
 
     def freeze_bp_encoder(self) -> None:
         """冻结 BP compressor。policy.train() 之后仍保持 eval，避免被重新打开。"""
@@ -92,10 +95,19 @@ class BPVAv3Model(Q35Model):
         for parameter in self.bp_obs_encoder.parameters():
             parameter.requires_grad_(False)
 
+    def freeze_vit(self) -> None:
+        """冻结共享 Qwen3.5 ViT。当前观测和 BP 图像用的是同一份参数。"""
+        visual = self.core.backbone.vlm_visual
+        visual.eval()
+        for parameter in visual.parameters():
+            parameter.requires_grad_(False)
+
     def train(self, mode: bool = True):
         super().train(mode)
         if self.config.frozen_bp_encoder:
             self.bp_obs_encoder.eval()
+        if self.config.frozen_vit:
+            self.core.backbone.vlm_visual.eval()
         return self
 
     @dynamo_disable
@@ -104,7 +116,9 @@ class BPVAv3Model(Q35Model):
         vision_dtype = next(self.core.backbone.vlm_visual.parameters()).dtype
         flat_pixels = pixels.reshape(-1, pixels.shape[-1]).to(dtype=vision_dtype)
         flat_grids = grids.reshape(-1, 3).to(device=flat_pixels.device)
-        outputs = vlm.model.get_image_features(flat_pixels, flat_grids)
+        context = torch.no_grad() if self.config.frozen_vit else nullcontext()
+        with context:
+            outputs = vlm.model.get_image_features(flat_pixels, flat_grids)
         chunks = outputs.pooler_output
         if not isinstance(chunks, (tuple, list)):
             merge = int(self.core.backbone.vlm_visual.spatial_merge_size)

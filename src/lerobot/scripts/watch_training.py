@@ -106,19 +106,31 @@ def read_tail_text(path: Path, nbytes: int = TAIL_BYTES) -> str:
         return f.read().decode("utf-8", errors="replace")
 
 
-def parse_last_loss_line(text: str) -> LossSnapshot:
+def read_loss_header(path: Path) -> str | None:
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            header = handle.readline().strip()
+    except OSError:
+        return None
+    return header or None
+
+
+def parse_last_loss_line(text: str, header: str | None = None) -> LossSnapshot:
+    columns = header.split(",") if header else []
+    step_idx = columns.index("step") if "step" in columns else 0
+    timestamp_idx = columns.index("timestamp") if "timestamp" in columns else 1
     for line in reversed(text.splitlines()):
         stripped = line.strip()
-        if not stripped or stripped.startswith("step,"):
+        if not stripped or (header and stripped == header) or stripped.startswith("step,"):
             continue
-        parts = stripped.split(",", 2)
-        if len(parts) < 2:
+        parts = stripped.split(",")
+        if len(parts) <= max(step_idx, timestamp_idx):
             return LossSnapshot(step=None, timestamp=None, line=stripped)
         try:
-            step = int(parts[0])
+            step = int(parts[step_idx])
         except ValueError:
-            return LossSnapshot(step=None, timestamp=None, line=stripped)
-        return LossSnapshot(step=step, timestamp=parts[1], line=stripped)
+            continue
+        return LossSnapshot(step=step, timestamp=parts[timestamp_idx], line=stripped)
     return LossSnapshot(step=None, timestamp=None, line=None)
 
 
@@ -196,7 +208,7 @@ def check_once(
 
     mtime = loss_log.stat().st_mtime
     stale_secs = time.time() - mtime
-    snapshot = parse_last_loss_line(read_tail_text(loss_log))
+    snapshot = parse_last_loss_line(read_tail_text(loss_log), read_loss_header(loss_log))
 
     if snapshot.step is not None and snapshot.step != last_step:
         print(

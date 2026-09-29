@@ -113,10 +113,10 @@ class TrainPipelineConfig(HubMixin):
             else:
                 self.job_name = f"{self.env.type}_{self.policy.type}"
 
-        # New run: treat configured output_dir as base, append date/time subdirectory to avoid collisions.
+        # New run: append one timestamp directory. job_name is not part of the path.
         if not self.resume:
             now = dt.datetime.now()
-            train_dir = f"{now:%Y-%m-%d}/{now:%H-%M-%S}_{self.job_name}"
+            train_dir = f"{now:%Y-%m-%d}_{now:%H-%M}"
             base = Path(self.output_dir) if self.output_dir else Path("outputs/train")
             self.output_dir = base / train_dir
 

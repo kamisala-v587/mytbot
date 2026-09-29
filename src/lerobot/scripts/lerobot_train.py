@@ -140,6 +140,82 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _parameter_counts(parameters) -> tuple[str, int, int]:
+    params = list(parameters)
+    if not params:
+        return "", 0, 0
+    trainable = sum(param.numel() for param in params if param.requires_grad)
+    frozen = sum(param.numel() for param in params if not param.requires_grad)
+    if trainable and frozen:
+        state = "混合"
+    elif trainable:
+        state = "更新"
+    else:
+        state = "冻结"
+    return state, trainable, frozen
+
+
+def _freeze_group_label(path: str) -> str:
+    name = path.rsplit(".", 1)[-1]
+    if name == "align_queries":
+        return "align_queries"
+    if name == "visual":
+        return "共享 Qwen3.5 ViT（当前观测和 BP 图像）"
+    if name == "bp_obs_encoder":
+        return "BP encoder（投影、MLP、compressor，不含 ViT）"
+    if name == "language_model":
+        return "VLM 语言层"
+    if name == "expert":
+        return "action expert"
+    if name in {
+        "state_projection",
+        "action_projection",
+        "action_time_in",
+        "action_time_out",
+        "action_head",
+    }:
+        return name
+    return path
+
+
+def _collect_freeze_groups(module: torch.nn.Module, prefix: str) -> list[tuple[str, str, int, int]]:
+    direct = list(module.named_parameters(recurse=False))
+    children = list(module.named_children())
+    all_params = list(module.parameters())
+    state, trainable, frozen = _parameter_counts(all_params)
+    if not state:
+        return []
+    if state != "混合" or not children:
+        return [(prefix or module.__class__.__name__, state, trainable, frozen)]
+
+    groups = []
+    for name, param in direct:
+        param_state, param_trainable, param_frozen = _parameter_counts([param])
+        param_path = f"{prefix}.{name}" if prefix else name
+        groups.append((param_path, param_state, param_trainable, param_frozen))
+    for name, child in children:
+        child_path = f"{prefix}.{name}" if prefix else name
+        groups.extend(_collect_freeze_groups(child, child_path))
+    return groups
+
+
+def _format_freeze_summary(policy: torch.nn.Module) -> str:
+    groups = _collect_freeze_groups(policy, "")
+    lines = ["参数分组:"]
+    for title in ("冻结", "更新", "混合"):
+        matched = [group for group in groups if group[1] == title]
+        lines.append(f"{title}:")
+        if not matched:
+            lines.append("  （无）")
+            continue
+        for path, _state, trainable, frozen in matched:
+            count = frozen if title == "冻结" else trainable if title == "更新" else trainable + frozen
+            lines.append(
+                f"  {_freeze_group_label(path)}  {format_big_number(count)} 参数  ({path})"
+            )
+    return "\n".join(lines)
+
+
 def _format_policy_summary(policy: torch.nn.Module) -> str:
     params = list(policy.parameters())
     total_params = sum(param.numel() for param in params)
@@ -822,7 +898,10 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             if _env_flag("PRINT_POLICY_STRUCTURE", default=False):
                 logging.info("policy structure:\n%s", policy)
         else:
-            logging.info(f"policy info:\n{policy}")
+            logging.info("policy info: %s", _format_policy_summary(policy))
+            logging.info("\n%s", _format_freeze_summary(policy))
+            if _env_flag("PRINT_POLICY_STRUCTURE", default=False):
+                logging.info("policy structure:\n%s", policy)
 
     # create dataloader for offline training
     fastwam_train_sampler = None

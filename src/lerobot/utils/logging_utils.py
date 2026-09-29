@@ -21,6 +21,37 @@ from typing import Any
 from lerobot.utils.utils import format_big_number
 
 LOSS_LOG_PREFIX_COLUMNS = ("step", "timestamp", "epochs")
+_LOSS_LOG_LOSS_ORDER = (
+    "loss",
+    "loss_action",
+    "loss_align",
+    "loss_align_w",
+    "loss_video",
+    "loss_gen",
+    "loss_3d",
+)
+_LOSS_LOG_TIME_ORDER = (
+    "update_s",
+    "dataloading_s",
+    "time_3d_teacher_forward_s",
+)
+
+
+def loss_log_columns(metric_keys) -> tuple[str, ...]:
+    """loss.log 列顺序：总 loss，其余 loss，更新时间和数据时间，再是 step 与其余指标。列名不变。"""
+    keys = list(metric_keys)
+    present = set(keys)
+    loss_keys = [key for key in _LOSS_LOG_LOSS_ORDER if key in present]
+    loss_keys.extend(key for key in keys if key.startswith("loss_") and key not in loss_keys)
+    time_keys = [key for key in _LOSS_LOG_TIME_ORDER if key in present]
+    time_keys.extend(
+        key
+        for key in keys
+        if key.endswith("_s") and key not in loss_keys and key not in time_keys
+    )
+    used = set(loss_keys) | set(time_keys)
+    rest = [key for key in keys if key not in used]
+    return (*loss_keys, *time_keys, *LOSS_LOG_PREFIX_COLUMNS, *rest)
 
 
 def format_time(seconds):
@@ -197,19 +228,22 @@ class MetricsTracker:
 def append_loss_log(log_file: Path, tracker: MetricsTracker) -> None:
     """Append one CSV row to loss.log at each log_freq step."""
     stats = tracker.to_dict(use_avg=True)
-    metric_keys = tuple(sorted(tracker.metrics.keys()))
-    header = ",".join([*LOSS_LOG_PREFIX_COLUMNS, *metric_keys])
+    columns = loss_log_columns(tracker.metrics.keys())
+    header = ",".join(columns)
 
     if not log_file.exists():
         log_file.write_text(f"{header}\n", encoding="utf-8")
 
-    row_values = [
-        str(int(stats["steps"])),
-        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        f"{stats['epochs']:.6f}",
-    ]
-    for key in metric_keys:
-        row_values.append(f"{stats[key]:.6f}")
+    row_values = []
+    for key in columns:
+        if key == "step":
+            row_values.append(str(int(stats["steps"])))
+        elif key == "timestamp":
+            row_values.append(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        elif key == "epochs":
+            row_values.append(f"{stats['epochs']:.6f}")
+        else:
+            row_values.append(f"{stats[key]:.6f}")
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(",".join(row_values) + "\n")
         f.flush()

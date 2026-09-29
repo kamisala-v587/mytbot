@@ -89,8 +89,12 @@ class BPVAv3Config(Q35Config):
     bp_compressor_ff_mult: int = 4
     # 0 时只算 action loss，也不把 align query 送进 VLM。
     lambda_bp_encoder: float = 0.0
-    # true 时冻结 bp_obs_encoder，不更新投影和 compressor。共享 Qwen3.5 ViT 不受影响。
+    # true 时冻结 bp_obs_encoder 里 ViT 以外的部分：投影、state/action MLP 和 compressor。
+    # 不碰共享 Qwen3.5 ViT。
     frozen_bp_encoder: bool = False
+    # true 时冻结共享 Qwen3.5 ViT。当前观测和 BP 图像走同一份参数，两边都不再更新。
+    # 默认 false，已有配置不写这个字段时 ViT 仍会训练。
+    frozen_vit: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
