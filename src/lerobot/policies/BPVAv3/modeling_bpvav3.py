@@ -67,6 +67,37 @@ def bp_align_cosine_loss(
     return sample_loss[valid_samples].mean(), counts.sum()
 
 
+def bp_align_mse_loss(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    token_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Raw-feature MSE, averaged over features, valid tokens, then valid samples."""
+    if pred.shape != target.shape:
+        raise ValueError(f"Align prediction shape {tuple(pred.shape)} does not match target {tuple(target.shape)}")
+    token_mask = token_mask.to(device=pred.device, dtype=torch.bool)
+    if token_mask.shape != pred.shape[:2]:
+        raise ValueError(f"Align mask shape {tuple(token_mask.shape)} does not match tokens {tuple(pred.shape[:2])}")
+    valid = token_mask[..., None]
+    pred_valid = torch.where(valid, pred.float(), 0.0)
+    target_valid = torch.where(valid, target.float(), 0.0)
+    per_token = (pred_valid - target_valid).square().mean(dim=-1)
+    counts = token_mask.float().sum(dim=-1)
+    sample_loss = per_token.sum(dim=-1) / counts.clamp_min(1)
+    valid_samples = counts > 0
+    if not bool(valid_samples.any()):
+        return pred_valid.sum() * 0.0, counts.sum()
+    return sample_loss[valid_samples].mean(), counts.sum()
+
+
+def bp_align_loss(pred, target, token_mask, loss_type="cosine"):
+    if loss_type == "cosine":
+        return bp_align_cosine_loss(pred, target, token_mask)
+    if loss_type == "mse":
+        return bp_align_mse_loss(pred, target, token_mask)
+    raise ValueError(f"Unknown BP alignment loss type: {loss_type!r}")
+
+
 class BPVAv3Model(Q35Model):
     """Q35 前向，BP 图像和当前观测共用一次 Qwen3.5 ViT。"""
 
@@ -458,10 +489,11 @@ class BPVAv3Model(Q35Model):
         )
         predicted_flow = core.action_head(action_out.to(core.action_head.weight.dtype)).float()
         align_hidden = vlm_out[:, -n_align:]
-        align_loss, align_token_count = bp_align_cosine_loss(
+        align_loss, align_token_count = bp_align_loss(
             align_hidden,
             target_tokens.to(device=align_hidden.device),
             target_mask.to(device=align_hidden.device),
+            loss_type=self.config.bp_align_loss_type,
         )
         queries_per_chunk = int(self.config.bp_num_query_tokens)
         valid_chunks = target_mask.to(device=align_hidden.device).reshape(

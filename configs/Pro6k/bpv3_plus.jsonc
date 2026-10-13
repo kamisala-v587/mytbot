@@ -94,6 +94,7 @@
         "bp_compressor_num_heads": 8,
         "bp_compressor_ff_mult": 4,
         // 本轮先只训 action。避免 align 探针和接模块的效果搅在一起。
+        "bp_align_loss_type": "cosine", // 可选 cosine 或 mse；mse 使用未归一化特征
         "lambda_bp_encoder": 0,
         // true 时只冻结 bp_obs_encoder 里 ViT 以外的部分：投影、MLP 和 compressor。
         "frozen_bp_encoder": false,

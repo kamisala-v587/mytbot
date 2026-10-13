@@ -80,6 +80,7 @@
         "bp_compressor_num_layers": 2,
         "bp_compressor_num_heads": 8,
         "bp_compressor_ff_mult": 4,
+        "bp_align_loss_type": "cosine", // 可选 cosine 或 mse；mse 使用未归一化特征
         "lambda_bp_encoder": 0.0,
         "frozen_bp_encoder": false,
         "frozen_vit": true,

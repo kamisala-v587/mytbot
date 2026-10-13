@@ -205,6 +205,8 @@ class BPVAv3Config(Q35Config):
     bp_compressor_ff_mult: int = 4
     # 0 时只算 action loss，也不把 align query 送进 VLM。
     lambda_bp_encoder: float = 0.0
+    # cosine compares directions; mse compares raw feature values (including magnitude).
+    bp_align_loss_type: str = "cosine"
     # true 时冻结 bp_obs_encoder 里 ViT 以外的部分：投影、state/action MLP 和 compressor。
     # 不碰共享 Qwen3.5 ViT。
     frozen_bp_encoder: bool = False
@@ -230,6 +232,8 @@ class BPVAv3Config(Q35Config):
                 raise ValueError(f"{name} must be positive")
         if self.bp_compressor_dim % self.bp_compressor_num_heads:
             raise ValueError("bp_compressor_dim must be divisible by bp_compressor_num_heads")
+        if self.bp_align_loss_type not in {"cosine", "mse"}:
+            raise ValueError("bp_align_loss_type must be cosine or mse")
         if float(self.lambda_bp_encoder) < 0:
             raise ValueError("lambda_bp_encoder must be non-negative")
         _validate_bp_camera_keys(self.bp_camera_keys)
