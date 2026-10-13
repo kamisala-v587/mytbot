@@ -80,3 +80,25 @@ def test_cross_dataset_task_indices_match_by_task_name():
     dataset._prompt_task_names = dataset._build_task_index_to_name(prompt)
     assert dataset._current_task_identity(41) == "pick cube"
     assert dataset._prompt_task_names[3] == "pick cube"
+
+
+def test_random_in_task_does_not_sample_other_task():
+    dataset = make_sampler({"task": [10, 20], "other": [30]}, mode="random_in_task")
+    assert {dataset._sample_prompt_episode(10, "task") for _ in range(100)} == {10, 20}
+
+
+def test_avoid_in_task_masks_singleton_instead_of_repo_fallback():
+    dataset = make_sampler({"task": [10], "other": [20]}, mode="avoid_in_task")
+    assert dataset._sample_prompt_episode(10, "task") is None
+
+
+def test_avoid_in_task_samples_other_matching_episode():
+    dataset = make_sampler({"task": [10, 20], "other": [30]}, mode="avoid_in_task")
+    assert dataset._sample_prompt_episode(10, "task") == 20
+
+
+def test_repo_aliases_match_original_modes():
+    for mode, alias in [("random", "random_in_repo"), ("avoid", "avoid_in_repo")]:
+        a = make_sampler({"task": [10], "other": [20, 30]}, mode=mode)
+        b = make_sampler({"task": [10], "other": [20, 30]}, mode=alias)
+        assert [a._sample_prompt_episode(10, "task") for _ in range(100)] == [b._sample_prompt_episode(10, "task") for _ in range(100)]

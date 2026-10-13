@@ -156,7 +156,7 @@ class BPVAv3DatasetConfig(DatasetConfig):
     use_language: bool = True
     bp_num_chunks: int = 8
     bp_seed: int = 0
-    # random 按当前 repo 全部轨迹抽样；origin 固定自身；avoid 在当前 repo 内排除自身。
+    # random/avoid 默认同 repo；*_in_task 按完整任务描述匹配；avoid_in_task 无候选时 mask BP。
     bp_sampling_mode: str = "random"
     # 为 true 时额外挂 future_prompt。它只做 BP encoder 对齐监督，不进入 VLM 条件。
     align_bp_encoder: bool = False
@@ -176,9 +176,9 @@ class BPVAv3DatasetConfig(DatasetConfig):
             raise ValueError("bp_num_chunks must be positive")
         if self.current_image_index < 0:
             raise ValueError("current_image_index must be non-negative")
-        if self.bp_sampling_mode not in {"random", "origin", "avoid"}:
+        if self.bp_sampling_mode not in {"random", "origin", "avoid", "random_in_task", "random_in_repo", "avoid_in_task", "avoid_in_repo"}:
             raise ValueError(
-                "bp_sampling_mode must be 'random', 'origin', or 'avoid', "
+                "Invalid bp_sampling_mode; expected origin, random[_in_task|_in_repo], or avoid[_in_task|_in_repo], "
                 f"got {self.bp_sampling_mode!r}"
             )
         _validate_bp_camera_keys(self.bp_camera_keys)

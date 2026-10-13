@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 class BehaviorPromptConfig:
     """Configuration for sampling a behavior prompt trajectory.
 
-    Prompt episodes are drawn at random from the same task in the current repo.
+    Prompt episodes are drawn within the current repo, optionally matching the full task name.
     The selected trajectory is sampled into at most K action chunks before video IO.
     A later transform only pads short trajectories to fixed K for batching.
     """
@@ -64,7 +64,7 @@ class BehaviorPromptConfig:
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
     seed: int = 0
-    # random 按当前 repo 全部轨迹抽样；origin 固定自身；avoid 在当前 repo 内排除自身。
+    # random/avoid 默认同 repo；*_in_task 按完整任务描述匹配；avoid_in_task 无候选时 mask BP。
     bp_sampling_mode: str = "random"
     align_bp_encoder: bool = False
     future_filter: bool = True
@@ -87,9 +87,9 @@ class BehaviorPromptConfig:
                 f"{OBS_IMAGES}.image1",
                 f"{OBS_IMAGES}.image2",
             ]
-        if self.bp_sampling_mode not in {"random", "origin", "avoid"}:
+        if self.bp_sampling_mode not in {"random", "origin", "avoid", "random_in_task", "random_in_repo", "avoid_in_task", "avoid_in_repo"}:
             raise ValueError(
-                "bp_sampling_mode must be 'random', 'origin', or 'avoid', "
+                "Invalid bp_sampling_mode; expected origin, random[_in_task|_in_repo], or avoid[_in_task|_in_repo], "
                 f"got {self.bp_sampling_mode!r}"
             )
 
@@ -169,10 +169,33 @@ class BehaviorPromptLeRobotDataset(Dataset):
             len(self._episode_ranges),
             time.perf_counter() - started_at,
         )
-        # Episode sampling is intentionally repo-local and independent of task/language metadata.
-        # Keep the episode ranges as the sole candidate pool so clean/randomized descriptions
-        # cannot change which trajectories are eligible for BP sampling.
-        logger.info("Using all %d prompt episodes as the repo-local BP candidate pool", len(self._episode_ranges))
+        if prompt_cfg.bp_sampling_mode in {"random_in_task", "avoid_in_task"}:
+            self._current_task_names = self._build_task_index_to_name(current_ds)
+            self._prompt_task_names = self._build_task_index_to_name(prompt_ds)
+            self._task_to_episodes = self._build_task_to_episodes()
+            if prompt_cfg.bp_sampling_mode == "avoid_in_task":
+                rows = self._episode_metadata_rows()
+                masked_frames = 0
+                total_frames = 0
+                for episode, (start, end, _) in self._episode_ranges.items():
+                    task_ids = self._task_indices_from_metadata(rows[episode])
+                    if not task_ids:
+                        task_ids = {self._task_indices_at_episode_starts([episode])[episode]}
+                    # Weight each task by the frames carrying that task (usually one per episode).
+                    pools = [self._task_to_episodes.get(self._prompt_task_names[t], []) for t in task_ids]
+                    if len(task_ids) == 1:
+                        total_frames += end - start
+                        if not any(other != episode for other in pools[0]):
+                            masked_frames += end - start
+                    else:
+                        for idx in range(start, end):
+                            task = self._to_int(self.prompt_ds.hf_dataset[idx]["task_index"])
+                            total_frames += 1
+                            if not any(other != episode for other in self._task_to_episodes.get(self._prompt_task_names[task], [])):
+                                masked_frames += 1
+                if masked_frames:
+                    logger.warning("avoid_in_task: no alternative BP for %.2f%% of loaded frames in repo %s; these samples will have BP masked", 100 * masked_frames / max(total_frames, 1), self.repo_id)
+                logger.info("Expected masked BP frame fraction for repo %s: %d/%d (%.2f%%)", self.repo_id, masked_frames, total_frames, 100 * masked_frames / max(total_frames, 1))
 
 
     @classmethod
@@ -440,27 +463,26 @@ class BehaviorPromptLeRobotDataset(Dataset):
     def _bp_sampling_mode(self) -> str:
         prompt_cfg = getattr(self, "prompt_cfg", None)
         mode = "random" if prompt_cfg is None else str(getattr(prompt_cfg, "bp_sampling_mode", "random"))
-        if mode not in {"random", "origin", "avoid"}:
+        if mode not in {"random", "origin", "avoid", "random_in_task", "random_in_repo", "avoid_in_task", "avoid_in_repo"}:
             raise ValueError(
-                "bp_sampling_mode must be 'random', 'origin', or 'avoid', "
+                "Invalid bp_sampling_mode; expected origin, random[_in_task|_in_repo], or avoid[_in_task|_in_repo], "
                 f"got {mode!r}"
             )
         return mode
 
-    def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: Any = None) -> int:
-        """按 bp_sampling_mode 从当前 repo 的 episode 中选择示教。"""
+    def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: Any = None) -> int | None:
+        """Task modes match full task names within this loaded repo; None means masked BP."""
         mode = self._bp_sampling_mode()
         if mode == "origin":
             return current_episode_idx
-
-        candidates = sorted(self._episode_ranges)
-        if mode == "avoid":
+        candidates = (list(self._task_to_episodes.get(current_task_identity, []))
+                      if mode.endswith("_in_task") else list(self._episode_ranges))
+        if mode in {"avoid", "avoid_in_repo", "avoid_in_task"}:
             candidates = [episode for episode in candidates if episode != current_episode_idx]
-            if not candidates:
-                raise RuntimeError(
-                    "bp_sampling_mode='avoid' found no other episode in the current repo "
-                    f"(current episode {current_episode_idx})"
-                )
+        if not candidates:
+            if mode == "avoid_in_task":
+                return None
+            raise RuntimeError(f"bp_sampling_mode={mode!r} has no eligible BP episode")
         return self.rng.choice(candidates)
 
     def _resolve_num_chunks(self, trajectory_len: int) -> int:
@@ -548,15 +570,22 @@ class BehaviorPromptLeRobotDataset(Dataset):
         """
         current_episode_idx = self._to_int(current_sample["episode_index"])
         current_task_idx = self._to_int(current_sample.get("task_index", 0))
+        mask_missing_bp = False
         if episode_idx is None:
-            prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_idx)
+            identity = (self._current_task_identity(current_task_idx)
+                        if self._bp_sampling_mode().endswith("_in_task") else current_task_idx)
+            prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, identity)
+            mask_missing_bp = prompt_episode_idx is None
+            if mask_missing_bp:
+                # Use the already decoded current sample only as a shape-compatible placeholder.
+                prompt_episode_idx = current_episode_idx
         else:
             prompt_episode_idx = int(episode_idx)
             if prompt_episode_idx not in self._episode_ranges:
                 raise KeyError(f"Prompt episode {prompt_episode_idx} is not in this dataset")
         local_start, local_end, absolute_start = self._episode_ranges[prompt_episode_idx]
         trajectory_len = local_end - local_start
-        prompt_num_chunks = self._resolve_num_chunks(trajectory_len)
+        prompt_num_chunks = 1 if mask_missing_bp else self._resolve_num_chunks(trajectory_len)
 
         prompt_frame_offsets = self._linspace_offsets(trajectory_len, prompt_num_chunks)
         prompt_local_indices = [local_start + offset for offset in prompt_frame_offsets]
@@ -567,7 +596,19 @@ class BehaviorPromptLeRobotDataset(Dataset):
         )
 
         # LeRobotDataset.__getitem__ indexes the loaded hf_dataset, so subset datasets require local indices.
-        prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
+        if mask_missing_bp:
+            placeholder = dict(current_sample)
+            state_keys = get_feature_mapping(self.prompt_ds.meta.robot_type, self.prompt_ds.meta.features)[OBS_STATE]
+            for key in list(self.prompt_ds.active_visual_keys) + list(state_keys):
+                if key in placeholder:
+                    value = torch.as_tensor(placeholder[key])
+                    expected_ndim = 3 if key in self.prompt_ds.active_visual_keys else 1
+                    while value.ndim > expected_ndim:
+                        value = value[0]
+                    placeholder[key] = value
+            prompt_samples = [placeholder]
+        else:
+            prompt_samples = [self.prompt_ds[idx] for idx in prompt_local_indices]
         image_keys = list(self.prompt_ds.active_visual_keys)
         prompt_images = {
             key: torch.stack([sample[key] for sample in prompt_samples], dim=0)
@@ -622,7 +663,7 @@ class BehaviorPromptLeRobotDataset(Dataset):
             "action": prompt_action,
             "action_is_pad": prompt_action_is_pad,
             "state_is_available": prompt_state_is_available,
-            "mask": torch.ones(prompt_num_chunks, dtype=torch.bool),
+            "mask": torch.full((prompt_num_chunks,), not mask_missing_bp, dtype=torch.bool),
             "num_chunks": torch.tensor(prompt_num_chunks, dtype=torch.long),
             "chunk_indices": torch.arange(prompt_num_chunks, dtype=torch.long),
             "prompt_action_chunk_size": torch.tensor(self.prompt_cfg.prompt_action_chunk_size, dtype=torch.long),
