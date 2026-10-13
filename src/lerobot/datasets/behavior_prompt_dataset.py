@@ -64,7 +64,7 @@ class BehaviorPromptConfig:
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
     seed: int = 0
-    # random 可抽到当前 episode；origin 固定当前轨迹；avoid 排除当前 episode。
+    # random 按当前 repo 全部轨迹抽样；origin 固定自身；avoid 在当前 repo 内排除自身。
     bp_sampling_mode: str = "random"
     align_bp_encoder: bool = False
     future_filter: bool = True
@@ -169,21 +169,10 @@ class BehaviorPromptLeRobotDataset(Dataset):
             len(self._episode_ranges),
             time.perf_counter() - started_at,
         )
-        started_at = time.perf_counter()
-        self._current_task_names = self._build_task_index_to_name(self.current_ds)
-        self._prompt_task_names = self._build_task_index_to_name(self.prompt_ds)
-        self._task_to_episodes = self._build_task_to_episodes()
-        missing_prompt_tasks = sorted(set(self._current_task_names.values()) - set(self._task_to_episodes))
-        if missing_prompt_tasks:
-            raise ValueError(
-                "Prompt dataset is missing task name(s) required by the current dataset: "
-                f"{missing_prompt_tasks}"
-            )
-        logger.info(
-            "Built behavior-prompt task map for %d episodes in %.3fs",
-            len(self._episode_ranges),
-            time.perf_counter() - started_at,
-        )
+        # Episode sampling is intentionally repo-local and independent of task/language metadata.
+        # Keep the episode ranges as the sole candidate pool so clean/randomized descriptions
+        # cannot change which trajectories are eligible for BP sampling.
+        logger.info("Using all %d prompt episodes as the repo-local BP candidate pool", len(self._episode_ranges))
 
 
     @classmethod
@@ -458,22 +447,20 @@ class BehaviorPromptLeRobotDataset(Dataset):
             )
         return mode
 
-    def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: str) -> int:
-        """按 bp_sampling_mode 从同任务里选示教 episode。"""
-        candidates = list(self._task_to_episodes.get(current_task_identity, []))
-        if not candidates:
-            candidates = sorted(self._episode_ranges)
+    def _sample_prompt_episode(self, current_episode_idx: int, current_task_identity: Any = None) -> int:
+        """按 bp_sampling_mode 从当前 repo 的 episode 中选择示教。"""
         mode = self._bp_sampling_mode()
         if mode == "origin":
             return current_episode_idx
+
+        candidates = sorted(self._episode_ranges)
         if mode == "avoid":
-            others = [episode for episode in candidates if episode != current_episode_idx]
-            if not others:
+            candidates = [episode for episode in candidates if episode != current_episode_idx]
+            if not candidates:
                 raise RuntimeError(
-                    "bp_sampling_mode='avoid' found no other episode for "
-                    f"task {current_task_identity!r} (current episode {current_episode_idx})"
+                    "bp_sampling_mode='avoid' found no other episode in the current repo "
+                    f"(current episode {current_episode_idx})"
                 )
-            candidates = others
         return self.rng.choice(candidates)
 
     def _resolve_num_chunks(self, trajectory_len: int) -> int:
@@ -561,9 +548,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
         """
         current_episode_idx = self._to_int(current_sample["episode_index"])
         current_task_idx = self._to_int(current_sample.get("task_index", 0))
-        current_task_identity = self._current_task_identity(current_task_idx)
         if episode_idx is None:
-            prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_identity)
+            prompt_episode_idx = self._sample_prompt_episode(current_episode_idx, current_task_idx)
         else:
             prompt_episode_idx = int(episode_idx)
             if prompt_episode_idx not in self._episode_ranges:

@@ -74,8 +74,7 @@ REQUEST_IMAGE_HEIGHT = 480
 REQUEST_IMAGE_WIDTH = 640
 NUM_INFERENCE_STEPS = None
 
-BP_MAPPING_PATH = "/vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps.yml"
-
+BP_MAPPING_PATH = "/vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_rand.yml"
 QWEN3_VL_PATH = "/vla/workspace/models/Qwen3-VL-2B-Instruct"
 QWEN3_5_PATH = "/vla/workspace/shiliangchao/models/Qwen35_0_8"
 
@@ -86,6 +85,25 @@ LOAD_DEVICE = None
 COSMOS_DEVICE = None
 DISABLE_3D_TEACHER = True
 OMIT_VISUAL_TOKENS = True
+
+# 推理时按路径屏蔽字段或最后一维。空列表表示不屏蔽。
+# 客户端字段在组装前处理；behavior_prompt.* 在服务端拼好示教后再处理。
+# 例:
+#   "behavior_prompt.action"           整段示教动作，同时 action_is_pad=True
+#   "behavior_prompt.action[6,13]"     只清 Aloha 左右夹爪
+#   "behavior_prompt.state[6,13]"      只清示教 state 夹爪
+#   "behavior_prompt"                  整段 BP 置零，chunk mask=False；保留 bp_image_grid_thw
+#   "observation.images.cam_left_wrist" 丢掉当前左腕图像
+#   "observation.state[6,13]"          清当前 state 夹爪
+#   "task"                             丢掉语言指令，回退 DEFAULT_PROMPT
+INPUT_MASKS = [
+   #  "behavior_prompt.action[6,13]"
+]
+
+# 训练配置（json 或 jsonc）。从 dataset.bp_action_use / bp_state_use 裁缓存示教，
+# 和训练用同一条规则：false 整段置零并让对应 token 失效，切片只清掉没选中的维度。
+# 空字符串则读取 checkpoint 里的 train_config.json；两边都没有时保留完整示教。
+BP_DIM_CONFIG = ""
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -123,11 +141,32 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cosmos_device", default=None)
     parser.add_argument("--disable_3d_teacher", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--omit_visual_tokens", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument(
+        "--input_masks",
+        default=None,
+        help="逗号分隔的屏蔽路径，覆盖文件顶部 INPUT_MASKS。例如 behavior_prompt.action,observation.state[6,13]",
+    )
+    parser.add_argument(
+        "--bp_dim_config",
+        default=None,
+        help="含 dataset.bp_action_use / bp_state_use 的 json 或 jsonc，覆盖 BP_DIM_CONFIG。",
+    )
     return parser
 
 
 def _pick(cli_value, constant):
     return constant if cli_value is None else cli_value
+
+
+def _parse_input_masks(value) -> list[str]:
+    from policy_runtime.input_mask import parse_mask_list, parse_mask_rules
+
+    specs = parse_mask_list(value)
+    try:
+        parse_mask_rules(specs)
+    except ValueError as exc:
+        raise SystemExit(f"INPUT_MASKS 无效: {exc}") from exc
+    return specs
 
 
 def _resolve_debug_dir(path: str) -> str:
@@ -171,7 +210,12 @@ def build_config(argv: list[str] | None = None) -> ServerConfig:
         cosmos_device=_pick(parsed.cosmos_device, COSMOS_DEVICE) or None,
         disable_3d_teacher=_pick(parsed.disable_3d_teacher, DISABLE_3D_TEACHER),
         omit_visual_tokens=_pick(parsed.omit_visual_tokens, OMIT_VISUAL_TOKENS),
+        input_masks=_parse_input_masks(_pick(parsed.input_masks, INPUT_MASKS)),
+        bp_dim_config=_pick(parsed.bp_dim_config, BP_DIM_CONFIG) or None,
     )
+    bp_dim_config = str(config.bp_dim_config or "").strip()
+    if bp_dim_config and not Path(bp_dim_config).expanduser().is_file():
+        raise SystemExit(f"BP_DIM_CONFIG 不存在: {bp_dim_config}")
     if not str(config.ckpt_path).strip():
         raise SystemExit("请在 serve_policy.py 顶部设置 CKPT_PATH，或传入 --ckpt_path。")
     if config.max_batch_size < 1:

@@ -1,0 +1,9 @@
+# handover_mic / dump_bin_bigbin 的示教换成 click_bell（按铃）。
+# 按铃和交接、倒垃圾桶的动作差得远，用来看「远技能示教」还能否抬分。
+# 缓存按数据集路径另存，不会盖掉正确示教。
+version: 1
+tasks:
+  handover_mic:
+    dataset_path: /vla/workspace/data/robotwin2.0/click_bell/aloha-agilex_clean_50
+  dump_bin_bigbin:
+    dataset_path: /vla/workspace/data/robotwin2.0/click_bell/aloha-agilex_clean_50

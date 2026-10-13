@@ -81,6 +81,10 @@ class ServerConfig:
     cosmos_device: str | None = None
     disable_3d_teacher: bool = True
     omit_visual_tokens: bool = True
+    # 推理时屏蔽的路径，例如 behavior_prompt.action、observation.state[6,13]
+    input_masks: list[str] | None = None
+    # 训练 json/jsonc。空字符串时改读 checkpoint 的 train_config.json。
+    bp_dim_config: str | None = None
 
 
 def prepare_import_path() -> None:

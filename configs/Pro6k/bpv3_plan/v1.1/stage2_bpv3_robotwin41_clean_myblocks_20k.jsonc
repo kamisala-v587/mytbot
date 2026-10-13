@@ -1,9 +1,12 @@
+// BPV3 v1.1 Stage2: 41 suitable Robotwin clean tasks + myblocks clean.
+// Stage2 的 pretrained_path 由 v1.1 一键脚本自动写入本目录 Stage1 checkpoint。
+// No language input; BP uses three demonstration camera views; avoid keeps BP trajectory different.
 {
     "dataloader_in_order": false,
     "dataset": {
         "type": "bpvav3",
-        "repo_id": "bpvav3_sft_only",
-        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robotwin_test.txt",
+        "repo_id": "bpv3_v1_1_stage2_robotwin41_clean_plus_myblocks",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/bpv3_plan/v1.1/stage2_robotwin41_clean_plus_myblocks_local.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
@@ -12,60 +15,48 @@
         "homogeneous_batch": true,
         "skip_video_file_validation": true,
         "streaming": false,
-        "dist_loading": false,
-        "weight_rules_path": null,
+        "dist_loading": true,
+        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
         "max_action_dim": 32,
         "current_image_index": 0,
-        "qwen3_5_processor_path": "/vla/workspace/shiliangchao/models/Qwen35_0_8",
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
         "qwen3_5_processor_revision": null,
-
-        // false 时当前观测不编码 instruction，也不调用 tokenizer。
-        "use_language": true,
+        "use_language": false,
         "bp_num_chunks": 8,
-        "bp_seed": 0,
-        // random: 同任务随机，可能抽到当前 episode。
-        // origin: 示教就是当前轨迹整段。阶段 1 用，并且 lambda_bp_encoder 必须为 0。
-        // avoid: 同任务随机，排除当前 episode。阶段 2 用。
-        "bp_sampling_mode": "random",
-
-        // true 时额外产出 future_prompt，只作为对齐监督，不进入 VLM 条件。
+        "bp_seed": 6203,
+        "bp_sampling_mode": "avoid",
+        "bp_action_use": false,
+        "bp_state_use": true,
         "align_bp_encoder": false,
-
-        // 只过滤 future_prompt 里锚点早于当前帧的 chunk。
         "future_filter": true,
         "bp_camera_keys": [
             "observation.images.image0",
             "observation.images.image1",
             "observation.images.image2"
         ],
-
         "image_transforms": {
             "enable": false,
             "preset": null
         }
     },
-
     "env": null,
     "policy": {
         "type": "bpvav3",
-        "pretrained_path": null, // /vla/workspace/models/Q35/pt-15w
+        "pretrained_path": "",
         "push_to_hub": false,
         "device": null,
-
         "dtype": "bfloat16",
         "expert_type": "action",
-        "qwen3_5_pretrained_path": "/vla/workspace/models/Q35/base_800m",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
         "qwen3_5_model_revision": null,
         "qwen3_5_processor_path": null,
         "qwen3_5_processor_revision": null,
         "qwen3_5_fingerprint": null,
         "expert_width_ratio": 0.5,
-
-        "use_language": true,
-
+        "use_language": false,
         "n_obs_steps": 1,
         "chunk_size": 50,
         "n_action_steps": 50,
@@ -76,7 +67,6 @@
         "image_delta_indices": [0],
         "num_camera_views": 3,
         "empty_cameras": 0,
-
         "bp_num_chunks": 8,
         "bp_action_chunk_size": 50,
         "bp_camera_keys": [
@@ -90,66 +80,56 @@
         "bp_compressor_num_layers": 2,
         "bp_compressor_num_heads": 8,
         "bp_compressor_ff_mult": 4,
-        // 0 只算 action loss。阶段 2 设成 0.1 到 0.5，同时 dataset.align_bp_encoder=true，
-        // 并且 bp_sampling_mode 用 random 或 avoid。origin 不能和这个系数同时打开。
-        "lambda_bp_encoder": 0,
-        // true 时冻结 bp_obs_encoder，不更新投影和 compressor。共享 Qwen3.5 ViT 仍可训练。
+        "lambda_bp_encoder": 0.0,
         "frozen_bp_encoder": false,
-
+        "frozen_vit": true,
         "time_sampling_beta_alpha": 1.5,
         "time_sampling_beta_beta": 1.0,
         "time_sampling_scale": 0.999,
         "time_sampling_offset": 0.001,
-        "min_period": 4e-3,
+        "min_period": 0.004,
         "max_period": 4.0,
-
         "attention_implementation": "sdpa",
         "gradient_checkpointing": false,
         "causal_vlm": false,
         "compile_model": false,
         "compile_mode": "default",
-
         "normalization_mapping": {
             "VISUAL": "IDENTITY",
             "STATE": "IDENTITY",
             "ACTION": "IDENTITY"
         },
-
-        "optimizer_lr": 5e-5,
+        "optimizer_lr": 2e-05,
         "optimizer_betas": [0.9, 0.95],
-        "optimizer_eps": 1e-8,
+        "optimizer_eps": 1e-08,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
         "scheduler_warmup_steps": 1000,
-        "scheduler_decay_steps": 16000,
-        "scheduler_decay_lr": 5e-6
+        "scheduler_decay_steps": 30000,
+        "scheduler_decay_lr": 2e-06
     },
-
-    "output_dir": "outputs/BPVAv3/stf_only",
-    "job_name": "stage1",
+    "output_dir": "outputs/BPV3Plan/q35/v1.1/stage2_robotwin41_clean_myblocks_3cam_avoid",
+    "job_name": "bpv3-v1.1-stage2-robotwin41-clean-myblocks-3cam-avoid",
     "resume": false,
-    "seed": 42,
-    "num_workers": 20,
-    "batch_size": 24,
+    "seed": 6203,
+    "num_workers": 16,
+    "batch_size": 32,
     "gradient_accumulation_steps": 1,
-    "steps": 16000,
+    "steps": 30000,
     "eval_freq": 0,
     "log_freq": 50,
     "save_checkpoint": true,
-    "save_freq": 2000,
+    "save_freq": 5000,
     "use_policy_training_preset": true,
-
     "eval": {
         "n_episodes": 50,
         "batch_size": 50,
         "use_async_envs": false
     },
-
     "wandb": {
         "enable": false,
         "project": "BPVAv3",
         "mode": "offline"
     },
-
     "rename_map": {}
 }

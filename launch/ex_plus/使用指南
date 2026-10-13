@@ -1,0 +1,117 @@
+启动方式
+
+conda activate q35va
+cd /vla/workspace/my_tbot
+# 先验证配置、查看实验列表，不启动模型或仿真
+bash launch/ex_plus/run.sh launch/ex_plus/experiment.yml --dry-run
+# 正式执行整批实验
+bash launch/ex_plus/run.sh launch/ex_plus/experiment.yml
+脚本会自动分别使用 q35va 和 myrobotwin 环境启动服务端、客户端，等待 /healthz 检查通过后开始测评。每个实验结束会关闭本次进程，再运行下一个实验；实验内部仍按 GPU 池并行执行任务。启动前需要停止原来占用 8000 端口的服务，或者在配置里修改端口。
+
+配置支持的实验组合
+
+整批实验按以下组合生成：
+
+模型 × checkpoint × 测评场景 × BP 条件
+你主要修改这些字段：
+
+models：可以配置多个模型；用 checkpoint_glob 自动发现全部 checkpoint，也可以用 steps 筛选，或通过 checkpoints 显式列出路径。
+client.tasks：支持 TASK_BP 等现有候选列表、任务名称列表，以及 {任务名: action_horizon} 字典。
+scenes：指定 clean/randomized 等场景，以及每个任务的测评次数。
+variants：保留需要的正常测评、整段 BP 屏蔽、错误 BP 条件。
+name：实验组名称，用于区分结果。
+例如，只观察部分 checkpoint 的正常成功率，可以配置：
+
+models:
+  - name: model_a
+    checkpoint_glob: /absolute/training/checkpoints/*/pretrained_model
+    steps: [10000, 15000, 20000]
+variants:
+  - name: normal
+    server_args: {input_masks: ""}
+示例配置已经包含三种 BP 条件：
+
+normal：使用正常 BP。
+mask_bp：通过现有 --input_masks behavior_prompt 屏蔽整段 BP。
+wrong_bp：使用已有错误 BP 映射，原任务名称和语言指令保持原任务内容。
+默认 clean 和 randomized 场景都使用 clean BP，便于单独比较环境变化；也可以给场景指定不同 BP 映射。
+
+结果与续跑
+
+视频和单任务结果仍保存在：
+
+/vla/workspace/my_robotwin/eval_result/
+  {实验组}__{模型}__{步数}__{场景}__{BP条件}/
+批量实验的配置快照、服务端日志、客户端日志及 CSV 保存在：
+
+/vla/workspace/my_tbot/launch/ex_plus/results/{实验组}/
+其中：
+
+summary.csv：每个实验一行，包含训练步数、场景、BP 条件、完成任务数，以及任务平均成功率和整体成功率。
+tasks.csv：每个实验的各任务成功次数、测评次数和成功率。
+中断后重新执行同一条命令即可续评。配置变化时会拒绝复用旧结果，提示换一个实验组名称，避免把不同实验混在一起。比较训练曲线时，应使用 summary.csv 中 complete=True 的实验。
+
+已经完成默认配置预览、Bash 语法检查、模拟服务启停、成功率汇总、完成任务跳过、配置冲突拒绝和失败清理测试，新增 Python 文件没有 lint 错误。当前示例匹配到 5 个 checkpoint × 2 个场景 × 3 种 BP 条件，共 30 个实验，每个实验 41 个任务；尚未启动完整 GPU 测评。
+
+```
+# 矩阵：所有 checkpoint × scenes × variants。相对路径以本配置目录为基准。
+name: bpv3_training_curve
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: true
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 64
+    host: 0.0.0.0
+    port: 8000
+    debug: false
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  tasks: TASK_BP # 或 [adjust_bottle, place_fan] 或 {adjust_bottle: 16, place_fan: 24}
+  gpu_ids: [3, 2, 1]
+  tasks_per_gpu: 5
+  max_retries: 5
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+  - name: bpv3_plan
+    checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage2_robotwin41_clean_myblocks_lang_3cam_avoid/*/checkpoints/pretrained_model
+    steps: [10000, 18000, 20000] # 不写就测所有匹配项
+    # 或删除 checkpoint_glob，使用显式列表：
+    # checkpoints:
+    #   - /absolute/path/checkpoints/020000/pretrained_model
+    # server_args: {} # 模型专用参数
+scenes:
+  - name: clean_ep20
+    overrides:
+      task_config: my_demo_clean
+      task_config_overrides: {episode_num: 10}
+  # - name: rand_ep20
+  #   overrides:
+  #     task_config: my_demo_randomized
+  #     task_config_overrides: {episode_num: 20}
+    # 默认仍用 clean BP，控制变量；需要时可覆盖：
+    # server_args:
+    #   bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_rand.yml
+variants:
+  - name: normal
+    server_args: {input_masks: ""}
+  - name: mask_bp
+    server_args: {input_masks: behavior_prompt}
+  # - name: wrong_bp
+  #   server_args:
+  #     input_masks: ""
+  #     bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_wrong.yml
+
+
+```

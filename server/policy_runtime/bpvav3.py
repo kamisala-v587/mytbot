@@ -8,6 +8,7 @@ from typing import Any
 import torch
 
 from .base import PolicyAdapter, PreparedSample
+from .bp_dim_use import apply_bp_dim_use, resolve_bp_dim_use
 from .bpvav2 import BP_PREFIX, BehaviorPromptCache, fixed_bp_video_cache_dir, load_bp_task_sources
 from .common import (
     CAMERA_ALIASES,
@@ -18,6 +19,7 @@ from .common import (
     resolve_images,
     resolve_state,
 )
+from lerobot.policies.BPVAv3.configuration_bpvav3 import validate_bp_dim_use
 from lerobot.policies.BPVAv3.transform_bpvav3 import (
     BPVAv3ProcessorTransformFn,
     BPVAv3Qwen35ImageTransformFn,
@@ -104,6 +106,20 @@ class BPVAv3Adapter(PolicyAdapter):
         )
         if not self.args.bp_mapping_path:
             raise ValueError("BPVAv3 需要 BP_MAPPING_PATH。")
+        self.bp_action_use, self.bp_state_use, self.bp_dim_source = resolve_bp_dim_use(
+            self.args.bp_dim_config,
+            self.train_cfg,
+        )
+        validate_bp_dim_use(
+            self.bp_action_use,
+            name="bp_action_use",
+            max_dim=int(getattr(self.config, "max_action_dim")),
+        )
+        validate_bp_dim_use(
+            self.bp_state_use,
+            name="bp_state_use",
+            max_dim=int(getattr(self.config, "max_state_dim")),
+        )
         self.mapping_path, sources = load_bp_task_sources(self.args.bp_mapping_path)
         cache_dir = fixed_bp_video_cache_dir(self.args.debug_dir, self.name)
         self.bp_cache = BPVAv3PromptCache(
@@ -124,8 +140,17 @@ class BPVAv3Adapter(PolicyAdapter):
             "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
             "required_image_history": 1,
             "use_language": bool(getattr(self.config, "use_language", True)),
+            "bp_action_use": self.bp_action_use,
+            "bp_state_use": self.bp_state_use,
+            "bp_dim_source": self.bp_dim_source,
         }
         logging.info("BPVAv3 任务映射 | tasks=%d | path=%s", len(sources), self.mapping_path)
+        logging.info(
+            "BP 示教维度 | action=%s | state=%s | source=%s",
+            self.bp_action_use,
+            self.bp_state_use,
+            self.bp_dim_source,
+        )
 
     def build_metadata(self, chunk_size: int) -> dict[str, Any]:
         metadata = super().build_metadata(chunk_size)
@@ -165,7 +190,8 @@ class BPVAv3Adapter(PolicyAdapter):
             "observation.mm_token_type_ids": sample["observation.mm_token_type_ids"],
         }
         inputs = self.pack_inputs(kept)
-        inputs[BP_PREFIX] = batch_nested(self.bp_cache.get(task_type.strip()), self.device, self.runtime_dtype)
+        prompt = batch_nested(self.bp_cache.get(task_type.strip()), self.device, self.runtime_dtype)
+        inputs[BP_PREFIX] = apply_bp_dim_use(prompt, self.bp_action_use, self.bp_state_use)
         return PreparedSample(inputs, state_np)
 
 

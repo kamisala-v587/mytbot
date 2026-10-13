@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import math
@@ -166,13 +167,41 @@ class BehaviorPromptCache:
                 self._cache[task_type] = prompt
             return self._cache[task_type]
 
-    def _cache_paths(self, task_type: str) -> tuple[Path, Path, Path]:
-        stem = safe_name(task_type)
+    def _paths_for_stem(self, stem: str) -> tuple[Path, Path, Path]:
         return (
             self.cache_dir / f"{stem}.json",
             self.cache_dir / f"{stem}.pt",
             self.cache_dir / f"{stem}.mp4",
         )
+
+    def _source_digest(self, task_type: str) -> str:
+        paths = "|".join(str(path.resolve()) for path in self.sources[task_type].dataset_paths)
+        return hashlib.sha1(paths.encode()).hexdigest()[:8]
+
+    def _record_matches_source(self, task_type: str, meta_path: Path) -> bool:
+        if not meta_path.is_file():
+            return False
+        try:
+            record = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            return False
+        cached = record.get("dataset_path")
+        if not isinstance(cached, str) or not cached.strip():
+            return False
+        cached_path = Path(cached).expanduser().resolve()
+        for root in self.sources[task_type].dataset_paths:
+            root = root.resolve()
+            if cached_path == root or root in cached_path.parents:
+                return True
+        return False
+
+    def _cache_paths(self, task_type: str) -> tuple[Path, Path, Path]:
+        """正确映射继续用原来的 task 文件；数据集对不上时另写一份，避免盖掉。"""
+        legacy = self._paths_for_stem(safe_name(task_type))
+        hashed = self._paths_for_stem(f"{safe_name(task_type)}-{self._source_digest(task_type)}")
+        if self._record_matches_source(task_type, legacy[0]) and not hashed[1].is_file():
+            return legacy
+        return hashed
 
     def _signature(self) -> dict[str, Any]:
         height, width = tuple(getattr(self.config, "image_resolution", (224, 224)))

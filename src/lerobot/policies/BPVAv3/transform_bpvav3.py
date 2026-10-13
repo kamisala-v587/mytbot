@@ -6,6 +6,7 @@ from typing import Any
 
 import torch
 
+from lerobot.policies.BPVAv3.configuration_bpvav3 import parse_bp_dim_use
 from lerobot.policies.q35.transform_q35 import Qwen3_5ProcessorTransformFn
 from lerobot.transforms.core import DataDict, DataTransformFn
 from lerobot.transforms.core_bp import BP_PREFIX
@@ -175,6 +176,54 @@ class BPVAv3Qwen35ImageTransformFn(DataTransformFn):
             processed_grids[key] = template_grids.clone()
         prompt["bp_pixel_values"] = processed_pixels
         prompt["bp_image_grid_thw"] = processed_grids
+        data[BP_PREFIX] = prompt
+        return data
+
+
+def _select_last_dim(tensor: torch.Tensor, spec: Any, *, name: str) -> tuple[torch.Tensor, bool]:
+    """按 bp_*_use 清掉最后一维。返回 (tensor, dropped_all)。"""
+    parsed = parse_bp_dim_use(spec, name=name)
+    keep = parsed.resolve(int(tensor.shape[-1]))
+    if keep is None:
+        return tensor, False
+    if len(keep) == 0:
+        return torch.zeros_like(tensor), True
+    selected = tensor.clone()
+    drop = [index for index in range(selected.shape[-1]) if index not in set(keep)]
+    selected[..., drop] = 0
+    return selected, False
+
+
+@DataTransformFn.register_subclass("bpvav3_select_prompt_dims")
+@dataclass
+class BPVAv3SelectPromptDimsFn(DataTransformFn):
+    """只保留示教 state/action 的指定维度。放在 pad 之后，下标和模型输入一致。
+
+    整段关掉 action 时同时把 action_is_pad 置为 true。整段关掉 state 时把 state_is_available 置为 false。
+    只丢掉部分维度时，token 仍然有效，未选中的维度置零。
+    """
+
+    bp_action_use: Any = True
+    bp_state_use: Any = True
+
+    def __call__(self, data: DataDict) -> DataDict:
+        prompt = data[BP_PREFIX]
+        state, drop_state = _select_last_dim(prompt["state"], self.bp_state_use, name="bp_state_use")
+        action, drop_action = _select_last_dim(prompt["action"], self.bp_action_use, name="bp_action_use")
+        prompt["state"] = state
+        prompt["action"] = action
+        if drop_state:
+            prompt["state_is_available"] = torch.zeros(
+                state.shape[:-1],
+                dtype=torch.bool,
+                device=state.device,
+            )
+        if drop_action:
+            prompt["action_is_pad"] = torch.ones(
+                action.shape[:-1],
+                dtype=torch.bool,
+                device=action.device,
+            )
         data[BP_PREFIX] = prompt
         return data
 

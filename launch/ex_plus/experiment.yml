@@ -1,0 +1,59 @@
+# 矩阵：所有 checkpoint × scenes × variants。相对路径以本配置目录为基准。
+name: bpv3_training_curve
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: true
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 64
+    host: 0.0.0.0
+    port: 8001
+    debug: false
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  # TASK_BP或 [adjust_bottle, place_fan] 或 {adjust_bottle: 16, place_fan: 24}
+  tasks:  [handover_mic, dump_bin_bigbin,click_alarmclock,click_bell,grab_roller,handover_block]
+  gpu_ids: [3, 2, 1]
+  tasks_per_gpu: 5
+  max_retries: 5
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+  - name: bpv3_plan
+    checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/stage15_avoid_taskbp41_recorrect/2026-10-12_20-59/checkpoints/*/pretrained_model
+    steps: [25000] # 不写就测所有匹配项
+    # 或删除 checkpoint_glob，使用显式列表：
+    # checkpoints:
+    #   - /absolute/path/checkpoints/020000/pretrained_model
+    # server_args: {} # 模型专用参数
+scenes:
+  - name: test_ep10
+    overrides:
+      task_config: my_demo_randomized # my_demo_randomized my_demo_clean
+      task_config_overrides: {episode_num: 10}
+  # - name: rand_ep20
+  #   overrides:
+  #     task_config: my_demo_randomized
+  #     task_config_overrides: {episode_num: 20}
+    # 默认仍用 clean BP，控制变量；需要时可覆盖：
+    # server_args:
+    #   bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_rand.yml
+variants:
+  - name: normal
+    server_args: {input_masks: ""}
+  - name: mask_bp
+    server_args: {input_masks: behavior_prompt}
+  # - name: wrong_bp
+  #   server_args:
+  #     input_masks: ""
+  #     bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_wrong.yml

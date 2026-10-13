@@ -26,6 +26,7 @@ from .common import (
     resolve_stats,
     resolve_task_text,
 )
+from .input_mask import apply_client_masks, apply_model_masks, log_mask_rules, parse_mask_rules
 
 prepare_import_path()
 
@@ -80,6 +81,8 @@ class PolicyAdapter:
         self.policy.requires_grad_(False)
 
         self._init_action_transforms()
+        self.input_mask_rules = parse_mask_rules(getattr(args, "input_masks", None))
+        log_mask_rules(self.input_mask_rules)
         self._dumper = None
         self.setup_policy()
         if self.args.debug and self.family in {"vla", "bp"}:
@@ -200,6 +203,7 @@ class PolicyAdapter:
             "target_action_dim": self.target_action_dim,
             "default_prompt": self.args.default_prompt,
             "protocol": "msgpack observation dict -> action dict",
+            "input_masks": [rule.spec for rule in self.input_mask_rules],
         }
 
     def pack_inputs(self, sample: dict[str, Any]) -> dict[str, torch.Tensor]:
@@ -245,7 +249,12 @@ class PolicyAdapter:
     def infer_batch(self, observations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not observations:
             return []
+        if self.input_mask_rules:
+            observations = [apply_client_masks(obs, self.input_mask_rules) for obs in observations]
         prepared = [self.prepare(obs) for obs in observations]
+        if self.input_mask_rules:
+            for item in prepared:
+                apply_model_masks(item.inputs, self.input_mask_rules)
         try:
             return self._infer_prepared(prepared)
         except RuntimeError as exc:

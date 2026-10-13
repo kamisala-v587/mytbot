@@ -1,0 +1,9 @@
+move_pillbottle_pad
+move_stapler_pad
+place_a2b_left
+place_a2b_right
+place_bread_basket
+place_object_basket
+place_object_scale
+place_object_stand
+stamp_seal

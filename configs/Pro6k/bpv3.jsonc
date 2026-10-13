@@ -2,17 +2,17 @@
     "dataloader_in_order": false,
     "dataset": {
         "type": "bpvav3",
-        "repo_id": "bpv3_stage1_frozen_vit_no_language",
-        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/bp-datav2.txt",
+        "repo_id": "bprobotwin_clean",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
         "use_imagenet_stats": true,
-        "video_backend": "pyav",
+        "video_backend": "torchcodec",
         "homogeneous_batch": true,
         "skip_video_file_validation": true,
         "streaming": false,
-        "dist_loading": true,
+        "dist_loading": false,
         "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",
         "height": 224,
         "width": 224,
@@ -29,9 +29,15 @@
         // random: 同任务随机，可能抽到当前 episode。
         // origin: 示教就是当前轨迹整段。阶段 1 用，并且 lambda_bp_encoder 必须为 0。
         // avoid: 同任务随机，排除当前 episode。阶段 2 用。
-        "bp_sampling_mode": "random",
+        "bp_sampling_mode": "origin",
 
-        // true 时额外产出 future_prompt，只作为对齐监督，不进入 VLM 条件。
+        // false: 示教 action 整段置零且 action_is_pad=true，避免 origin 直接抄当前轨迹。
+        // 只保留部分维度写 "0:6" 或 "0:6,7:13"（右端不含）。Aloha 夹爪是 6 和 13。
+        "bp_action_use": false,
+        // 与 bp_action_use 相同。false 时 state 置零且 state_is_available=false。
+        "bp_state_use": true,
+
+        // 本轮先关掉 align。训练时按 bp_action_use / bp_state_use 选择示教维度。
         "align_bp_encoder": false,
 
         // 只过滤 future_prompt 里锚点早于当前帧的 chunk。
@@ -86,8 +92,7 @@
         "bp_compressor_num_layers": 2,
         "bp_compressor_num_heads": 8,
         "bp_compressor_ff_mult": 4,
-        // 0 只算 action loss。阶段 2 设成 0.1 到 0.5，同时 dataset.align_bp_encoder=true，
-        // 并且 bp_sampling_mode 用 random 或 avoid。origin 不能和这个系数同时打开。
+        // 阶段 1 只算 action loss，让随机初始化的 BP 模块贴上 Q35。
         "lambda_bp_encoder": 0,
         // true 时只冻结 bp_obs_encoder 里 ViT 以外的部分：投影、MLP 和 compressor。
         "frozen_bp_encoder": false,
@@ -117,22 +122,23 @@
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 1000,
-        "scheduler_decay_steps": 999999,
+        "scheduler_warmup_steps": 300,
+        "scheduler_decay_steps": 3000,
         "scheduler_decay_lr": 5e-5
     },
 
-    "output_dir": "outputs/BPVAv3/stage1/frozen_vit_test",
+    "output_dir": "outputs/BPv3/q35/bpv3-clean-stage1",
     "resume": false,
     "seed": 42,
     "num_workers": 16,
-    "batch_size": 24,
+    // 单卡 64；4 卡时全局 batch=256，和上次 clean SFT 同量级。
+    "batch_size": 64,
     "gradient_accumulation_steps": 1,
-    "steps": 999999,
+    "steps": 3000,
     "eval_freq": 0,
     "log_freq": 50,
     "save_checkpoint": true,
-    "save_freq": 2000,
+    "save_freq": 1000,
     "use_policy_training_preset": true,
 
     "eval": {

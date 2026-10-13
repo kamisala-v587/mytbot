@@ -1,9 +1,9 @@
 {
     "dataloader_in_order": false,
     "dataset": {
-        "type": "bpvav3",
-        "repo_id": "bpvav3_sft_only",
-        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robotwin_test.txt",
+        "type": "q35",
+        "repo_id": "q35_robo_clean",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt",
         "action_mode": "delta",
         "use_external_stats": true,
         "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
@@ -13,32 +13,14 @@
         "skip_video_file_validation": true,
         "streaming": false,
         "dist_loading": false,
-        "weight_rules_path": null,
+        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",
         "height": 224,
         "width": 224,
         "max_state_dim": 32,
         "max_action_dim": 32,
         "current_image_index": 0,
-        "qwen3_5_processor_path": "/vla/workspace/shiliangchao/models/Qwen35_0_8",
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
         "qwen3_5_processor_revision": null,
-
-        // false 时当前观测不编码 instruction，也不调用 tokenizer。
-        "use_language": true,
-        "bp_num_chunks": 8,
-        "bp_seed": 0,
-        // random: 同任务随机，可能抽到当前 episode。
-        // origin: 示教就是当前轨迹整段。阶段 1 用，并且 lambda_bp_encoder 必须为 0。
-        // avoid: 同任务随机，排除当前 episode。阶段 2 用。
-        "bp_sampling_mode": "random",
-
-        // true 时额外产出 future_prompt，只作为对齐监督，不进入 VLM 条件。
-        "align_bp_encoder": true,
-
-        // 只过滤 future_prompt 里锚点早于当前帧的 chunk。
-        "future_filter": true,
-        "bp_camera_keys": [
-            "observation.images.image0"
-        ],
 
         "image_transforms": {
             "enable": false,
@@ -48,21 +30,19 @@
 
     "env": null,
     "policy": {
-        "type": "bpvav3",
-        "pretrained_path": "/vla/workspace/my_tbot/outputs/BPVAv3/stf_only/2026-09-23/18-35-47_stage1/checkpoints/010000/pretrained_model", // 请给我一个合理值
+        "type": "q35",
+        "pretrained_path": "/vla/workspace/models/q35/pt-15w",
         "push_to_hub": false,
         "device": null,
 
         "dtype": "bfloat16",
         "expert_type": "action",
-        "qwen3_5_pretrained_path": "/vla/workspace/models/Q35/base_800m",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
         "qwen3_5_model_revision": null,
         "qwen3_5_processor_path": null,
         "qwen3_5_processor_revision": null,
         "qwen3_5_fingerprint": null,
         "expert_width_ratio": 0.5,
-
-        "use_language": true,
 
         "n_obs_steps": 1,
         "chunk_size": 50,
@@ -74,23 +54,6 @@
         "image_delta_indices": [0],
         "num_camera_views": 3,
         "empty_cameras": 0,
-
-        "bp_num_chunks": 8,
-        "bp_action_chunk_size": 50,
-        "bp_camera_keys": [
-            "observation.images.image0"
-        ],
-        "bp_compressor_dim": 512,
-        "bp_state_action_hidden_dim": 256,
-        "bp_num_query_tokens": 8,
-        "bp_compressor_num_layers": 2,
-        "bp_compressor_num_heads": 8,
-        "bp_compressor_ff_mult": 4,
-        // 0 只算 action loss。阶段 2 设成 0.1 到 0.5，同时 dataset.align_bp_encoder=true，
-        // 并且 bp_sampling_mode 用 random 或 avoid。origin 不能和这个系数同时打开。
-        "lambda_bp_encoder": 0.5,
-        // true 时冻结 bp_obs_encoder，不更新投影和 compressor。共享 Qwen3.5 ViT 仍可训练。
-        "frozen_bp_encoder": false,
 
         "time_sampling_beta_alpha": 1.5,
         "time_sampling_beta_beta": 1.0,
@@ -116,23 +79,22 @@
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
-        "scheduler_warmup_steps": 500,
+        "scheduler_warmup_steps": 300,
         "scheduler_decay_steps": 10000,
         "scheduler_decay_lr": 5e-6
     },
 
-    "output_dir": "outputs/BPVAv3/stf_only",
-    "job_name": "stage2",
+    "output_dir": "outputs/Q35/q35-clean-10k",
     "resume": false,
     "seed": 42,
-    "num_workers":20,
-    "batch_size": 32,
+    "num_workers": 16,
+    "batch_size": 64,
     "gradient_accumulation_steps": 1,
     "steps": 10000,
     "eval_freq": 0,
     "log_freq": 50,
     "save_checkpoint": true,
-    "save_freq": 2000,
+    "save_freq": 1000,
     "use_policy_training_preset": true,
 
     "eval": {
@@ -143,7 +105,7 @@
 
     "wandb": {
         "enable": false,
-        "project": "BPVAv3",
+        "project": "Q35",
         "mode": "offline"
     },
 

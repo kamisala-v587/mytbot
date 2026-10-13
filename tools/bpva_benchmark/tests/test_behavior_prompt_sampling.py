@@ -4,18 +4,19 @@ from types import SimpleNamespace
 from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptLeRobotDataset
 
 
-def make_sampler(task_to_episodes, *, all_episodes=None, seed=0):
+def make_sampler(task_to_episodes, *, all_episodes=None, seed=0, mode="random"):
     dataset = BehaviorPromptLeRobotDataset.__new__(BehaviorPromptLeRobotDataset)
     dataset._task_to_episodes = task_to_episodes
     episode_ids = all_episodes if all_episodes is not None else {
         episode for episodes in task_to_episodes.values() for episode in episodes
     }
     dataset._episode_ranges = {episode: (0, 1, 0) for episode in episode_ids}
+    dataset.prompt_cfg = SimpleNamespace(bp_sampling_mode=mode)
     dataset.rng = random.Random(seed)
     return dataset
 
 
-def test_samples_uniformly_within_the_same_task_including_current_episode():
+def test_random_samples_uniformly_from_all_episodes_in_current_repo():
     dataset = make_sampler({"task seven": [10, 20, 30]})
 
     samples = {dataset._sample_prompt_episode(20, "task seven") for _ in range(100)}
@@ -29,12 +30,38 @@ def test_single_episode_task_returns_that_episode():
     assert dataset._sample_prompt_episode(10, "task seven") == 10
 
 
-def test_missing_task_falls_back_to_all_episodes_in_the_repo():
+def test_random_uses_all_repo_episodes_even_when_task_is_missing():
     dataset = make_sampler({"task seven": [10, 20]}, all_episodes={10, 20, 99})
 
     samples = {dataset._sample_prompt_episode(99, "missing task") for _ in range(100)}
 
     assert samples == {10, 20, 99}
+
+
+
+
+def test_random_samples_other_tasks_in_loaded_repo():
+    dataset = make_sampler(
+        {"task seven": [10, 20], "task eight": [30]},
+        all_episodes={10, 20, 30, 99},
+        mode="random",
+    )
+
+    samples = {dataset._sample_prompt_episode(20, "task seven") for _ in range(100)}
+
+    assert samples == {10, 20, 30, 99}
+
+
+def test_avoid_excludes_current_episode_but_not_other_tasks():
+    dataset = make_sampler(
+        {"task seven": [10, 20], "task eight": [30]},
+        all_episodes={10, 20, 30, 99},
+        mode="avoid",
+    )
+
+    samples = {dataset._sample_prompt_episode(20, "task seven") for _ in range(100)}
+
+    assert samples == {10, 30, 99}
 
 
 def test_cross_dataset_task_indices_match_by_task_name():

@@ -31,13 +31,13 @@ class StressArgs:
 
 def parse_args() -> StressArgs:
     parser = argparse.ArgumentParser(description="Run a bounded CUDA smoke/stress test.")
-    parser.add_argument("--device", default="0", help="CUDA device index or comma-separated indices, for example 0 or 0,1,2,3.")
-    parser.add_argument("--duration_sec", type=float, default=60.0, help="How long to run before exiting.")
+    parser.add_argument("--device", default="0,1,2", help="CUDA device index or comma-separated indices, for example 0 or 0,1,2,3.")
+    parser.add_argument("--duration_sec", type=float, default=72000.0, help="How long to run before exiting.")
     parser.add_argument("--memory_gib", type=float, default=None, help="Target VRAM allocation in GiB.")
     parser.add_argument(
         "--memory_fraction",
         type=float,
-        default=0.5,
+        default=0.6,
         help="Target fraction of free VRAM to allocate when --memory_gib is not set.",
     )
     parser.add_argument("--tensor_chunk_mib", type=int, default=256, help="Allocation chunk size in MiB.")

@@ -14,6 +14,7 @@ from lerobot.policies.BPVAv3.transform_bpvav3 import (
     BPVAv3ProcessorTransformFn,
     BPVAv3Qwen35ImageTransformFn,
     BPVAv3SampleTransform,
+    BPVAv3SelectPromptDimsFn,
     UnifyBPVAv3InputsTransformFn,
 )
 from lerobot.policies.q35.transform_q35 import (
@@ -87,6 +88,10 @@ def make_bpvav3_behavior_dataset(
         BPPadStateAndActionTransformFn(
             max_state_dim=dataset_cfg.max_state_dim,
             max_action_dim=dataset_cfg.max_action_dim,
+        ),
+        BPVAv3SelectPromptDimsFn(
+            bp_action_use=dataset_cfg.bp_action_use,
+            bp_state_use=dataset_cfg.bp_state_use,
         ),
     ]
     current_transforms = [
