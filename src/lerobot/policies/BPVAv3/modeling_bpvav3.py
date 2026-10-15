@@ -164,12 +164,18 @@ class BPVAv3Model(Q35Model):
         return self
 
     @dynamo_disable
-    def _visual_features(self, pixels: torch.Tensor, grids: torch.Tensor) -> list[torch.Tensor]:
+    def _visual_features(
+        self,
+        pixels: torch.Tensor,
+        grids: torch.Tensor,
+        *,
+        no_grad: bool = False,
+    ) -> list[torch.Tensor]:
         vlm = self.core.backbone.vlm
         vision_dtype = next(self.core.backbone.vlm_visual.parameters()).dtype
         flat_pixels = pixels.reshape(-1, pixels.shape[-1]).to(dtype=vision_dtype)
         flat_grids = grids.reshape(-1, 3).to(device=flat_pixels.device)
-        context = torch.no_grad() if self.config.frozen_vit else nullcontext()
+        context = torch.no_grad() if (no_grad or self.config.frozen_vit) else nullcontext()
         with context:
             outputs = vlm.model.get_image_features(flat_pixels, flat_grids)
         chunks = outputs.pooler_output
@@ -319,6 +325,9 @@ class BPVAv3Model(Q35Model):
             features = self._visual_features(current_pixels, current_grids)
             current_features = features
             bp_features: list[torch.Tensor] = []
+        elif self.config.frozen_bp_vit and not self.config.frozen_vit:
+            current_features = self._visual_features(current_pixels, current_grids)
+            bp_features = self._visual_features(bp_pixels, bp_grids, no_grad=True)
         else:
             features = self._visual_features(
                 torch.cat([current_pixels, bp_pixels], dim=0),
@@ -406,7 +415,7 @@ class BPVAv3Model(Q35Model):
         bp_pixels, bp_grids, layout, skipped = self._pack_bp_images(prompt, device=device)
         if bp_pixels is None:
             raise ValueError("BP prompt has no active camera to encode")
-        features = self._visual_features(bp_pixels, bp_grids)
+        features = self._visual_features(bp_pixels, bp_grids, no_grad=self.config.frozen_bp_vit)
         visual_by_key = self._group_bp_features(features, layout, skipped, prompt, features[0])
         chunk_encoder = self.bp_obs_encoder.chunk_encoder
         chunk_encoder._visual_tokens = visual_by_key

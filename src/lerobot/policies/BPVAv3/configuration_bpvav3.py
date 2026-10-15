@@ -225,6 +225,9 @@ class BPVAv3Config(Q35Config):
     # true 时冻结共享 Qwen3.5 ViT。当前观测和 BP 图像走同一份参数，两边都不再更新。
     # 默认 false，已有配置不写这个字段时 ViT 仍会训练。
     frozen_vit: bool = False
+    # true 时只让 BP 图像在 no_grad 下过共享 ViT，ViT 仅由当前观测那一路的梯度更新。
+    # 当前观测和 BP 图像会分两次过 ViT。frozen_vit=true 时本开关无额外作用。
+    frozen_bp_vit: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()

@@ -500,6 +500,7 @@ def summarize_checkpoint(ck: dict[str, Any]) -> dict[str, Any]:
         "lambda_bp_encoder": policy.get("lambda_bp_encoder", model_cfg.get("lambda_bp_encoder")),
         "frozen_bp_encoder": policy.get("frozen_bp_encoder", model_cfg.get("frozen_bp_encoder")),
         "frozen_vit": policy.get("frozen_vit", model_cfg.get("frozen_vit")),
+        "frozen_bp_vit": policy.get("frozen_bp_vit", model_cfg.get("frozen_bp_vit")),
         "bp_sampling_mode": dataset.get("bp_sampling_mode"),
         "bp_action_use": dataset.get("bp_action_use"),
         "bp_state_use": dataset.get("bp_state_use"),

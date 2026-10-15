@@ -113,6 +113,8 @@
         "frozen_bp_encoder": false,
         // true 时冻结共享 Qwen3.5 ViT。当前观测和 BP 图像是同一份参数，两边都不再更新。
         "frozen_vit": true,
+        // true 时只让 BP 图像不给共享 ViT 回传梯度，当前观测仍训练 ViT。需配合 frozen_vit=false 才有意义。
+        "frozen_bp_vit": false,
         "time_sampling_beta_alpha": 1.5,
         "time_sampling_beta_beta": 1.0,
         "time_sampling_scale": 0.999,

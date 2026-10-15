@@ -84,6 +84,8 @@
         "lambda_bp_encoder": 0.0,
         "frozen_bp_encoder": false,
         "frozen_vit": true,
+        // true 时只让 BP 图像不给共享 ViT 回传梯度，当前观测仍训练 ViT。需配合 frozen_vit=false 才有意义。
+        "frozen_bp_vit": false,
         "time_sampling_beta_alpha": 1.5,
         "time_sampling_beta_beta": 1.0,
         "time_sampling_scale": 0.999,
