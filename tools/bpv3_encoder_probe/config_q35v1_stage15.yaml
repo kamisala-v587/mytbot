@@ -1,0 +1,42 @@
+# BPV3Plan/q35/v1 stage1.5 probe: evaluated on the stage1.5 training tasks (robotwin41 clean + myblocks).
+# stage1_10k is the stage1.5 initialization, i.e. step 0 of stage1.5 on these tasks.
+# Run from /vla/workspace/my_tbot.
+name: q35v1_stage15_probe
+output_dir: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/q35v1_stage15_probe
+
+data_repo_file: /vla/workspace/my_tbot/configs/ds_ids/pro6k/bpv3_plan/v1/stage2_robotwin41_clean_plus_myblocks_local.txt
+samples_per_task: 20
+seed: 42
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_action_use: false
+bp_state_use: true
+# Overridden by the checkpoint config (3 cameras for q35/v1).
+bp_camera_keys:
+  - observation.images.image0
+
+checkpoints:
+  - name: stage1_10k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage1_excluded9_clean_rand_warmup_lang_3cam/2026-10-12_19-46/checkpoints/010000/pretrained_model
+  - name: stage1.5_5k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/005000/pretrained_model
+  - name: stage1.5_10k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/010000/pretrained_model
+  - name: stage1.5_15k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/015000/pretrained_model
+  - name: stage1.5_18k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/018000/pretrained_model
+  - name: stage1.5_21k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/021000/pretrained_model
+  - name: stage1.5_24k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage15_robotwin41_clean_myblocks_lang_3cam_avoid/2026-10-13_01-20/checkpoints/024000/pretrained_model
+
+plots:
+  pca: true
+  umap: true
+  max_points: 1000

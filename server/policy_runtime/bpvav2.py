@@ -205,7 +205,7 @@ class BehaviorPromptCache:
 
     def _signature(self) -> dict[str, Any]:
         height, width = tuple(getattr(self.config, "image_resolution", (224, 224)))
-        return {
+        signature = {
             "adapter": self.adapter_name,
             "bp_num_chunks": int(getattr(self.config, "bp_num_chunks")),
             "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
@@ -216,6 +216,10 @@ class BehaviorPromptCache:
             "action_mode": self.action_mode,
             "qwen_path": str(self.qwen_path),
         }
+        # 只在开启时写入签名，已有缓存（可变 K）保持命中。
+        if getattr(self.config, "bp_fixed_num_chunks", False):
+            signature["bp_fixed_num_chunks"] = True
+        return signature
 
     def _try_load(self, task_type: str) -> dict[str, Any] | None:
         meta_path, tensor_path, video_path = self._cache_paths(task_type)
@@ -302,10 +306,9 @@ class BehaviorPromptCache:
         )
         if len(dataset) <= 0:
             raise ValueError("episode 为空")
-        num_chunks = min(
-            int(getattr(self.config, "bp_num_chunks")),
-            max(1, math.ceil(len(dataset) / action_steps)),
-        )
+        num_chunks = int(getattr(self.config, "bp_num_chunks"))
+        if not getattr(self.config, "bp_fixed_num_chunks", False):
+            num_chunks = min(num_chunks, max(1, math.ceil(len(dataset) / action_steps)))
         frame_indices = torch.linspace(0, len(dataset) - 1, steps=num_chunks).round().to(torch.long).tolist()
         samples = [dataset[index] for index in frame_indices]
         image_keys = list(dataset.meta.camera_keys)

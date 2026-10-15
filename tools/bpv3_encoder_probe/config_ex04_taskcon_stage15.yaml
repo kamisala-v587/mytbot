@@ -1,0 +1,52 @@
+# taskcon（固定 8 帧 + BP 同任务对比损失）stage1 与 stage1.5 全程。
+# manifest 与 ex01/ex02/ex03 相同；taskcon stage1 的 shard 复用 ex03。
+name: ex04_taskcon_stage15_probe
+output_dir: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/ex04_taskcon_stage15_probe
+
+data_repo_file: /vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt
+samples_per_task: 20
+seed: 42
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_action_use: false
+bp_state_use: true
+bp_camera_keys:
+  - observation.images.image0
+
+checkpoints:
+  - name: taskcon_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1/2026-10-14_23-20/checkpoints/001000/pretrained_model
+  - name: taskcon_2k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1/2026-10-14_23-20/checkpoints/002000/pretrained_model
+  - name: taskcon_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1/2026-10-14_23-20/checkpoints/003000/pretrained_model
+  - name: stage1.5_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/001000/pretrained_model
+  - name: stage1.5_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/003000/pretrained_model
+  - name: stage1.5_5k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/005000/pretrained_model
+  - name: stage1.5_7k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/007000/pretrained_model
+  - name: stage1.5_9k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/009000/pretrained_model
+  - name: stage1.5_11k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/011000/pretrained_model
+  - name: stage1.5_13k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/013000/pretrained_model
+  - name: stage1.5_15k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/015000/pretrained_model
+  - name: stage1.5_17k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/017000/pretrained_model
+  - name: stage1.5_19k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/019000/pretrained_model
+
+plots:
+  pca: true
+  umap: true
+  max_points: 1000

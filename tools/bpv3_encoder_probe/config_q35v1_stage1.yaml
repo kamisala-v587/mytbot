@@ -1,0 +1,35 @@
+# BPV3Plan/q35/v1 stage1 probe: evaluated on the stage1 training tasks (excluded9, clean only).
+# Run from /vla/workspace/my_tbot.
+name: q35v1_stage1_probe
+output_dir: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/q35v1_stage1_probe
+
+data_repo_file: /vla/workspace/my_tbot/configs/ds_ids/pro6k/bpv3_plan/v1/stage1_excluded9_clean_rand_local.txt
+samples_per_task: 20
+seed: 42
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_action_use: false
+bp_state_use: true
+# Overridden by the checkpoint config (3 cameras for q35/v1).
+bp_camera_keys:
+  - observation.images.image0
+
+checkpoints:
+  - name: stage1_2.5k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage1_excluded9_clean_rand_warmup_lang_3cam/2026-10-12_19-46/checkpoints/002500/pretrained_model
+  - name: stage1_5k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage1_excluded9_clean_rand_warmup_lang_3cam/2026-10-12_19-46/checkpoints/005000/pretrained_model
+  - name: stage1_7.5k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage1_excluded9_clean_rand_warmup_lang_3cam/2026-10-12_19-46/checkpoints/007500/pretrained_model
+  - name: stage1_10k
+    path: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/v1/stage1_excluded9_clean_rand_warmup_lang_3cam/2026-10-12_19-46/checkpoints/010000/pretrained_model
+
+plots:
+  pca: true
+  umap: true
+  max_points: 1000

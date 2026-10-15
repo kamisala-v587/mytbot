@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import zlib
 from dataclasses import replace
+from pathlib import Path
 
 import torch
 
@@ -62,7 +64,15 @@ class BPVAv3BehaviorPromptDataset(BehaviorPromptLeRobotDataset):
                 dtype=torch.long,
             )
             current["future_prompt"] = future
-        return self.transform(current)
+        sample = self.transform(current)
+        if bool(getattr(self.prompt_cfg, "attach_task_id", False)):
+            sample["bp_task_id"] = torch.tensor(self._bp_task_id(), dtype=torch.long)
+        return sample
+
+    def _bp_task_id(self) -> int:
+        # clean / randomized repo 都放在 <task>/<variant> 下，用上级目录名把同任务的不同 repo 归为一类。
+        task = Path(str(self.current_ds.repo_id)).parent.name or str(self.current_ds.repo_id)
+        return zlib.crc32(task.encode("utf-8")) & 0x7FFFFFFF
 
 
 def make_bpvav3_behavior_dataset(
@@ -171,6 +181,8 @@ def make_bpvav3_behavior_dataset(
         prompt_action_chunk_size=bp_action_chunk_size,
         seed=int(dataset_cfg.bp_seed),
         num_chunks=dataset_cfg.bp_num_chunks,
+        fixed_num_chunks=bool(dataset_cfg.bp_fixed_num_chunks),
+        attach_task_id=bool(dataset_cfg.bp_attach_task_id),
         height=dataset_cfg.height,
         width=dataset_cfg.width,
         max_state_dim=dataset_cfg.max_state_dim,

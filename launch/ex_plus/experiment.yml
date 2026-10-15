@@ -11,7 +11,7 @@ server:
     device: cuda:0
     max_batch_size: 4
     batch_wait_ms: 10
-    queue_size: 64
+    queue_size: 128
     host: 0.0.0.0
     port: 8001
     debug: false
@@ -21,26 +21,26 @@ client:
   conda_env: myrobotwin
   base_config: /vla/workspace/my_robotwin/run/fast.yml
   # TASK_BP或 [adjust_bottle, place_fan] 或 {adjust_bottle: 16, place_fan: 24}
-  tasks:  [handover_mic, dump_bin_bigbin,click_alarmclock,click_bell,grab_roller,handover_block]
-  gpu_ids: [3, 2, 1]
+  tasks:  TASK_BP_SMOKE
+  gpu_ids: [2, 1, 3]
   tasks_per_gpu: 5
   max_retries: 5
   overrides:
     seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
     instruction_type: seen
 models:
-  - name: bpv3_plan
-    checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/q35/stage15_avoid_taskbp41_recorrect/2026-10-12_20-59/checkpoints/*/pretrained_model
-    steps: [25000] # 不写就测所有匹配项
+  - name: bpv3_bptaskcon
+    checkpoint_glob: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/*/pretrained_model
+    steps: [7000,12000,19000] # 不写就测所有匹配项
     # 或删除 checkpoint_glob，使用显式列表：
     # checkpoints:
     #   - /absolute/path/checkpoints/020000/pretrained_model
     # server_args: {} # 模型专用参数
 scenes:
-  - name: test_ep10
+  - name: clean_ep20
     overrides:
-      task_config: my_demo_randomized # my_demo_randomized my_demo_clean
-      task_config_overrides: {episode_num: 10}
+      task_config: my_demo_clean # my_demo_randomized my_demo_clean
+      task_config_overrides: {episode_num: 20}
   # - name: rand_ep20
   #   overrides:
   #     task_config: my_demo_randomized
@@ -51,8 +51,8 @@ scenes:
 variants:
   - name: normal
     server_args: {input_masks: ""}
-  - name: mask_bp
-    server_args: {input_masks: behavior_prompt}
+  # - name: mask_bp
+  #   server_args: {input_masks: behavior_prompt}
   # - name: wrong_bp
   #   server_args:
   #     input_masks: ""

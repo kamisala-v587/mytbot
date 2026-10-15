@@ -14,7 +14,7 @@
 # .rag
 ### Environments & Dependencies ###
 .env
-.bak
+*.bak
 .venv
 .test/
 env/
@@ -53,6 +53,9 @@ lib64/
 # PyInstaller
 *.manifest
 *.spec
+
+# 实验 / probe 结果不入库
+*results/
 
 ### Compiled & Cached Files ###
 __pycache__/
@@ -178,6 +181,18 @@ outputs
 # RoboTwin 评测视频不入库（summary.json/txt 可保留）
 evaluation/RoboTwin/**/*.mp4
 *.mp4
+
+# 权重 / 张量 / 数组兜底，需要入库的小文件用 ! 单独放行
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+*.npy
+*.npz
+*.pkl
+*.h5
+*.hdf5
 !third_party/**
 
 # Translations

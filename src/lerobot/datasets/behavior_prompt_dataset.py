@@ -63,6 +63,10 @@ class BehaviorPromptConfig:
 
     prompt_action_chunk_size: int = 50
     max_prompt_chunks: int | None = None
+    # true 时所有轨迹都取满 K 个关键帧，不再按 ceil(T / prompt_action_chunk_size) 截断。
+    fixed_num_chunks: bool = False
+    # true 时给样本加 bp_task_id（repo 上级目录名的稳定 hash），供 BP 任务对比损失使用。
+    attach_task_id: bool = False
     seed: int = 0
     # random/avoid 默认同 repo；*_in_task 按完整任务描述匹配；avoid_in_task 无候选时 mask BP。
     bp_sampling_mode: str = "random"
@@ -493,6 +497,8 @@ class BehaviorPromptLeRobotDataset(Dataset):
         max_chunks = self.prompt_cfg.num_chunks
         if self.prompt_cfg.max_prompt_chunks is not None:
             max_chunks = min(max_chunks, int(self.prompt_cfg.max_prompt_chunks))
+        if self.prompt_cfg.fixed_num_chunks:
+            return max_chunks
         return min(trajectory_chunks, max_chunks)
 
     @staticmethod

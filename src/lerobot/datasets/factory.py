@@ -1104,6 +1104,12 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                     f"{dataset_type} dataset/policy bp_num_chunks mismatch: "
                     f"{cfg.dataset.bp_num_chunks} != {cfg.policy.bp_num_chunks}"
                 )
+            dataset_fixed = bool(getattr(cfg.dataset, "bp_fixed_num_chunks", False))
+            policy_fixed = bool(getattr(cfg.policy, "bp_fixed_num_chunks", False))
+            if dataset_fixed != policy_fixed:
+                raise ValueError(
+                    f"dataset/policy bp_fixed_num_chunks mismatch: {dataset_fixed} != {policy_fixed}"
+                )
             for dim_name in ("max_state_dim", "max_action_dim"):
                 dataset_dim = int(getattr(cfg.dataset, dim_name))
                 policy_dim = int(getattr(cfg.policy, dim_name))

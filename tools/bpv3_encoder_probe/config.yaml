@@ -1,0 +1,50 @@
+# BPV3 encoder representation probe
+# Run from /vla/workspace/my_tbot.
+name: ex01_clean_encoder_probe
+output_dir: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/ex01_clean_encoder_probe
+
+# Every checkpoint uses this exact clean episode manifest.
+data_repo_file: /vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt
+samples_per_task: 20
+seed: 42
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_action_use: false
+bp_state_use: true
+bp_camera_keys:
+  - observation.images.image0
+
+# Correct task BP is defined by the same task-specific clean repo.
+checkpoints:
+  - name: stage1_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/001000/pretrained_model
+  - name: stage1_2k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/002000/pretrained_model
+  - name: stage1_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/003000/pretrained_model
+  - name: stage2_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/001000/pretrained_model
+  - name: stage2_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/003000/pretrained_model
+  - name: stage2_5k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/005000/pretrained_model
+  - name: stage2_7k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/007000/pretrained_model
+  - name: stage2_9k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/009000/pretrained_model
+  - name: stage2_11k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/011000/pretrained_model
+  - name: stage2_13k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/013000/pretrained_model
+  - name: stage2_15k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/015000/pretrained_model
+
+plots:
+  pca: true
+  umap: true
+  max_points: 1000

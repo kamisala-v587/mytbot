@@ -90,6 +90,22 @@ def bp_align_mse_loss(
     return sample_loss[valid_samples].mean(), counts.sum()
 
 
+def bp_task_supcon_loss(z: torch.Tensor, labels: torch.Tensor, tau: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Supervised contrastive loss; anchors without a same-task partner in the batch are skipped."""
+    z = F.normalize(z.float(), dim=-1)
+    labels = labels.reshape(-1).to(z.device)
+    self_mask = torch.eye(z.shape[0], dtype=torch.bool, device=z.device)
+    logits = (z @ z.T / tau).masked_fill(self_mask, float("-inf"))
+    log_prob = logits - torch.logsumexp(logits, dim=1, keepdim=True)
+    positive = (labels[:, None] == labels[None, :]) & ~self_mask
+    num_positive = positive.sum(dim=1)
+    valid = num_positive > 0
+    if not bool(valid.any()):
+        return z.sum() * 0.0, valid.sum()
+    per_anchor = log_prob.masked_fill(~positive, 0.0).sum(dim=1)[valid] / num_positive[valid]
+    return -per_anchor.mean(), valid.sum()
+
+
 def bp_align_loss(pred, target, token_mask, loss_type="cosine"):
     if loss_type == "cosine":
         return bp_align_cosine_loss(pred, target, token_mask)
@@ -115,6 +131,12 @@ class BPVAv3Model(Q35Model):
         torch.nn.init.normal_(self.align_queries, std=0.02)
         if float(config.lambda_bp_encoder) == 0.0:
             self.align_queries.requires_grad_(False)
+        if float(getattr(config, "lambda_bp_task", 0.0)) != 0.0:
+            self.bp_task_head = torch.nn.Sequential(
+                torch.nn.Linear(text_hidden, text_hidden),
+                torch.nn.GELU(),
+                torch.nn.Linear(text_hidden, int(config.bp_task_proj_dim)),
+            )
         if config.frozen_bp_encoder:
             self.freeze_bp_encoder()
         if config.frozen_vit:
@@ -534,6 +556,13 @@ class BPVAv3Model(Q35Model):
         if vlm_valid_mask is None:
             raise ValueError("vlm_valid_mask is required when vlm_hidden is provided")
         bp_tokens = vlm_hidden.shape[1] - input_ids.shape[1]
+        bp_task_embed = None
+        if hasattr(self, "bp_task_head") and bp_tokens > 0:
+            bp_hidden = vlm_hidden[:, -bp_tokens:].float()
+            bp_valid = vlm_valid_mask[:, -bp_tokens:].to(bp_hidden.dtype).unsqueeze(-1)
+            pooled = (bp_hidden * bp_valid).sum(dim=1) / bp_valid.sum(dim=1).clamp_min(1.0)
+            head_dtype = next(self.bp_task_head.parameters()).dtype
+            bp_task_embed = self.bp_task_head(pooled.to(head_dtype))
         n_align = 0
         target_tokens = None
         target_mask = None
@@ -557,23 +586,27 @@ class BPVAv3Model(Q35Model):
             align_tokens=n_align,
         )
         if n_align == 0:
-            return self.core.forward_embedded(
+            result = self.core.forward_embedded(
                 vlm_hidden,
                 state,
                 actions,
                 position_ids=position_ids,
                 vlm_valid_mask=vlm_valid_mask,
             )
-        return self._forward_flow_and_align(
-            vlm_hidden,
-            state,
-            actions,
-            position_ids=position_ids,
-            vlm_valid_mask=vlm_valid_mask,
-            n_align=n_align,
-            target_tokens=target_tokens,
-            target_mask=target_mask,
-        )
+        else:
+            result = self._forward_flow_and_align(
+                vlm_hidden,
+                state,
+                actions,
+                position_ids=position_ids,
+                vlm_valid_mask=vlm_valid_mask,
+                n_align=n_align,
+                target_tokens=target_tokens,
+                target_mask=target_mask,
+            )
+        if bp_task_embed is not None:
+            result["bp_task_embed"] = bp_task_embed
+        return result
 
     @torch.no_grad()
     def sample_actions(
@@ -680,7 +713,7 @@ class BPVAv3Policy(PreTrainedPolicy):
         expected_missing = [
             key
             for key in missing_keys
-            if key.startswith("model.bp_obs_encoder.") or key == "model.align_queries"
+            if key.startswith(("model.bp_obs_encoder.", "model.bp_task_head.")) or key == "model.align_queries"
         ]
         filtered_missing = [key for key in missing_keys if key not in expected_missing]
         return filtered_missing, unexpected_keys, expected_missing
@@ -731,6 +764,19 @@ class BPVAv3Policy(PreTrainedPolicy):
             align_loss_weighted = flow_loss.new_zeros(())
             valid_chunks = flow_loss.new_zeros(())
             total_loss = flow_loss
+        extra_logs = {}
+        lambda_bp_task = float(getattr(self.config, "lambda_bp_task", 0.0))
+        if lambda_bp_task != 0.0:
+            if "bp_task_id" not in batch:
+                raise KeyError("lambda_bp_task != 0 requires batch['bp_task_id'] (dataset.bp_attach_task_id=true)")
+            task_loss, task_anchors = bp_task_supcon_loss(
+                losses["bp_task_embed"], batch["bp_task_id"], float(self.config.bp_task_tau)
+            )
+            total_loss = total_loss + lambda_bp_task * task_loss.to(total_loss.dtype)
+            extra_logs = {
+                "loss_bp_task": float(task_loss.detach()),
+                "bp_task_anchors": float(task_anchors),
+            }
         debug_check_finite("robot.final_loss", total_loss)
         return total_loss, {
             "step_type": "robot",
@@ -739,6 +785,7 @@ class BPVAv3Policy(PreTrainedPolicy):
             "loss_align": float(align_loss.detach()),
             "loss_align_w": float(align_loss_weighted.detach()),
             "align_valid_chunks": float(valid_chunks.detach()),
+            **extra_logs,
         }
 
     def predict_action_chunk(self, batch, **kwargs):

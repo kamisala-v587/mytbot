@@ -1,0 +1,38 @@
+# 固定 8 关键帧（bp_fixed_num_chunks=true）的 stage1 与原 stage1（可变 K）对比。
+# manifest 与 ex01_clean_encoder_probe 相同；stage1_* 的 shard 复用 ex01。
+name: ex02_fixed8_probe
+output_dir: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/ex02_fixed8_probe
+
+data_repo_file: /vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt
+samples_per_task: 20
+seed: 42
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_action_use: false
+bp_state_use: true
+bp_camera_keys:
+  - observation.images.image0
+
+checkpoints:
+  - name: stage1_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/001000/pretrained_model
+  - name: stage1_2k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/002000/pretrained_model
+  - name: stage1_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex01_clean3k+nk/bpv3-clean-stage1/checkpoints/003000/pretrained_model
+  - name: fixed8_1k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex02_fixed8/bpv3-clean-stage1/2026-10-14_17-30/checkpoints/001000/pretrained_model
+  - name: fixed8_2k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex02_fixed8/bpv3-clean-stage1/2026-10-14_17-30/checkpoints/002000/pretrained_model
+  - name: fixed8_3k
+    path: /vla/workspace/my_tbot/outputs/BPv3/ex02_fixed8/bpv3-clean-stage1/2026-10-14_17-30/checkpoints/003000/pretrained_model
+
+plots:
+  pca: true
+  umap: true
+  max_points: 1000

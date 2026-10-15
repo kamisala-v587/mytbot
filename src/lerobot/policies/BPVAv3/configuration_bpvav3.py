@@ -155,6 +155,11 @@ class BPVAv3DatasetConfig(DatasetConfig):
     qwen3_5_processor_revision: str | None = None
     use_language: bool = True
     bp_num_chunks: int = 8
+    # true 时所有轨迹都取 bp_num_chunks 个关键帧；false 时 K=min(ceil(T/bp_action_chunk_size), bp_num_chunks)。
+    # 必须与 policy.bp_fixed_num_chunks 一致，评测侧 BP 缓存读 policy 上的值。
+    bp_fixed_num_chunks: bool = False
+    # true 时样本带 bp_task_id（repo 上级目录名，即任务名的 hash），policy.lambda_bp_task>0 时必须开启。
+    bp_attach_task_id: bool = False
     bp_seed: int = 0
     # random/avoid 默认同 repo；*_in_task 按完整任务描述匹配；avoid_in_task 无候选时 mask BP。
     bp_sampling_mode: str = "random"
@@ -195,6 +200,8 @@ class BPVAv3Config(Q35Config):
     use_language: bool = True
 
     bp_num_chunks: int = 8
+    # 与 dataset.bp_fixed_num_chunks 相同，保存在 checkpoint 里供评测侧构造同样的 BP。
+    bp_fixed_num_chunks: bool = False
     bp_action_chunk_size: int = 50
     bp_camera_keys: list[str] = field(default_factory=lambda: list(_DEFAULT_BP_CAMERAS))
     bp_compressor_dim: int = 512
@@ -207,6 +214,11 @@ class BPVAv3Config(Q35Config):
     lambda_bp_encoder: float = 0.0
     # cosine compares directions; mse compares raw feature values (including magnitude).
     bp_align_loss_type: str = "cosine"
+    # >0 时对 BP encoder 输出（有效 token 平均后经投影头）加同任务 SupCon 损失，梯度直接进 BP encoder。
+    # 需要 batch 内有多个任务：dataset.homogeneous_batch=false，dataset.bp_attach_task_id=true。
+    lambda_bp_task: float = 0.0
+    bp_task_tau: float = 0.1
+    bp_task_proj_dim: int = 256
     # true 时冻结 bp_obs_encoder 里 ViT 以外的部分：投影、state/action MLP 和 compressor。
     # 不碰共享 Qwen3.5 ViT。
     frozen_bp_encoder: bool = False
@@ -236,6 +248,10 @@ class BPVAv3Config(Q35Config):
             raise ValueError("bp_align_loss_type must be cosine or mse")
         if float(self.lambda_bp_encoder) < 0:
             raise ValueError("lambda_bp_encoder must be non-negative")
+        if float(self.lambda_bp_task) < 0:
+            raise ValueError("lambda_bp_task must be non-negative")
+        if float(self.bp_task_tau) <= 0 or int(self.bp_task_proj_dim) <= 0:
+            raise ValueError("bp_task_tau and bp_task_proj_dim must be positive")
         _validate_bp_camera_keys(self.bp_camera_keys)
 
 
@@ -251,3 +267,8 @@ def validate_bpvav3_stage_pair(dataset_cfg: BPVAv3DatasetConfig, policy_cfg: BPV
             "bp_sampling_mode='origin' puts the current trajectory into the VLM condition "
             "and cannot be combined with lambda_bp_encoder != 0"
         )
+    if float(policy_cfg.lambda_bp_task) != 0.0:
+        if not bool(dataset_cfg.bp_attach_task_id):
+            raise ValueError("lambda_bp_task != 0 requires dataset.bp_attach_task_id=true")
+        if bool(dataset_cfg.homogeneous_batch):
+            raise ValueError("lambda_bp_task != 0 requires dataset.homogeneous_batch=false (single-task batches have no negatives)")
