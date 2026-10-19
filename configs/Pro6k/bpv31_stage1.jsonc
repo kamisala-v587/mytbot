@@ -1,0 +1,170 @@
+{
+    // BPVAv3.1 stage1：对标 taskcon / ex01 stage1（pt-15w → 3k，origin，fixed8）。
+    // 增量：全局 taskcon + 时序对比 + 关键帧检索 CE + 下一关键帧 state MSE + 进度正弦编码。
+    // stage1 仍关 BP action（与 taskcon/ex01 一致，避免 origin 抄动作）；stage1.5 再打开。
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpvav31",
+        "repo_id": "bprobotwin_clean",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_clean_bp.txt",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
+        "use_imagenet_stats": true,
+        "video_backend": "torchcodec",
+        // task / temporal 对比需要 batch 内多任务。
+        "homogeneous_batch": false,
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": false,
+        "weight_rules_path": "/vla/workspace/my_tbot/configs/ds_ids/weight_rules.yaml",
+        "height": 224,
+        "width": 224,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "current_image_index": 0,
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_processor_revision": null,
+
+        "use_language": false,
+        "bp_num_chunks": 8,
+        "bp_fixed_num_chunks": true,
+        "bp_attach_task_id": true,
+        "bp_attach_retrieval": true,
+        "bp_seed": 0,
+        // 与 taskcon/ex01 stage1 一致：示教=当前轨迹。
+        "bp_sampling_mode": "origin",
+
+        // stage1 关 BP action，避免 origin 直接抄动作；state 保留。
+        "bp_action_use": false,
+        "bp_state_use": true,
+
+        "align_bp_encoder": false,
+        "future_filter": true,
+        "bp_camera_keys": [
+            "observation.images.image0"
+        ],
+
+        "image_transforms": {
+            "enable": false,
+            "preset": null
+        }
+    },
+
+    "env": null,
+    "policy": {
+        "type": "bpvav31",
+        "pretrained_path": "/vla/workspace/models/q35/pt-15w",
+        "push_to_hub": false,
+        "device": null,
+
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+
+        "use_language": false,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+        "image_resolution": [224, 224],
+        "image_delta_indices": [0],
+        "num_camera_views": 3,
+        "empty_cameras": 0,
+
+        "bp_num_chunks": 8,
+        "bp_fixed_num_chunks": true,
+        "bp_action_chunk_size": 50,
+        "bp_camera_keys": [
+            "observation.images.image0"
+        ],
+        "bp_compressor_dim": 512,
+        "bp_state_action_hidden_dim": 256,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
+        "bp_align_loss_type": "cosine",
+        "lambda_bp_encoder": 0,
+
+        // 全局池化 task id（不逐 chunk 压扁）。
+        "lambda_bp_task": 0.05,
+        "bp_task_tau": 0.2,
+        "bp_task_proj_dim": 256,
+        // 关键帧检索 + 下一关键帧 state + 时序对比。
+        "lambda_bp_retrieve": 0.1,
+        "bp_retrieve_tau": 0.1,
+        "lambda_bp_next_state": 0.05,
+        "lambda_bp_temporal": 0.05,
+        "bp_temporal_tau": 0.2,
+        "bp_temporal_progress_tol": 0.15,
+        "bp_use_progress_encoding": true,
+
+        "frozen_bp_encoder": false,
+        "frozen_vit": true,
+        "frozen_bp_vit": false,
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "IDENTITY",
+            "ACTION": "IDENTITY"
+        },
+
+        // 与 taskcon / ex01 stage1 相同学习率曲线。
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 300,
+        "scheduler_decay_steps": 3000,
+        "scheduler_decay_lr": 5e-5
+    },
+
+    "output_dir": "/vla/workspace/my_tbot/outputs/BPV3Plan/v3.1/stage1",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 16,
+    "batch_size": 64,
+    "gradient_accumulation_steps": 1,
+    "steps": 3000,
+    "eval_freq": 0,
+    "log_freq": 50,
+    "save_checkpoint": true,
+    "save_freq": 1000,
+    "use_policy_training_preset": true,
+
+    "eval": {
+        "n_episodes": 50,
+        "batch_size": 50,
+        "use_async_envs": false
+    },
+
+    "wandb": {
+        "enable": false,
+        "project": "BPVAv31",
+        "mode": "offline"
+    },
+
+    "rename_map": {}
+}

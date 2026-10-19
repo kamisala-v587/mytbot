@@ -1,0 +1,44 @@
+# /vla/workspace/models/BPVA/v3/ex_clean 下两个 taskcon 对标 ckpt 的 clean smoke 测评
+name: ex_clean_taskcon
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: true
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 128
+    host: 0.0.0.0
+    port: 8001
+    debug: false
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  tasks: TASK_BP_SMOKE
+  gpu_ids: [2, 1, 3]
+  tasks_per_gpu: 5
+  max_retries: 5
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+  - name: nopt_3plus7k
+    checkpoints:
+      - /vla/workspace/models/BPVA/v3/ex_clean_eval/nopt_3plus7k
+  - name: fbpvit_3k
+    checkpoints:
+      - /vla/workspace/models/BPVA/v3/ex_clean_eval/fbpvit_3k
+scenes:
+  - name: clean_ep20
+    overrides:
+      task_config: my_demo_clean
+      task_config_overrides: {episode_num: 20}
+variants:
+  - name: normal
+    server_args: {input_masks: ""}

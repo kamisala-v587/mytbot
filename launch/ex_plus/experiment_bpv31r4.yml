@@ -1,0 +1,56 @@
+# R4（显式子目标 token + 门控）@7k：固定示教 / 选最相似 / 选最不相似。
+name: bpv31r4
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: true
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 128
+    host: 0.0.0.0
+    port: 8001
+    debug: false
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  tasks: TASK_BP_SMOKE
+  gpu_ids:
+  - 1
+  - 2
+  - 3
+  tasks_per_gpu: 3
+  max_retries: 5
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+- name: r4
+  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R4/stage1.5/*/checkpoints/*/pretrained_model
+  steps:
+  - 7000
+scenes:
+- name: clean_ep20
+  overrides:
+    task_config: my_demo_clean
+    task_config_overrides:
+      episode_num: 20
+variants:
+- name: fixed
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
+- name: best
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_select_best.yml
+- name: worst
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_select_worst.yml

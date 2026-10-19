@@ -631,6 +631,8 @@ def _format_train_status_line(
             _meter_avg_or_val(train_tracker.loss_align_w) if "loss_align_w" in train_tracker.metrics else loss_align,
         )
         loss_parts.append(f"bp_w:{loss_align_w:.3f}")
+    for key in sorted(k for k in loss_overrides if k.startswith(("loss_bp_", "bp_"))):
+        loss_parts.append(f"{key.removeprefix('loss_')}:{loss_overrides[key]:.3f}")
     if "loss_3d" in train_tracker.metrics:
         loss_3d = loss_overrides.get("loss_3d", _meter_avg_or_val(train_tracker.loss_3d))
         lambda_3d = float(getattr(cfg.policy, "lambda_3d", 1.0))
@@ -1254,7 +1256,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
                 {
                     key: value
                     for key, value in output_dict.items()
-                    if key.startswith("loss_action_dim")
+                    if key.startswith(("loss_action_dim", "loss_bp_", "bp_"))
                     and isinstance(value, (int, float))
                 }
             )

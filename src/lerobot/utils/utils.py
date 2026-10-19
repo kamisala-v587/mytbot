@@ -182,6 +182,26 @@ def init_logging(
         file_handler.setLevel(file_level.upper())
         logger.addHandler(file_handler)
 
+    # 训练打开视频时 fsspec 会在 DEBUG 刷 "open file: ...mp4"，淹没 train.log。
+    # 根 logger 为 NOTSET + file_level=DEBUG 时这些都会写进文件，这里单独抬高第三方噪声源。
+    for name in (
+        "fsspec",
+        "fsspec.local",
+        "fsspec.implementations.local",
+        "fsspec.implementations.memory",
+        "fsspec.implementations.cached",
+        "fsspec.core",
+        "fsspec.spec",
+        "urllib3",
+        "filelock",
+        "asyncio",
+        "httpx",
+        "httpcore",
+        "datasets",
+        "huggingface_hub",
+    ):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
 
 def gather_object(obj, accelerator):
     objs = [None] * accelerator.num_processes

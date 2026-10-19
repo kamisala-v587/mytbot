@@ -43,6 +43,7 @@ from lerobot.policies.names import (
     is_bpva,
     is_bpvav2,
     is_bpvav3,
+    is_bpvav31,
 )
 from lerobot.policies.pi0.configuration_pi0 import PI0Config
 from lerobot.policies.pi05.configuration_pi05 import PI05Config
@@ -103,7 +104,11 @@ def get_policy_class(name: str) -> type[PreTrainedPolicy]:
         from lerobot.policies.BPVAv3.modeling_bpvav3 import BPVAv3Policy
 
         return BPVAv3Policy
-    
+    elif is_bpvav31(name):
+        from lerobot.policies.BPVAv31.modeling_bpvav31 import BPVAv31Policy
+
+        return BPVAv31Policy
+
     elif name == "interna1" or name == "internvla_a1_2b":
         from lerobot.policies.InternVLA_A1_2B.modeling_internvla_a1 import InternA1Policy
 

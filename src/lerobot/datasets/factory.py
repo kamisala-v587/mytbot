@@ -53,6 +53,11 @@ from lerobot.policies.BPVAv3.configuration_bpvav3 import (
     BPVAv3DatasetConfig,
     validate_bpvav3_stage_pair,
 )
+from lerobot.policies.BPVAv31.configuration_bpvav31 import (
+    BPVAv31Config,
+    BPVAv31DatasetConfig,
+    validate_bpvav31_stage_pair,
+)
 from lerobot.policies.names import TBOT_SA1_WAN, TBOT_SA1_WAN_LEGACY_ALIASES, is_tbot_sa1
 from lerobot.transforms.constants import get_feature_mapping, get_image_mapping, get_mask_mapping, infer_embodiment_variant
 from lerobot.utils.constants import ACTION, OBS_PREFIX, REWARD, OBS_STATE
@@ -983,19 +988,23 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         image_transforms = None
 
 
-    if isinstance(cfg.dataset, (BPVADatasetConfig, BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
-        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
+    if isinstance(cfg.dataset, (BPVADatasetConfig, BPVAv2DatasetConfig, BPVAv3DatasetConfig, BPVAv31DatasetConfig)):
+        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig, BPVAv31DatasetConfig)):
             if isinstance(cfg.dataset, BPVAv2DatasetConfig) and not isinstance(cfg.policy, BPVAv2Config):
                 raise ValueError("dataset.type=bpvav2 requires policy.type=bpvav2")
             if isinstance(cfg.dataset, BPVAv3DatasetConfig) and not isinstance(cfg.policy, BPVAv3Config):
                 raise ValueError("dataset.type=bpvav3 requires policy.type=bpvav3")
-            if isinstance(cfg.dataset, BPVAv3DatasetConfig) and bool(cfg.dataset.use_language) != bool(cfg.policy.use_language):
+            if isinstance(cfg.dataset, BPVAv31DatasetConfig) and not isinstance(cfg.policy, BPVAv31Config):
+                raise ValueError("dataset.type=bpvav31 requires policy.type=bpvav31")
+            if isinstance(cfg.dataset, (BPVAv3DatasetConfig, BPVAv31DatasetConfig)) and bool(cfg.dataset.use_language) != bool(cfg.policy.use_language):
                 raise ValueError(
-                    "BPVAv3 dataset/policy use_language mismatch: "
+                    "BPVA dataset/policy use_language mismatch: "
                     f"{cfg.dataset.use_language} != {cfg.policy.use_language}"
                 )
             if isinstance(cfg.dataset, BPVAv3DatasetConfig):
                 validate_bpvav3_stage_pair(cfg.dataset, cfg.policy)
+            if isinstance(cfg.dataset, BPVAv31DatasetConfig):
+                validate_bpvav31_stage_pair(cfg.dataset, cfg.policy)
             dataset_bp_keys = set(cfg.dataset.bp_camera_keys)
             policy_bp_keys = set(cfg.policy.bp_camera_keys)
             if not dataset_bp_keys:
@@ -1097,7 +1106,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
 
         from lerobot.datasets.behavior_prompt_dataset import BehaviorPromptConfig, BehaviorPromptLeRobotDataset
 
-        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
+        if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig, BPVAv31DatasetConfig)):
             if cfg.dataset.bp_num_chunks != cfg.policy.bp_num_chunks:
                 dataset_type = getattr(cfg.dataset, "_canonical_type", cfg.dataset.__class__.__name__)
                 raise ValueError(
@@ -1170,7 +1179,7 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
             prompt_image_mapping = get_image_mapping(ds_meta.robot_type, ds_meta.features)
             canonical_to_dataset_camera = {canonical: actual for actual, canonical in prompt_image_mapping.items()}
             active_prompt_camera_keys = None
-            if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig)):
+            if isinstance(cfg.dataset, (BPVAv2DatasetConfig, BPVAv3DatasetConfig, BPVAv31DatasetConfig)):
                 missing_canonical = [
                     key for key in cfg.dataset.bp_camera_keys if key not in canonical_to_dataset_camera
                 ]
@@ -1210,6 +1219,15 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
                 from lerobot.policies.BPVAv3.dataset import make_bpvav3_behavior_dataset
 
                 bp_dataset = make_bpvav3_behavior_dataset(
+                    current_ds,
+                    prompt_ds,
+                    cfg.dataset,
+                    bp_action_chunk_size=bp_action_chunk_size,
+                )
+            elif isinstance(cfg.dataset, BPVAv31DatasetConfig):
+                from lerobot.policies.BPVAv31.dataset import make_bpvav31_behavior_dataset
+
+                bp_dataset = make_bpvav31_behavior_dataset(
                     current_ds,
                     prompt_ds,
                     cfg.dataset,

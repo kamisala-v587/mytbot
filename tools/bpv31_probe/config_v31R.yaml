@@ -1,0 +1,35 @@
+output_dir: /vla/workspace/my_tbot/tools/bpv31_probe/results/v31R
+manifest: /vla/workspace/my_tbot/tools/bpv3_encoder_probe/results/ex04_taskcon_stage15_probe/manifest.jsonl
+seed: 42
+episodes_per_task: 2
+progress:
+- 0.1
+- 0.35
+- 0.6
+- 0.85
+times:
+- 0.9
+- 0.5
+- 0.1
+arm_ratio: 3.0
+external_stats_root: /vla/workspace/my_tbot/norm_stats
+video_backend: torchcodec
+height: 224
+width: 224
+max_state_dim: 32
+max_action_dim: 32
+bp_num_chunks: 8
+bp_action_chunk_size: 50
+bp_camera_keys:
+- observation.images.image0
+checkpoints:
+- name: v31_s15_7k
+  path: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1/stage1.5/2026-10-16_18-46/checkpoints/007000/pretrained_model
+- name: taskcon_s15_7k
+  path: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/007000/pretrained_model
+- name: R1_s15_7k
+  path: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R1/stage1.5/2026-10-17_20-08/checkpoints/007000/pretrained_model
+- name: R2_s15_7k
+  path: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R2/stage1.5/2026-10-18_01-09/checkpoints/007000/pretrained_model
+- name: R3_s15_7k
+  path: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R3/stage1.5/2026-10-18_04-37/checkpoints/007000/pretrained_model
