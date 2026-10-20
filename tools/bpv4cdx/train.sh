@@ -7,9 +7,7 @@ NAME=$1
 shift
 cd "$BPV4CDX_REPO" || exit 1
 GEN=$BPV4CDX_REPO/configs/Pro6k/bpv4cdx_plan/generated_local
-python tools/bpv4cdx/make_gate_configs.py --out_dir "$GEN" --data_root "$BPV4CDX_DATA_ROOT" \
-  --cache_root "$BPV4CDX_CACHE_ROOT" --qwen_path "$BPV4CDX_QWEN_PATH" --out_root "$BPV4CDX_OUT_ROOT" \
-  --stats_root "$BPV4CDX_STATS_ROOT" --repo_root "$BPV4CDX_REPO/configs/ds_ids/pro6k" > /dev/null || exit 1
+bash tools/bpv4cdx/gen_configs.sh > /dev/null || exit 1
 NPROC=$BPV4CDX_NUM_GPUS
 [ "$NAME" = "ae_g3_overfit" ] && NPROC=1
 mkdir -p "$BPV4CDX_OUT_ROOT/BPv4CDX/logs"

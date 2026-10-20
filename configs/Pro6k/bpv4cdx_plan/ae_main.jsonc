@@ -99,14 +99,15 @@
         "max_period": 4.0,
         "normalization_mapping": {"VISUAL": "IDENTITY", "STATE": "IDENTITY", "ACTION": "IDENTITY"},
 
-        "optimizer_lr": 1e-4,
+        // 与 bpv4_bpen 主实验相同：调度器峰值 5e-5、衰减到 5e-6（各参数组仍用自己的 1e-4，衰减比例 0.1）
+        "optimizer_lr": 5e-5,
         "optimizer_betas": [0.9, 0.95],
         "optimizer_eps": 1e-8,
         "optimizer_weight_decay": 0.01,
         "optimizer_grad_clip_norm": 1.0,
         "scheduler_warmup_steps": 500,
         "scheduler_decay_steps": 10000,
-        "scheduler_decay_lr": 1e-5,
+        "scheduler_decay_lr": 5e-6,
 
         "preflight_memory_check": true,
         "preflight_memory_limit_frac": 0.9
@@ -116,7 +117,8 @@
     "resume": false,
     "seed": 42,
     "num_workers": 12,
-    // 每 rank 16 条轨迹 × 4 个目标段 = 64 个样本
+    // 与 bpv4_bpen 主实验相同的总 batch：64 条轨迹 × 4 个目标段 = 256 个样本 / 步。
+    // 这里是 4 卡时的每 rank 值；make_gate_configs.py --num_gpus N 会改成 64 / N（8 卡为 8）。
     "batch_size": 16,
     "gradient_accumulation_steps": 1,
     "steps": 10000,

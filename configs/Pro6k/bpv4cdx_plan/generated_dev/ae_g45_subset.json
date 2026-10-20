@@ -87,7 +87,7 @@
       "STATE": "IDENTITY",
       "ACTION": "IDENTITY"
     },
-    "optimizer_lr": 0.0001,
+    "optimizer_lr": 5e-05,
     "optimizer_betas": [
       0.9,
       0.95
@@ -97,7 +97,7 @@
     "optimizer_grad_clip_norm": 1.0,
     "scheduler_warmup_steps": 500,
     "scheduler_decay_steps": 2000,
-    "scheduler_decay_lr": 1e-05,
+    "scheduler_decay_lr": 5e-06,
     "preflight_memory_check": true,
     "preflight_memory_limit_frac": 0.9
   },

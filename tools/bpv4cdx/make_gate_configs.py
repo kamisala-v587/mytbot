@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[2]
 MAIN = ROOT / "configs/Pro6k/bpv4cdx_plan/ae_main.jsonc"
 
 G3_EPISODE = "place_shoe/aloha-agilex_clean_50|0"
+# bpv4_bpen main run: 4 GPUs x 16 trajectories x 4 queries; keep 64 trajectories (256 segments) per step
+TOTAL_TRAJECTORIES = 64
 
 VARIANTS = {
     # main branch: S-A / P5 / no state / N128 / expert reads segment_query only
@@ -71,6 +73,8 @@ def main() -> None:
     ap.add_argument("--out_root", default=None, help="output_dir = <out_root>/BPv4CDX/stage_a/<name>")
     ap.add_argument("--stats_root", default=None)
     ap.add_argument("--repo_root", default=None, help="directory of the repo list files")
+    ap.add_argument("--num_gpus", type=int, default=4,
+                    help="per-rank batch = TOTAL_TRAJECTORIES / num_gpus (same total batch as bpv4_bpen)")
     args = ap.parse_args()
     base = load_jsonc(MAIN)
     repo_root = args.repo_root or str(ROOT / "configs/ds_ids/pro6k")
@@ -80,6 +84,10 @@ def main() -> None:
         cfg = copy.deepcopy(base)
         for section in ("dataset", "policy"):
             cfg[section].update(change.get(section, {}))
+        if name != "ae_g3_overfit":
+            if TOTAL_TRAJECTORIES % args.num_gpus:
+                raise ValueError(f"num_gpus must divide {TOTAL_TRAJECTORIES}")
+            cfg["batch_size"] = TOTAL_TRAJECTORIES // args.num_gpus
         cfg.update(change.get("top", {}))
         d, p = cfg["dataset"], cfg["policy"]
         if args.data_root:
