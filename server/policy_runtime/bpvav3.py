@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import random
+import threading
+from pathlib import Path
 from typing import Any
 
 import torch
+import torch.nn.functional as F
+import yaml
 
 from .base import PolicyAdapter, PreparedSample
 from .bp_dim_use import apply_bp_dim_use, resolve_bp_dim_use
@@ -79,6 +85,63 @@ class BPVAv3PromptCache(BehaviorPromptCache):
             raise ValueError(f"task={task_type!r} BP mask shape 非法")
 
 
+def image_thumb(image: torch.Tensor) -> torch.Tensor:
+    """任意 [.., H, W, 3] / [.., 3, H, W] 图像 → 28x28 低分辨率 [3*28*28]，取值 [0, 1]。"""
+    image = torch.as_tensor(image).float()
+    while image.ndim > 3:
+        image = image[0]
+    if image.shape[0] != 3 and image.shape[-1] == 3:
+        image = image.permute(2, 0, 1)
+    if image.max() > 1.5:
+        image = image / 255.0
+    return F.adaptive_avg_pool2d(image[None], (28, 28))[0].flatten()
+
+
+class BPVAv3DemoPool(BPVAv3PromptCache):
+    """每个任务一组候选示教，附带第 0 个关键帧的头部相机缩略图，用于按当前画面挑示教。"""
+
+    def __init__(self, *args, pool_size: int, seed: int, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.pool_size = int(pool_size)
+        self.seed = int(seed)
+        self._pools: dict[str, list[tuple[int, dict[str, Any], torch.Tensor]]] = {}
+        self._capture: torch.Tensor | None = None
+
+    def _apply_image_transform(self, data: dict[str, Any]) -> dict[str, Any]:
+        images = data[BP_PREFIX]["images"]
+        self._capture = image_thumb(images[sorted(images)[0]][0])
+        return super()._apply_image_transform(data)
+
+    def pool(self, task_type: str) -> list[tuple[int, dict[str, Any], torch.Tensor]]:
+        with self._lock:
+            if task_type in self._pools:
+                return self._pools[task_type]
+            source = self.sources[task_type]
+            path = self.cache_dir / f"{task_type}-pool{self.pool_size}-s{self.seed}.pt"
+            if path.is_file():
+                record = torch.load(path, map_location="cpu", weights_only=False)
+                if record.get("signature") == self._signature():
+                    self._pools[task_type] = record["pool"]
+                    return record["pool"]
+            from lerobot.datasets.lerobot_dataset import LeRobotDatasetMetadata
+
+            from .bpvav2 import _dataset_candidates
+
+            dataset_path = _dataset_candidates(source.dataset_paths[0])[0]
+            meta = LeRobotDatasetMetadata(str(dataset_path))
+            rng = random.Random(f"{self.seed}:{task_type}")
+            episodes = rng.sample(range(meta.total_episodes), min(self.pool_size, meta.total_episodes))
+            pool = []
+            for episode in episodes:
+                prompt = self._persistable_prompt(self._build_episode(source, dataset_path, meta, episode))
+                self._validate(prompt, task_type)
+                pool.append((int(episode), prompt, self._capture))
+            torch.save({"signature": self._signature(), "pool": pool}, path)
+            logging.info("BP 示教池已生成 | task=%s | episodes=%s | path=%s", task_type, episodes, path)
+            self._pools[task_type] = pool
+            return pool
+
+
 class BPVAv3Adapter(PolicyAdapter):
     name = "bpvav3"
     family = "bp"
@@ -131,10 +194,30 @@ class BPVAv3Adapter(PolicyAdapter):
             qwen_path=str(processor_path),
             cache_dir=cache_dir,
         )
+        selection = (yaml.safe_load(Path(self.mapping_path).read_text(encoding="utf-8")) or {}).get("selection") or {}
+        self.bp_select_mode = str(selection.get("mode", "fixed"))
+        if self.bp_select_mode not in {"fixed", "best", "worst"}:
+            raise ValueError(f"selection.mode 必须是 fixed / best / worst，得到 {self.bp_select_mode!r}")
+        self.bp_pool = None
+        self._bp_choice: dict[tuple[str, str], int] = {}
+        self._bp_choice_lock = threading.Lock()
+        self._bp_select_log = Path(cache_dir) / "selection_log.jsonl"
+        if self.bp_select_mode != "fixed":
+            self.bp_pool = BPVAv3DemoPool(
+                sources,
+                config=self.config,
+                state_stats=self.state_stats,
+                action_stats=self.action_stats,
+                action_mode=self.action_mode,
+                qwen_path=str(processor_path),
+                cache_dir=cache_dir,
+                pool_size=int(selection.get("pool_size", 10)),
+                seed=int(selection.get("seed", 0)),
+            )
         self._metadata_extra = {
             "bp_mapping_path": str(self.mapping_path),
             "bp_video_cache_dir": str(cache_dir),
-            "bp_selection": "cached_or_random_dataset_episode",
+            "bp_selection": self.bp_select_mode if self.bp_pool else "cached_or_random_dataset_episode",
             "bp_configured_tasks": sorted(sources),
             "bp_num_chunks": int(getattr(self.config, "bp_num_chunks")),
             "bp_action_chunk_size": int(getattr(self.config, "bp_action_chunk_size")),
@@ -157,6 +240,27 @@ class BPVAv3Adapter(PolicyAdapter):
         metadata.update(getattr(self, "_metadata_extra", {}))
         return metadata
 
+    def on_request(self, connection_id: str, obs: dict[str, Any]) -> None:
+        obs["__bp_connection"] = connection_id
+        super().on_request(connection_id, obs)
+
+    def _select_prompt(self, obs: dict[str, Any], task_type: str, head_image: torch.Tensor) -> dict[str, Any]:
+        """每个连接在 episode 开头（reset / 首次请求）按头部画面选一条示教，之后保持不变。"""
+        pool = self.bp_pool.pool(task_type)
+        key = (str(obs.get("__bp_connection", "")), task_type)
+        with self._bp_choice_lock:
+            if bool(obs.get("reset")) or key not in self._bp_choice:
+                thumb = image_thumb(head_image)
+                dist = torch.stack([(thumb - item[2]).square().mean() for item in pool])
+                index = int(dist.argmin() if self.bp_select_mode == "best" else dist.argmax())
+                self._bp_choice[key] = index
+                record = {"task": task_type, "connection": key[0], "mode": self.bp_select_mode,
+                          "episode": pool[index][0], "pool": [item[0] for item in pool],
+                          "dist": [round(float(d), 5) for d in dist]}
+                with self._bp_select_log.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(record) + "\n")
+            return pool[self._bp_choice[key]][1]
+
     def prepare(self, obs: dict[str, Any]) -> PreparedSample:
         task_type = obs.get("task_type")
         if not isinstance(task_type, str) or not task_type.strip():
@@ -177,6 +281,7 @@ class BPVAv3Adapter(PolicyAdapter):
             sample[key] = hwc_tensor(history)
             masks[key] = mask
         sample = self.resize_fn(sample)
+        head_image = sample["observation.images.image0"]
         for key, mask in masks.items():
             sample[f"{key}_mask"] = torch.tensor(mask)
         sample = self.processor_fn(sample)
@@ -190,7 +295,11 @@ class BPVAv3Adapter(PolicyAdapter):
             "observation.mm_token_type_ids": sample["observation.mm_token_type_ids"],
         }
         inputs = self.pack_inputs(kept)
-        prompt = batch_nested(self.bp_cache.get(task_type.strip()), self.device, self.runtime_dtype)
+        if self.bp_pool is not None:
+            raw_prompt = self._select_prompt(obs, task_type.strip(), head_image)
+        else:
+            raw_prompt = self.bp_cache.get(task_type.strip())
+        prompt = batch_nested(raw_prompt, self.device, self.runtime_dtype)
         inputs[BP_PREFIX] = apply_bp_dim_use(prompt, self.bp_action_use, self.bp_state_use)
         return PreparedSample(inputs, state_np)
 

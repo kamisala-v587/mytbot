@@ -343,23 +343,6 @@ class BPVAv31Model(Q35Model):
                 self.bp_content_temporal_head = head
             else:
                 self.bp_temporal_head = head
-        self._pending_state_extra: torch.Tensor | None = None
-        if bool(getattr(config, "bp_subgoal_token", False)):
-            action_hidden = int(self.core.state_projection.out_features)
-            self.bp_subgoal_proj = torch.nn.Sequential(
-                torch.nn.Linear(text_hidden + config.max_state_dim + 1, text_hidden),
-                torch.nn.GELU(),
-                torch.nn.Linear(text_hidden, action_hidden),
-            )
-            # 末层置零：初始时 token 为 0，动作专家行为与加载的 ckpt 一致。
-            torch.nn.init.zeros_(self.bp_subgoal_proj[-1].weight)
-            torch.nn.init.zeros_(self.bp_subgoal_proj[-1].bias)
-            self.bp_subgoal_gate = torch.nn.Sequential(
-                torch.nn.Linear(2 * text_hidden + 2, 256),
-                torch.nn.GELU(),
-                torch.nn.Linear(256, 1),
-            )
-            self.core.state_projection.register_forward_hook(self._add_state_extra)
         if config.frozen_bp_encoder:
             self.freeze_bp_encoder()
         if config.frozen_vit:
@@ -782,10 +765,10 @@ class BPVAv31Model(Q35Model):
         pooled = pooled.masked_fill(~chunk_mask[..., None], 0)
         return pooled, chunk_mask
 
-    def _content_query_key(
+    def content_retrieval(
         self, *, batch_size: int, state: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """读刚跑完的 embed_prefix_with_bp 缓存：返回 (query [B, D], key [B, C, D], chunk 内容 [B, C, D], chunk mask [B, C])。
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """读刚跑完的 embed_prefix_with_bp 缓存：返回 (logits [B, C], chunk 内容 [B, C, D], chunk mask [B, C])。
 
         query 只用当前各相机 ViT 均值 + state，key 只用加时间编码前的 BP 内容，两边都没有进度信息。
         """
@@ -799,52 +782,8 @@ class BPVAv31Model(Q35Model):
         q_in = torch.cat([cur.reshape(batch_size, -1), state.float()], dim=-1)
         query = F.normalize(self.bp_content_query(q_in.to(dtype)).float(), dim=-1)
         key = F.normalize(self.bp_content_key(content.to(dtype)).float(), dim=-1)
-        return query, key, content, cmask
-
-    def content_retrieval(
-        self, *, batch_size: int, state: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """返回 (logits [B, C], chunk 内容 [B, C, D], chunk mask [B, C])。"""
-        query, key, content, cmask = self._content_query_key(batch_size=batch_size, state=state)
         logits = torch.einsum("bd,bcd->bc", query, key) / float(self.config.bp_retrieve_tau)
         return logits.masked_fill(~cmask, float("-inf")), content, cmask
-
-    def _add_state_extra(self, module, args, output):
-        extra = self._pending_state_extra
-        return output if extra is None else output + extra.to(device=output.device, dtype=output.dtype)
-
-    def subgoal_extra(
-        self,
-        *,
-        batch_size: int,
-        state: torch.Tensor,
-        behavior_prompt: dict,
-        dropout: float = 0.0,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """门控后的子目标向量 [B, H_action] 与门值 [B]。必须在 embed_prefix_with_bp 之后调用。"""
-        query, key, content, cmask = self._content_query_key(batch_size=batch_size, state=state)
-        logits = torch.einsum("bd,bcd->bc", query, key) / float(self.config.bp_retrieve_tau)
-        attn = torch.nan_to_num(torch.softmax(logits.masked_fill(~cmask, float("-inf")), dim=-1), nan=0.0)
-        retrieved = torch.einsum("bc,bcd->bd", attn, content)
-        dtype = next(self.bp_delta_state_head.parameters()).dtype
-        delta = self.bp_delta_state_head(torch.cat([retrieved, state.float()], -1).to(dtype)).float()
-        ratios = behavior_prompt.get("source_time_ratio")
-        if ratios is None:
-            n = attn.shape[1]
-            ratios = torch.arange(n, device=attn.device, dtype=torch.float32) / max(1, n - 1)
-        ratios = torch.as_tensor(ratios, device=attn.device, dtype=torch.float32).expand_as(attn)
-        phase = (attn * ratios).sum(-1, keepdim=True)
-        token = self.bp_subgoal_proj(torch.cat([retrieved, delta, phase], -1).to(dtype)).float()
-        max_p = attn.max(-1, keepdim=True).values
-        entropy = -(attn * torch.log(attn.clamp_min(1e-8))).sum(-1, keepdim=True)
-        matched_key = torch.einsum("bc,bcd->bd", attn, key)
-        gate_in = torch.cat([query, matched_key, max_p, entropy], -1)
-        gate = torch.sigmoid(self.bp_subgoal_gate(gate_in.to(dtype)).float()).squeeze(-1)
-        effective = gate
-        if dropout > 0.0:
-            keep = (torch.rand(batch_size, device=gate.device) >= dropout).to(gate.dtype)
-            effective = gate * keep
-        return effective[:, None] * token, gate
 
     def _content_aux_losses(
         self,
@@ -1103,43 +1042,25 @@ class BPVAv31Model(Q35Model):
             bp_tokens,
             align_tokens=n_align,
         )
-        if hasattr(self, "bp_subgoal_proj"):
-            extra, gate = self.subgoal_extra(
-                batch_size=input_ids.shape[0],
-                state=state,
-                behavior_prompt=behavior_prompt,
-                dropout=float(self.config.bp_subgoal_dropout) if self.training else 0.0,
+        if n_align == 0:
+            result = self.core.forward_embedded(
+                vlm_hidden,
+                state,
+                actions,
+                position_ids=position_ids,
+                vlm_valid_mask=vlm_valid_mask,
             )
-            self._pending_state_extra = extra
-            with torch.no_grad():
-                aux["bp_gate"] = gate.mean()
-                match = (bp_meta or {}).get("bp_arm_match")
-                if match is not None:
-                    match = match.to(gate.device).bool().reshape(-1)
-                    aux["bp_gate_same"] = (gate * match).sum() / match.sum().clamp_min(1)
-                    aux["bp_gate_cross"] = (gate * ~match).sum() / (~match).sum().clamp_min(1)
-        try:
-            if n_align == 0:
-                result = self.core.forward_embedded(
-                    vlm_hidden,
-                    state,
-                    actions,
-                    position_ids=position_ids,
-                    vlm_valid_mask=vlm_valid_mask,
-                )
-            else:
-                result = self._forward_flow_and_align(
-                    vlm_hidden,
-                    state,
-                    actions,
-                    position_ids=position_ids,
-                    vlm_valid_mask=vlm_valid_mask,
-                    n_align=n_align,
-                    target_tokens=target_tokens,
-                    target_mask=target_mask,
-                )
-        finally:
-            self._pending_state_extra = None
+        else:
+            result = self._forward_flow_and_align(
+                vlm_hidden,
+                state,
+                actions,
+                position_ids=position_ids,
+                vlm_valid_mask=vlm_valid_mask,
+                n_align=n_align,
+                target_tokens=target_tokens,
+                target_mask=target_mask,
+            )
         result.update(aux)
         return result
 
@@ -1173,19 +1094,12 @@ class BPVAv31Model(Q35Model):
             1 + self.config.chunk_size,
             bp_tokens,
         )
-        if hasattr(self, "bp_subgoal_proj"):
-            self._pending_state_extra, _ = self.subgoal_extra(
-                batch_size=input_ids.shape[0], state=state, behavior_prompt=behavior_prompt
-            )
-        try:
-            prefix_cache, action_attention_mask, action_position_ids = self.core.prepare_inference_cache(
-                vlm_hidden,
-                state,
-                vlm_valid_mask=vlm_valid_mask,
-                position_ids=position_ids,
-            )
-        finally:
-            self._pending_state_extra = None
+        prefix_cache, action_attention_mask, action_position_ids = self.core.prepare_inference_cache(
+            vlm_hidden,
+            state,
+            vlm_valid_mask=vlm_valid_mask,
+            position_ids=position_ids,
+        )
         if noise is None:
             noise = torch.randn(
                 state.shape[0],
@@ -1267,8 +1181,6 @@ class BPVAv31Policy(PreTrainedPolicy):
                     "model.bp_content_key.",
                     "model.bp_delta_state_head.",
                     "model.bp_content_temporal_head.",
-                    "model.bp_subgoal_proj.",
-                    "model.bp_subgoal_gate.",
                 )
             )
             or key == "model.align_queries"
@@ -1357,10 +1269,7 @@ class BPVAv31Policy(PreTrainedPolicy):
             extra_logs[f"loss_{key}"] = float(part.detach())
         if "bp_retrieve_n" in losses:
             extra_logs["bp_retrieve_n"] = float(losses["bp_retrieve_n"].detach())
-        for key in (
-            "bp_temporal_anchors", "bp_retrieve_acc", "bp_align_frac", "bp_next_state_copy_mse",
-            "bp_gate", "bp_gate_same", "bp_gate_cross",
-        ):
+        for key in ("bp_temporal_anchors", "bp_retrieve_acc", "bp_align_frac", "bp_next_state_copy_mse"):
             if key in losses:
                 extra_logs[key] = float(losses[key].detach())
         debug_check_finite("robot.final_loss", total_loss)

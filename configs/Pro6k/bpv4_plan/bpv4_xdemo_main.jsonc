@@ -1,0 +1,149 @@
+{
+    // BPv4 第二阶段（bpv4_xdemo）：示教轨迹 D 的 BP + 当前观测 Q（三路图像 + state）→ 之后 50 步 action。
+    // 设计见 code/conclusion/bpv4/bpv4 第二阶段详细方案.md。
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpv4_xdemo",
+        // 40 任务 × (clean_50 + randomized_100) = 80 个 repo：去掉 D 档 7 个任务和已排除的 3 个任务。
+        "repo_id": "bprobotwin_bpv4_xdemo",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_bpv4_xdemo_clean50_rand100.txt",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
+        "video_backend": "torchcodec",
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": false,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
+
+        // 示教：直接读第一阶段的关键帧 ViT 特征缓存（K=32，α=0.5）。
+        "bp_num_keyframes": 32,
+        "bp_keyframe_alpha": 0.5,
+        "bp_camera_keys": [
+            "observation.images.cam_high",
+            "observation.images.cam_left_wrist",
+            "observation.images.cam_right_wrist"
+        ],
+        "bp_feature_cache_dir": "/vla/workspace/cache/bpv4_bpen_vit_base800m_k32_v2",
+        // 训练时每个示教关键帧独立丢弃 15%，至少保留 8 帧。
+        "bp_keyframe_drop_prob": 0.15,
+        "bp_min_visible_keyframes": 8,
+
+        // 当前观测：与 BP 缓存相同的预处理，每路 64 个视觉 token。
+        "image_size": 224,
+        // 每个数据项 = 一对 (当前 Q, 示教 D) × 4 个查询（在 Q 上按时间分 4 层各取一帧）。
+        "queries_per_trajectory": 4,
+
+        // 示教与当前来自同任务的不同 episode；同 episode 配对会重新打开抄轨迹的捷径，设为 0。
+        "same_episode_prob": 0.0,
+        // 物体类别轻度变化的任务只在同类别之间配对（按指令文本中的关键词）。
+        "category_pairing": {"place_container_plate": ["bowl", "cup"]},
+
+        "val_holdout_last": {"clean_50": 5, "randomized_100": 10},
+        "split": "train",
+
+        "image_transforms": {"enable": false, "preset": null}
+    },
+
+    "env": null,
+    "policy": {
+        "type": "bpv4_xdemo",
+        // BP 编码器、VLM、act expert 均从第一阶段主实验 10k 初始化；第一阶段的进度 token 被丢弃。
+        "pretrained_path": "/vla/workspace/my_tbot/outputs/BPv4/bpv4_bpen_main/2026-10-19_22-25/checkpoints/010000/pretrained_model",
+        "push_to_hub": false,
+        "device": null,
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+
+        // BP 编码器结构：与第一阶段 checkpoint 一致。
+        "bp_num_keyframes": 32,
+        "bp_num_cameras": 3,
+        "bp_visual_dim": 1024,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_dim": 512,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
+        "bp_resampler_num_tokens": 128,
+        "bp_resampler_num_layers": 2,
+        "bp_resampler_num_heads": 16,
+
+        // 参数组学习率：
+        //   类型嵌入（新模块）1e-4；act expert 1e-4；
+        //   BP 编码器 3e-5，前 1500 步为 0，之后 500 步升温，放开时清零该组 AdamW 状态；
+        //   VLM 末段 4 层 optimizer_lr×0.3、其余 ×0.1，前 1000 步线性升温。ViT、lm_head 冻结。
+        "new_modules_lr": 1e-4,
+        "act_expert_lr": 1e-4,
+        "bp_encoder_lr": 3e-5,
+        "bp_encoder_zero_steps": 1500,
+        "bp_encoder_ramp_steps": 500,
+        "bp_encoder_reset_optimizer_state_at_unfreeze": true,
+        "vlm_tail_layers": [20, 21, 22, 23],
+        "vlm_tail_lr_mult": 0.3,
+        "vlm_lr_mult": 0.1,
+        "vlm_ramp_steps": 1000,
+
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "IDENTITY",
+            "ACTION": "IDENTITY"
+        },
+
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 20000,
+        "scheduler_decay_lr": 5e-6,
+
+        // 启动前用真实 batch、学习率 0 试跑 2 步，峰值显存超过 90% 就报错退出。
+        "preflight_memory_check": true,
+        "preflight_memory_limit_frac": 0.9
+    },
+
+    "output_dir": "/vla/workspace/my_tbot/outputs/BPv4/bpv4_xdemo_main",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 16,
+    // 每 rank 16 对轨迹 × 4 个查询 = 64 个样本；4 卡共 256。
+    "batch_size": 16,
+    "gradient_accumulation_steps": 1,
+    "steps": 20000,
+    "eval_freq": 0,
+    "log_freq": 50,
+    "save_checkpoint": true,
+    "save_freq": 2500,
+    "use_policy_training_preset": true,
+
+    "eval": {"n_episodes": 50, "batch_size": 50, "use_async_envs": false},
+    "wandb": {"enable": false, "project": "BPV4XDemo", "mode": "offline"},
+    "rename_map": {}
+}

@@ -32,11 +32,10 @@ sys.path.insert(0, str(HERE.parent / "bpv3_attn_probe"))
 import attn_probe as ap  # noqa: E402  (also puts bpv3_encoder_probe on sys.path)
 
 # other: same-task demo, same arm when possible; other_x: same-task demo with the other arm, if any.
-# token_off：BP 同 other，但不加子目标 token（只对 bp_subgoal_token 模型有区别）。
-CONDITIONS = ("self", "other", "other_x", "reverse", "chunk_mean", "no_pos", "token_off", "wrong", "mask")
+CONDITIONS = ("self", "other", "other_x", "reverse", "chunk_mean", "no_pos", "wrong", "mask")
 EDITS = ("reverse", "chunk_mean")
 ATTN = ("self", "other")
-ON_OTHER = ("reverse", "chunk_mean", "no_pos", "token_off", "mask")
+ON_OTHER = ("reverse", "chunk_mean", "no_pos", "mask")
 STATE_DIM = 14
 LEFT, RIGHT = slice(0, 7), slice(7, 14)
 EVAL_TASKS = (
@@ -230,7 +229,6 @@ def run_checkpoint(cfg: dict[str, Any], ck: dict[str, str], out: Path) -> None:
     pool = DataPool(cfg, pcfg, plan, ck["path"])
     has_head = hasattr(model, "bp_retrieve_query")
     has_content_head = hasattr(model, "bp_content_query")
-    has_subgoal = hasattr(model, "bp_subgoal_proj")
     cap = ap.Capture(model.core.backbone)
     edit = ap.ChunkEdit(model.bp_obs_encoder.chunk_encoder)
     num_chunks = int(pcfg.bp_num_chunks)
@@ -279,12 +277,6 @@ def run_checkpoint(cfg: dict[str, Any], ck: dict[str, str], out: Path) -> None:
                 ratios = torch.as_tensor(batch["behavior_prompt"]["source_time_ratio"], device=device).float().reshape(-1)
                 target = int((ratios - progress).abs().masked_fill(~cmask[0], float("inf")).argmin())
                 rec["cret"][cond] = {"logits": clogits[0].float().cpu(), "target": target}
-            model._pending_state_extra = None
-            if has_subgoal and cond not in ("mask", "token_off"):
-                with torch.inference_mode():
-                    extra, gate = model.subgoal_extra(batch_size=1, state=state, behavior_prompt=batch["behavior_prompt"])
-                model._pending_state_extra = extra
-                rec.setdefault("gate", {})[cond] = float(gate[0])
             with torch.inference_mode():
                 n_bp = hidden.shape[1] - batch["observation.input_ids"].shape[1]
                 pos = model.build_position_ids(
@@ -308,7 +300,6 @@ def run_checkpoint(cfg: dict[str, Any], ck: dict[str, str], out: Path) -> None:
                     losses.append(float(flow[0, :, :adim][valid[0]].mean()))
                     if cap.records:
                         attn.append({k: torch.stack([r[k] for r in cap.records]) for k in ("mass", "chunk")})
-                model._pending_state_extra = None
                 rec["loss"][cond] = losses
                 if attn:
                     # [T, L, H, ...] -> head mean [T, L, ...]
@@ -481,19 +472,6 @@ def content_retrieval_metrics(run: dict) -> dict[str, Any]:
     return out
 
 
-def gate_metrics(run: dict) -> dict[str, Any]:
-    res = [r for r in run["results"] if r.get("gate")]
-    if not res:
-        return {}
-    out = {c: float(np.mean([r["gate"][c] for r in res if c in r["gate"]]))
-           for c in CONDITIONS if any(c in r["gate"] for r in res)}
-    single = [r for r in res if r["arm"] in ("left", "right") and "other_x" in r["gate"] and r["other_arm"] == r["arm"]]
-    if single:
-        out["single_arm_same"] = float(np.mean([r["gate"]["other"] for r in single]))
-        out["single_arm_cross"] = float(np.mean([r["gate"]["other_x"] for r in single]))
-    return out
-
-
 def arm_split(run: dict) -> dict[str, Any]:
     """Single-arm current episodes only: same-arm demo (other) vs cross-arm demo (other_x) on identical items."""
     res = [r for r in run["results"] if r["arm"] in ("left", "right") and "other_x" in r["loss"]
@@ -521,8 +499,7 @@ def analyze(cfg: dict[str, Any], out: Path) -> None:
     for n in names:
         run = torch.load(out / "shards" / f"{n}.pt", map_location="cpu", weights_only=False)
         summary[n] = {"all": summarize(run), "arm_split": arm_split(run),
-                      "content": content_metrics(run), "content_retrieval": content_retrieval_metrics(run),
-                      "gate": gate_metrics(run)}
+                      "content": content_metrics(run), "content_retrieval": content_retrieval_metrics(run)}
         arms = [r["arm"] for r in run["results"][:: len(cfg["progress"])]]
         summary[n]["arm_counts"] = {a: arms.count(a) for a in ("left", "right", "both")}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False))
@@ -539,8 +516,6 @@ def analyze(cfg: dict[str, Any], out: Path) -> None:
         print(f"  arm split: {json.dumps(s['arm_split'], ensure_ascii=False)[:600]}")
         if s["content"]:
             print("  content: " + json.dumps(s["content"], ensure_ascii=False))
-        if s["gate"]:
-            print("  gate: " + " ".join(f"{c}={v:.2f}" for c, v in s["gate"].items()))
         if s["content_retrieval"]:
             print("  content retrieval: " + " ".join(
                 f"{c}={v['top1']:.2f}/{v['within1']:.2f}" for c, v in s["content_retrieval"].items() if v))

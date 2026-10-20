@@ -1,4 +1,4 @@
-# 同 bpva_task_bps_clean.yml；每个任务 10 条候选示教，episode 开头按头部画面选最相似的一条。
+# 同 bpva_task_bps_clean.yml；每个任务全部 50 条示教作为候选，episode 开头按头部画面选最相似的一条。
 version: 1
 tasks:
   adjust_bottle:
@@ -105,5 +105,5 @@ tasks:
     dataset_path: /vla/workspace/data/my_demo_clean_processed_Lerobot
 selection:
   mode: best
-  pool_size: 10
+  pool_size: 50
   seed: 0

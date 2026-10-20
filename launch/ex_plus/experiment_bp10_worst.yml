@@ -1,5 +1,5 @@
-# R4（显式子目标 token + 门控）@7k：固定示教 / 选最相似 / 选最不相似。
-name: bpv31r4
+# BP 测试集（10 任务）异手示教测评：候选池 = 每任务全部 50 条示教，episode 开头按头部首帧选最不相似的一条。
+name: bp10_worst
 robotwin_root: /vla/workspace/my_robotwin
 output_root: /vla/workspace/my_tbot/launch/ex_plus/results
 continue_on_error: true
@@ -20,7 +20,17 @@ server:
 client:
   conda_env: myrobotwin
   base_config: /vla/workspace/my_robotwin/run/fast.yml
-  tasks: TASK_BP_SMOKE
+  tasks:
+  - place_cans_plasticbox
+  - scan_object
+  - place_shoe
+  - rotate_qrcode
+  - place_mouse_pad
+  - place_empty_cup
+  - move_can_pot
+  - place_phone_stand
+  - handover_mic
+  - place_can_basket
   gpu_ids:
   - 1
   - 2
@@ -31,8 +41,12 @@ client:
     seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
     instruction_type: seen
 models:
-- name: r4
-  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R4/stage1.5/*/checkpoints/*/pretrained_model
+- name: r3
+  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPV3Plan/v3.1R/R3/stage1.5/*/checkpoints/*/pretrained_model
+  steps:
+  - 7000
+- name: taskcon
+  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPv3/ex03_fixed8_taskcon/bpv3-clean-stage1.5/2026-10-15_01-23/checkpoints/*/pretrained_model
   steps:
   - 7000
 scenes:
@@ -42,15 +56,7 @@ scenes:
     task_config_overrides:
       episode_num: 20
 variants:
-- name: fixed
+- name: worst50
   server_args:
     input_masks: ''
-    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean.yml
-- name: best
-  server_args:
-    input_masks: ''
-    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_select_best.yml
-- name: worst
-  server_args:
-    input_masks: ''
-    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_select_worst.yml
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpva_task_bps_clean_select_worst50.yml

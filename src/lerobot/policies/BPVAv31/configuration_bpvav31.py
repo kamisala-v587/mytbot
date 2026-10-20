@@ -249,11 +249,6 @@ class BPVAv31Config(Q35Config):
     bp_temporal_mode: str = "post_vlm"
     # absolute：旧的绝对 state 预测；delta：用检索到的内容 + 当前 state 预测「下一关键帧 state - 当前 state」。
     bp_next_state_mode: str = "absolute"
-    # true：把「检索到的 BP 内容 + 增量子目标 + 相位」投影成一个向量，乘门控后加到动作专家的 state token 上。
-    # 不含示教原始 state / action。需要 bp_retrieve_mode=content 且 bp_next_state_mode=delta。
-    bp_subgoal_token: bool = False
-    # 训练时按样本随机关掉子目标 token 的比例，保证不靠它也能出动作。
-    bp_subgoal_dropout: float = 0.25
     # true 时冻结 bp_obs_encoder 里 ViT 以外的部分：投影、state/action MLP 和 compressor。
     # 不碰共享 Qwen3.5 ViT。
     frozen_bp_encoder: bool = False
@@ -303,12 +298,6 @@ class BPVAv31Config(Q35Config):
             raise ValueError("bp_retrieve_sigma must be positive")
         if self.bp_next_state_mode == "delta" and self.bp_retrieve_mode != "content":
             raise ValueError("bp_next_state_mode=delta requires bp_retrieve_mode=content")
-        if self.bp_subgoal_token and (
-            self.bp_next_state_mode != "delta" or float(self.lambda_bp_next_state) == 0.0
-        ):
-            raise ValueError("bp_subgoal_token requires bp_next_state_mode=delta and lambda_bp_next_state > 0")
-        if not (0.0 <= float(self.bp_subgoal_dropout) < 1.0):
-            raise ValueError("bp_subgoal_dropout must be in [0, 1)")
         _validate_bp_camera_keys(self.bp_camera_keys)
 
 

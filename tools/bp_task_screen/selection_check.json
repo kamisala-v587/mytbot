@@ -1,0 +1,296 @@
+{
+ "place_cans_plasticbox": {
+  "runtime_pool10": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 10
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 10
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 50
+   }
+  },
+  "random_match": 1.0
+ },
+ "scan_object": {
+  "runtime_pool10": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 10
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 10
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 1.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 50
+   }
+  },
+  "random_match": 1.0
+ },
+ "place_shoe": {
+  "runtime_pool10": {
+   "best_match": 0.66,
+   "worst_match": 0.66,
+   "n": 50,
+   "pool_seqs": {
+    "L": 0,
+    "R": 10
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 0.92,
+   "worst_match": 0.18,
+   "n": 50,
+   "pool_seqs": {
+    "L": 5,
+    "R": 5
+   }
+  },
+  "all_others": {
+   "best_match": 0.96,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "L": 17,
+    "R": 33
+   }
+  },
+  "random_match": 0.5512
+ },
+ "rotate_qrcode": {
+  "runtime_pool10": {
+   "best_match": 0.86,
+   "worst_match": 0.36,
+   "n": 50,
+   "pool_seqs": {
+    "L": 6,
+    "R": 4
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 0.92,
+   "worst_match": 0.32,
+   "n": 50,
+   "pool_seqs": {
+    "L": 5,
+    "R": 5
+   }
+  },
+  "all_others": {
+   "best_match": 0.94,
+   "worst_match": 0.2,
+   "n": 50,
+   "pool_seqs": {
+    "L": 18,
+    "R": 32
+   }
+  },
+  "random_match": 0.5392
+ },
+ "place_mouse_pad": {
+  "runtime_pool10": {
+   "best_match": 0.66,
+   "worst_match": 0.22,
+   "n": 50,
+   "pool_seqs": {
+    "L": 5,
+    "R": 5
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 0.88,
+   "worst_match": 0.32,
+   "n": 50,
+   "pool_seqs": {
+    "L": 5,
+    "R": 5
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 0.24,
+   "n": 50,
+   "pool_seqs": {
+    "L": 19,
+    "R": 31
+   }
+  },
+  "random_match": 0.5288
+ },
+ "place_empty_cup": {
+  "runtime_pool10": {
+   "best_match": 0.96,
+   "worst_match": 0.14,
+   "n": 50,
+   "pool_seqs": {
+    "R": 4,
+    "L": 6
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 0.88,
+   "worst_match": 0.22,
+   "n": 50,
+   "pool_seqs": {
+    "R": 5,
+    "L": 5
+   }
+  },
+  "all_others": {
+   "best_match": 0.98,
+   "worst_match": 0.06,
+   "n": 50,
+   "pool_seqs": {
+    "R": 27,
+    "L": 23
+   }
+  },
+  "random_match": 0.5032000000000001
+ },
+ "move_can_pot": {
+  "runtime_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "R": 5,
+    "L": 5
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.06,
+   "n": 50,
+   "pool_seqs": {
+    "R": 5,
+    "L": 5
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "R": 29,
+    "L": 21
+   }
+  },
+  "random_match": 0.5127999999999999
+ },
+ "place_phone_stand": {
+  "runtime_pool10": {
+   "best_match": 0.76,
+   "worst_match": 0.1,
+   "n": 50,
+   "pool_seqs": {
+    "L": 3,
+    "R": 7
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.3,
+   "n": 50,
+   "pool_seqs": {
+    "L": 5,
+    "R": 5
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 0.04,
+   "n": 50,
+   "pool_seqs": {
+    "L": 29,
+    "R": 21
+   }
+  },
+  "random_match": 0.5127999999999999
+ },
+ "handover_mic": {
+  "runtime_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 4,
+    "RL": 6
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 5,
+    "RL": 5
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 23,
+    "RL": 27
+   }
+  },
+  "random_match": 0.5032000000000001
+ },
+ "place_can_basket": {
+  "runtime_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 5,
+    "RL": 5
+   }
+  },
+  "balanced_pool10": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 5,
+    "RL": 5
+   }
+  },
+  "all_others": {
+   "best_match": 1.0,
+   "worst_match": 0.0,
+   "n": 50,
+   "pool_seqs": {
+    "LR": 29,
+    "RL": 21
+   }
+  },
+  "random_match": 0.5127999999999999
+ }
+}

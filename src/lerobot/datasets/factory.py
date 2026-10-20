@@ -53,6 +53,9 @@ from lerobot.policies.BPVAv3.configuration_bpvav3 import (
     BPVAv3DatasetConfig,
     validate_bpvav3_stage_pair,
 )
+from lerobot.policies.BPV4BPEn.configuration_bpv4_bpen import BPV4BPEnConfig, BPV4BPEnDatasetConfig
+from lerobot.policies.BPV4XDemo.configuration_bpv4_xdemo import BPV4XDemoConfig, BPV4XDemoDatasetConfig
+from lerobot.policies.BPV4CDX.configuration_bpv4cdx import BPV4CDXAEConfig, BPV4CDXAEDatasetConfig
 from lerobot.policies.BPVAv31.configuration_bpvav31 import (
     BPVAv31Config,
     BPVAv31DatasetConfig,
@@ -814,6 +817,33 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
     Returns:
         LeRobotDataset | MultiLeRobotDataset
     """
+    if isinstance(cfg.dataset, BPV4BPEnDatasetConfig):
+        if not isinstance(cfg.policy, BPV4BPEnConfig):
+            raise ValueError("dataset.type=bpv4_bpen requires policy.type=bpv4_bpen")
+        if bool(cfg.dataset.use_language) != bool(cfg.policy.use_language):
+            raise ValueError("bpv4_bpen dataset/policy use_language mismatch")
+        if int(cfg.dataset.bp_num_keyframes) != int(cfg.policy.bp_num_keyframes):
+            raise ValueError("bpv4_bpen dataset/policy bp_num_keyframes mismatch")
+        from lerobot.policies.BPV4BPEn.dataset import make_bpv4_bpen_dataset
+
+        return make_bpv4_bpen_dataset(cfg)
+    if isinstance(cfg.dataset, BPV4XDemoDatasetConfig):
+        if not isinstance(cfg.policy, BPV4XDemoConfig):
+            raise ValueError("dataset.type=bpv4_xdemo requires policy.type=bpv4_xdemo")
+        if int(cfg.dataset.bp_num_keyframes) != int(cfg.policy.bp_num_keyframes):
+            raise ValueError("bpv4_xdemo dataset/policy bp_num_keyframes mismatch")
+        from lerobot.policies.BPV4XDemo.dataset import make_bpv4_xdemo_dataset
+
+        return make_bpv4_xdemo_dataset(cfg)
+    if isinstance(cfg.dataset, BPV4CDXAEDatasetConfig):
+        if not isinstance(cfg.policy, BPV4CDXAEConfig):
+            raise ValueError("dataset.type=bpv4cdx_ae requires policy.type=bpv4cdx_ae")
+        for key in ("num_slots", "spatial_tokens"):
+            if int(getattr(cfg.dataset, key)) != int(getattr(cfg.policy, key)):
+                raise ValueError(f"bpv4cdx_ae dataset/policy {key} mismatch")
+        from lerobot.policies.BPV4CDX.dataset import make_bpv4cdx_ae_dataset
+
+        return make_bpv4cdx_ae_dataset(cfg)
     if isinstance(cfg.dataset, (FastWAMDatasetConfig, TBotSA1WanDatasetConfig)):
         if isinstance(cfg.dataset, TBotSA1WanDatasetConfig):
             from lerobot.policies.TBot_SA1_Wan.dataset_tbot_sa1_wan import (

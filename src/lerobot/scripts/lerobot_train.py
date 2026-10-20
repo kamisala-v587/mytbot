@@ -1013,6 +1013,17 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             policy, optimizer, dataloader, lr_scheduler
         )
 
+    if getattr(cfg.policy, "preflight_memory_check", False) and torch.cuda.is_available() and not cfg.resume:
+        from lerobot.policies.BPV4BPEn.preflight import run_preflight
+
+        run_preflight(
+            policy,
+            optimizer,
+            dataloader,
+            accelerator,
+            limit_frac=float(getattr(cfg.policy, "preflight_memory_limit_frac", 0.9)),
+        )
+
     eval_dataloader = None
     if is_tbot_sa1_wan(cfg.policy.type) and cfg.eval_freq > 0:
         if is_main_process:

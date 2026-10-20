@@ -1,0 +1,43 @@
+A1:
+- grab_roller
+- handover_block
+- hanging_mug
+- lift_pot
+- open_microwave
+- pick_diverse_bottles
+- pick_dual_bottles
+- place_bread_skillet
+- place_burger_fries
+- place_cans_plasticbox
+- place_dual_shoes
+- scan_object
+A2:
+- adjust_bottle
+- beat_block_hammer
+- click_alarmclock
+- click_bell
+- handover_mic
+- move_can_pot
+- move_playingcard_away
+- open_laptop
+- place_can_basket
+- place_container_plate
+- place_empty_cup
+- place_fan
+- place_mouse_pad
+- place_phone_stand
+- place_shoe
+- press_stapler
+- rotate_qrcode
+- shake_bottle
+- shake_bottle_horizontally
+- turn_switch
+C:
+- blocks_ranking_rgb
+- blocks_ranking_size
+- dump_bin_bigbin
+- put_bottles_dustbin
+- stack_blocks_three
+- stack_blocks_two
+- stack_bowls_three
+- stack_bowls_two

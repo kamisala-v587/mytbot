@@ -1,0 +1,161 @@
+{
+    // BPv4 第一阶段（bpv4_bpen）对照组：不遮挡关键帧、不丢弃 p，state 一直给，只随机丢弃语言；其余与主实验完全相同。
+    // 原主实验说明：以整条轨迹的关键帧图像为 BP，给定进度 p 和 p 时刻 state，预测之后 50 步 action。
+    // 设计见 code/conclusion/bpv4/bpv4 第一阶段详细方案.md。
+    // 当前为预览：policy / dataset 代码仍在开发，字段名与已写好的配置类一致，个别取值可能微调。
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpv4_bpen",
+        // 50 任务 × (clean_50 + randomized_100) = 100 个 repo。
+        "repo_id": "bprobotwin_bpv4_bpen",
+        "repo_id_file": "/vla/workspace/my_tbot/configs/ds_ids/pro6k/robo_bpv4_bpen_clean50_rand100.txt",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
+        "video_backend": "torchcodec",
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": false,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
+
+        "use_language": true,
+        "language_drop_prob": 0.2,
+        "language_max_length": 48,
+
+        // 关键帧采样 v2：K=32，α=0.5，强制夹爪开合帧与末帧，剪首尾空闲，最小间隔 max(2, 有效长度/2K)。
+        // 与特征缓存一一对应；改这两个值需要重建缓存。
+        "bp_num_keyframes": 32,
+        "bp_keyframe_alpha": 0.5,
+        "bp_camera_keys": [
+            "observation.images.cam_high",
+            "observation.images.cam_left_wrist",
+            "observation.images.cam_right_wrist"
+        ],
+        // 冻结的 Qwen3.5-0.8B base 原始 ViT 预先提取的关键帧特征，每条轨迹一个文件，约 12.6 MB。
+        "bp_feature_cache_dir": "/vla/workspace/cache/bpv4_bpen_vit_base800m_k32_v2",
+
+        // 每个数据项 = 一条轨迹 × 4 个查询（p 在轨迹上按时间分 4 层各取一个）。
+        "queries_per_trajectory": 4,
+        // 对照组：p 不丢弃。
+        "progress_drop_prob": 0.0,
+
+        // 数据侧为每个查询同时生成「事件整段」和「比例窗口」两种遮挡方案；是否遮挡、用哪种由 policy 按步数决定。
+        "mask_window_ratio": [0.10, 0.30],
+        "mask_min_visible_keyframes": 8,
+
+        // 每个 repo 末尾留作验证集的 episode 数（按 repo 路径子串匹配）。
+        "val_holdout_last": {"clean_50": 5, "randomized_100": 10},
+        "split": "train",
+
+        "image_transforms": {"enable": false, "preset": null}
+    },
+
+    "env": null,
+    "policy": {
+        "type": "bpv4_bpen",
+        // 不加载任何 VLA 权重：VLM 从 Qwen3.5-0.8B base 加载，act expert 与新模块随机初始化。
+        "pretrained_path": null,
+        "push_to_hub": false,
+        "device": null,
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+        "use_language": true,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+
+        // BP encoder：只用图像。chunk compressor 每帧 3 路 × 64 token → 8 个 token；重采样器 32×8 → 128 个 token。
+        "bp_num_keyframes": 32,
+        "bp_num_cameras": 3,
+        "bp_visual_dim": 1024,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_dim": 512,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
+        "bp_resampler_num_tokens": 128,
+        "bp_resampler_num_layers": 2,
+        "bp_resampler_num_heads": 16,
+
+        // 对照组：不遮挡（遮挡概率恒为 0）。
+        "mask_prob_start": 0.0,
+        "mask_prob_end": 0.0,
+        "mask_prob_ramp_steps": 3000,
+        "mask_event_segment_prob": 0.7,
+
+        // 参数组学习率（方案 C）：
+        //   新模块 1e-4；act expert 1e-4；VLM 末段 4 层 optimizer_lr×0.3、其余 ×0.1；
+        //   VLM 前 2500 步学习率为 0，之后 1000 步线性升温；升温开始时清零 VLM 组的 AdamW 状态。
+        "bp_new_modules_lr": 1e-4,
+        // act expert 随机初始化，用与新模块相同的学习率。
+        "act_expert_lr": 1e-4,
+        "vlm_tail_layers": [20, 21, 22, 23],
+        "vlm_tail_lr_mult": 0.3,
+        "vlm_lr_mult": 0.1,
+        "vlm_zero_steps": 2500,
+        "vlm_ramp_steps": 1000,
+        "vlm_reset_optimizer_state_at_unfreeze": true,
+
+        // ViT 不参与这一阶段（特征已离线缓存），模型内固定冻结。
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "IDENTITY",
+            "ACTION": "IDENTITY"
+        },
+
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 10000,
+        "scheduler_decay_lr": 5e-6,
+
+        // 启动前用真实 batch、学习率 0 试跑 2 步，峰值显存超过 90% 就报错退出。
+        "preflight_memory_check": true,
+        "preflight_memory_limit_frac": 0.9
+    },
+
+    "output_dir": "/vla/workspace/my_tbot/outputs/BPv4/bpv4_bpen_nomask",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 16,
+    // 每 rank 16 条轨迹 × 4 个查询 = 64 个样本；4 卡共 256。
+    "batch_size": 16,
+    "gradient_accumulation_steps": 1,
+    "steps": 10000,
+    "eval_freq": 0,
+    "log_freq": 50,
+    "save_checkpoint": true,
+    // 2500 / 5000 / 7500 / 10000：对应 VLM 升温前与计划的离线验证时间点。
+    "save_freq": 2500,
+    "use_policy_training_preset": true,
+
+    "eval": {"n_episodes": 50, "batch_size": 50, "use_async_envs": false},
+    "wandb": {"enable": false, "project": "BPV4BPEn", "mode": "offline"},
+    "rename_map": {}
+}

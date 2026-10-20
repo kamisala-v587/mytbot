@@ -1,0 +1,4 @@
+place_shoe/aloha-agilex_clean_50
+place_empty_cup/aloha-agilex_randomized_100
+move_can_pot/aloha-agilex_clean_50
+handover_mic/aloha-agilex_clean_50
