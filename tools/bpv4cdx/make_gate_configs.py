@@ -41,7 +41,7 @@ VARIANTS = {
         "top": {"batch_size": 1, "num_workers": 0, "steps": 100, "save_freq": 100, "log_freq": 10},
         "policy": {"scheduler_warmup_steps": 10, "scheduler_decay_steps": 100, "preflight_memory_check": False},
     },
-    # G4 / G5 small subset (AE-2): first 40 trajectories of every repo in the subset list, 2000 steps
+    # G4 / G5 small subset (AE-2): the 10 test-set tasks (clean_50 + randomized_100), 2000 steps
     "ae_g45_subset": {
         "dataset": {"repo_id_file": "@repo_root/bpv4cdx_g45_subset_rel.txt"},
         "top": {"steps": 2000, "save_freq": 2000},
