@@ -23,6 +23,7 @@ import numpy as np
 import torch
 from safetensors import safe_open
 
+import lerobot.policies.BPV4XDemo.configuration_bpv4_xdemo  # noqa: F401  (registers the stage-2 config type)
 from lerobot.configs.policies import PreTrainedConfig
 from lerobot.policies.BPV4BPEn.build_feature_cache import cache_path
 from lerobot.policies.BPV4BPEn.modeling_bpv4_bpen import BPChunkCompressor, BPTrajectoryResampler, sinusoidal_encoding

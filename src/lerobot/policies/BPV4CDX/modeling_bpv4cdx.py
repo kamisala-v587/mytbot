@@ -1,14 +1,17 @@
 """bpv4cdx Stage A-AE model.
 
 demo video (32 slots x 3 cameras x P cached ViT tokens) -> Temporal Video Q-Former -> Z_demo [B, 128, hidden]
-prefix  = text tokens + [demo_start] + Z_demo + [demo_end] + segment_query        (Qwen3.5, frozen)
+prefix  = [BOS] + text (48) + [demo_start] + Z_demo + [demo_end] + segment_query     (Qwen3.5, frozen; 180 positions)
 suffix  = state slot + noisy action (q35 action expert, flow matching)
-The state slot carries a constant zero (main branch) or the segment-start state (AE-S0). With
-expert_context="segment_query" the suffix sees only the segment_query position of the prefix, so everything the
-expert gets from the demo passes through that token (task book 5.6).
+BOS, demo_start and demo_end are learnable vectors (the Qwen tokenizer has no BOS token). The state slot carries a
+constant zero (main branch) or the segment-start state (AE-S0). With expert_context="segment_query" the suffix sees
+only the segment_query position of the prefix in the 6 joint full-attention layers, so everything the expert gets
+from the demo passes through that token.
 """
 
 from __future__ import annotations
+
+import math
 
 import torch
 import torch.nn as nn
@@ -22,7 +25,39 @@ from lerobot.utils.constants import ACTION, OBS_STATE
 
 from .configuration_bpv4cdx import BPV4CDXAEConfig
 
-NEW_MODULE_PREFIXES = ("demo_encoder.", "segment_query.", "demo_start", "demo_end")
+NEW_MODULE_PREFIXES = ("demo_encoder.", "segment_query.", "demo_start", "demo_end", "bos")
+LORA_KEY = ".lora_"
+
+
+class LoRALinear(nn.Linear):
+    """nn.Linear with a frozen base weight and a trainable low-rank update (keeps .weight / .out_features, which the
+    q35 joint-attention code reads). B starts at zero, so wrapping does not change the output."""
+
+    def __init__(self, base: nn.Linear, rank: int, alpha: float) -> None:
+        super().__init__(base.in_features, base.out_features, bias=base.bias is not None,
+                         device=base.weight.device, dtype=base.weight.dtype)
+        self.weight, self.bias = base.weight, base.bias
+        self.lora_A = nn.Parameter(torch.empty(rank, base.in_features, dtype=torch.float32, device=base.weight.device))
+        self.lora_B = nn.Parameter(torch.zeros(base.out_features, rank, dtype=torch.float32, device=base.weight.device))
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+        self.scale = float(alpha) / float(rank)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = F.linear(x, self.weight, self.bias)
+        return out + F.linear(F.linear(x, self.lora_A.to(x.dtype)), self.lora_B.to(x.dtype)) * self.scale
+
+
+def add_qwen_lora(vlm: nn.Module, layers: int, rank: int, alpha: float) -> list[str]:
+    """Wrap every nn.Linear of the last `layers` text decoder layers (attention / linear attention and MLP)."""
+    decoder = vlm.model.language_model.layers if hasattr(vlm.model, "language_model") else vlm.model.layers
+    wrapped = []
+    for li in range(len(decoder) - layers, len(decoder)):
+        for name, module in list(decoder[li].named_modules()):
+            for child_name, child in list(module.named_children()):
+                if type(child) is nn.Linear:
+                    setattr(module, child_name, LoRALinear(child, rank, alpha))
+                    wrapped.append(f"layers.{li}.{name + '.' if name else ''}{child_name}")
+    return wrapped
 
 
 class TemporalVideoQFormer(nn.Module):
@@ -87,9 +122,12 @@ class BPV4CDXAEModel(Q35Model):
         self.segment_query = SegmentQuery(hidden)
         self.demo_start = nn.Parameter(torch.randn(hidden) * 0.02)
         self.demo_end = nn.Parameter(torch.randn(hidden) * 0.02)
+        self.bos = nn.Parameter(torch.randn(hidden) * 0.02)
         # Qwen (language model, ViT, LM head) is frozen; gradients still flow through it to the new modules.
         for p in self.core.backbone.vlm.parameters():
             p.requires_grad_(False)
+        self.lora_modules = (add_qwen_lora(self.core.backbone.vlm, int(config.qwen_lora_layers), int(config.qwen_lora_rank),
+                                           float(config.qwen_lora_alpha)) if config.qwen_lora_layers else [])
 
     # --- prefix -------------------------------------------------------------------------------------------------
     def encode_demo(self, batch: dict) -> torch.Tensor | None:
@@ -99,14 +137,16 @@ class BPV4CDXAEModel(Q35Model):
         return self.demo_encoder(batch["demo.feats"], batch["demo.time"], batch["demo.camera_valid"])
 
     def build_prefix(self, batch: dict, z_demo: torch.Tensor | None) -> tuple[torch.Tensor, torch.Tensor]:
-        """-> prefix [B*S, L, hidden], valid [B*S, L]; the segment_query token is the last prefix position."""
+        """-> prefix [B*S, L, hidden], valid [B*S, L]; BOS first (always visible), segment_query last."""
         b, s = batch["seg.tau"].shape[:2]
         n = b * s
         vlm = self.core.backbone.vlm
         text = vlm.get_input_embeddings()(batch["text.input_ids"].reshape(n, -1))
         dtype, device = text.dtype, text.device
-        parts = [text]
-        valid = [batch["text.attention_mask"].reshape(n, -1).bool()]
+        parts, valid = [text], [batch["text.attention_mask"].reshape(n, -1).bool()]
+        if self.config.prefix_bos:
+            parts.insert(0, self.bos.to(dtype).expand(n, 1, -1))
+            valid.insert(0, torch.ones(n, 1, dtype=torch.bool, device=device))
         if z_demo is not None:
             z = z_demo.to(dtype).repeat_interleave(s, dim=0)
             parts += [self.demo_start.to(dtype).expand(n, 1, -1), z, self.demo_end.to(dtype).expand(n, 1, -1)]
@@ -211,20 +251,30 @@ class BPV4CDXAEPolicy(Q35Policy):
         self.reset()
 
     def classify_model_loading_keys(self, missing_keys: list[str], unexpected_keys: list[str]):
-        expected = [k for k in missing_keys if k.startswith(tuple(f"model.{p}" for p in NEW_MODULE_PREFIXES))]
+        # new modules (first load of a q35 / base checkpoint) and LoRA factors (LoRA added on top of an AE-3 checkpoint)
+        expected = [k for k in missing_keys
+                    if k.startswith(tuple(f"model.{p}" for p in NEW_MODULE_PREFIXES)) or LORA_KEY in k]
         return [k for k in missing_keys if k not in expected], list(unexpected_keys), expected
 
     def get_optim_params(self):
         cfg = self.config
-        groups = {"cdx_new": [], "act": []}
+        groups = {"cdx_new": [], "act": [], "lora": []}
         for name, p in self.named_parameters():
             if not p.requires_grad:
                 continue
-            groups["cdx_new" if name.startswith(tuple(f"model.{x}" for x in NEW_MODULE_PREFIXES)) else "act"].append(p)
-        return [
+            if LORA_KEY in name:
+                groups["lora"].append(p)
+            elif name.startswith(tuple(f"model.{x}" for x in NEW_MODULE_PREFIXES)):
+                groups["cdx_new"].append(p)
+            else:
+                groups["act"].append(p)
+        out = [
             {"name": "cdx_new", "params": groups["cdx_new"], "lr": float(cfg.new_modules_lr)},
             {"name": "act", "params": groups["act"], "lr": float(cfg.act_expert_lr)},
         ]
+        if groups["lora"]:
+            out.append({"name": "lora", "params": groups["lora"], "lr": float(cfg.qwen_lora_lr)})
+        return out
 
     def forward(self, batch, *, validation_mode: str | None = None):
         losses = self.model.forward_segments(batch)
@@ -237,8 +287,11 @@ class BPV4CDXAEPolicy(Q35Policy):
             w = valid[..., None].to(flow.dtype)
             per_seg = (flow * w).sum((1, 2)) / (w.sum((1, 2)) * flow.shape[-1]).clamp_min(1)
             generic = batch["text.is_generic"].reshape(-1)
-            logs = {"loss_action": float(loss.detach()), "bp_generic_frac": float(generic.float().mean())}
-            for sel, label in ((generic, "generic"), (~generic, "canonical")):
+            dropped = batch["text.is_dropped"].reshape(-1) if "text.is_dropped" in batch else torch.zeros_like(generic)
+            canonical = ~generic & ~dropped
+            logs = {"loss_action": float(loss.detach()), "bp_generic_frac": float(generic.float().mean()),
+                    "bp_text_drop_frac": float(dropped.float().mean())}
+            for sel, label in ((generic, "generic"), (canonical, "canonical"), (dropped, "dropped")):
                 logs[f"bp_loss_{label}"] = float(per_seg[sel].mean()) if bool(sel.any()) else 0.0
         return loss, logs
 

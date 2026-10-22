@@ -47,13 +47,19 @@ def plan_keyframes(state: np.ndarray, num_keyframes: int = 32, alpha: float = 0.
     n = len(state)
     if n <= 1:
         return KeyframePlan(np.zeros(1, int), np.ones(1, bool), np.zeros(0, int), (0, 0), n)
-    speed = motion_speed(state)
+    return plan_keyframes_from(motion_speed(state), gripper_flips(state), num_keyframes, alpha)
+
+
+def plan_keyframes_from(speed: np.ndarray, events: list[int], num_keyframes: int = 32,
+                        alpha: float = 0.5) -> KeyframePlan:
+    """plan_keyframes on a given per-frame speed and gripper event list (any embodiment); len(speed) > 1."""
+    n = len(speed)
     med = float(np.median(speed))
     active = np.nonzero(speed > 0.1 * med)[0]
     lo, hi = (int(active[0]), int(active[-1])) if len(active) else (0, n - 1)
     lo, hi = max(0, lo - 2), min(n - 1, hi + 2)
     gap = max(2, int(np.ceil((hi - lo + 1) / (2 * num_keyframes))))
-    flips = [f for f in gripper_flips(state) if lo <= f <= hi]
+    flips = [f for f in events if lo <= f <= hi]
     forced = sorted(set(flips) | {hi})
     seg = speed[lo : hi + 1]
     w = 1.0 / (seg + 0.1 * med + 1e-8)

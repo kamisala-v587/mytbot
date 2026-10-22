@@ -1,6 +1,6 @@
 {
     // bpv4cdx Stage A-AE 主分支（S-A / P5 / 无 state / N128）。设计见
-    // code/conclusion/bpv4/bpv4CDX分支-不要混bpv4方案/bpv4cdx 开发任务书 v1.md。
+    // code/conclusion/bpv4CDX/bpv4cdx 设计文档.md 与 bpv4cdx 实现细节Stage A-AE.md。
     // 路径默认值是开发机的；训练机上由 tools/bpv4cdx/train.sh 用命令行覆盖（DATA_ROOT / CACHE_DIR / QWEN_PATH / OUT_ROOT）。
     "dataloader_in_order": false,
     "dataset": {
@@ -20,9 +20,11 @@
         "max_action_dim": 32,
         "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
 
-        // 50% canonical text（任务名生成）/ 50% generic text
+        // 每段先按 text_drop_prob 遮挡文本（attention mask 全零，BOS 仍可见；主分支 0），
+        // 未遮挡时 50% canonical text（任务名生成）/ 50% generic text；文本固定 48 个 token（与 bpv4 相同）
         "generic_text_prob": 0.5,
-        "language_max_length": 24,
+        "text_drop_prob": 0.0,
+        "language_max_length": 48,
 
         // 32 个槽，S-A 采样（bpv4 自适应 v2 + 强制活动区间起点），缓存由 BPV4CDX.build_cache 生成
         "num_slots": 32,
@@ -30,10 +32,12 @@
         "cache_dir": "/vla/workspace/cache/bpv4cdx_sa",
         "spatial_tokens": 5,
 
-        // 每条轨迹 4 个 50 步目标段（按时间分 4 层各取一个起点）
+        // 每条轨迹 4 个 50 步目标段：[0, 50) 内随机网格偏移，起点按时间分 4 层各取一个
         "segment_len": 50,
         "segments_per_trajectory": 4,
         "segment_mode": "random",
+        // 轨迹按长度加权、按任务分层抽样（数据集自带 sampler）
+        "length_weighted_sampling": true,
 
         "val_holdout_last": {"clean_50": 5, "randomized_100": 10},
         "split": "train",
@@ -78,13 +82,20 @@
         "qformer_ff_mult": 4,
 
         "demo_input": "video",
+        // prefix = BOS（可学习）+ 文本 48 + demo_start + Z_demo 128 + demo_end + segment_query = 180
+        "prefix_bos": true,
         "expert_context": "segment_query",
         "use_segment_start_state": false,
         "segment_start_state_mask_prob": 0.5,
 
-        // Qwen 主体全程冻结，不使用 LoRA；新模块与 action expert 1e-4
+        // Qwen 原始权重全程冻结；新模块与 action expert 1e-4
         "new_modules_lr": 1e-4,
         "act_expert_lr": 1e-4,
+        // Qwen 上部 LoRA：条件触发的侧分支（ae_main_lora：最后 4 层，秩 16，alpha 32，1e-4），主分支关闭
+        "qwen_lora_layers": 0,
+        "qwen_lora_rank": 16,
+        "qwen_lora_alpha": 32.0,
+        "qwen_lora_lr": 1e-4,
 
         "attention_implementation": "sdpa",
         "gradient_checkpointing": false,

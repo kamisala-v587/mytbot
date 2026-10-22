@@ -1,0 +1,2 @@
+{"task": "place_empty_cup", "connection": "('127.0.0.1', 39852):124386014165744", "mode": "best", "task_episode": 0, "sim": 0.9927, "episode": 44, "demo_arm": "R"}
+{"task": "place_empty_cup", "connection": "('127.0.0.1', 39852):124386014165744", "mode": "best", "task_episode": 1, "sim": 0.9958, "episode": 37, "demo_arm": "L"}

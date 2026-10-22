@@ -4,7 +4,7 @@
 set -u
 SAMPLER=${1:-sa}
 REPO_FILE=${2:-$BPV4CDX_REPO/configs/ds_ids/pro6k/bpv4cdx_train_rel.txt}
-CACHE_DIR=$BPV4CDX_CACHE_ROOT/bpv4cdx_$SAMPLER
+CACHE_DIR=$BPV4CDX_CACHE_ROOT/${BPV4CDX_CACHE_PREFIX:-bpv4cdx_}$SAMPLER
 LOG_DIR=$BPV4CDX_OUT_ROOT/BPv4CDX/cache_logs/$SAMPLER
 mkdir -p "$LOG_DIR"
 cd "$BPV4CDX_REPO" || exit 1

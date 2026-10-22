@@ -1,6 +1,7 @@
 """bpv4cdx Stage A-AE: full demo video (32 slots x 3 cameras, cached ViT features) -> Temporal Q-Former -> Z_demo;
-prefix = canonical / generic text + [demo_start] Z_demo [demo_end] + segment_query; the q35 action expert
-reconstructs the demo's own 50-step action segment. Qwen is frozen; no current observation, no state (main branch).
+prefix = [BOS] + canonical / generic text (48 tokens) + [demo_start] Z_demo [demo_end] + segment_query (180
+positions); the q35 action expert reconstructs the demo's own 50-step action segment. Qwen is frozen; no current
+observation, no state (main branch). Design: code/conclusion/bpv4CDX/bpv4cdx 实现细节Stage A-AE.md.
 """
 
 from __future__ import annotations
@@ -31,9 +32,11 @@ class BPV4CDXAEDatasetConfig(DatasetConfig):
     data_root: str | None = None
     qwen3_5_processor_path: str = ""
 
-    # text: canonical (from the task name) or the generic sentence, per segment
+    # text, per segment: first dropped with text_drop_prob (tokens kept, attention mask all zero; BOS stays visible),
+    # otherwise the generic sentence with generic_text_prob, else the canonical text (from the task name)
     generic_text_prob: float = 0.5
-    language_max_length: int = 24
+    text_drop_prob: float = 0.0
+    language_max_length: int = 48
 
     # demo slots (must match the cache)
     num_slots: int = 32
@@ -45,8 +48,40 @@ class BPV4CDXAEDatasetConfig(DatasetConfig):
     # target segments (segment_len == policy.chunk_size)
     segment_len: int = 50
     segments_per_trajectory: int = 4
-    # random: random grid offset + stratified choice; fixed: starts 0, L, 2L, ... (first S of them)
+    # random: grid offset in [0, L), starts offset + k L split into S time strata, one random start per stratum;
+    # fixed: starts 0, L, 2L, ... (first S of them; evaluation and G3)
     segment_mode: str = "random"
+    # training draws trajectories with probability proportional to their length, task-stratified (dataset sampler)
+    length_weighted_sampling: bool = True
+
+    # HOM (held-out monitor): at every checkpoint save, sample actions on a fixed, task-stratified set of held-out
+    # episodes (fixed noise, fixed segment starts) and log their MSE to the true actions; 0 = all held-out episodes
+    heldout_monitor: bool = True
+    heldout_monitor_max_episodes: int = 50
+    heldout_monitor_alternate: bool = True
+    heldout_monitor_batch: int = 16
+    # every N-th save HOM uses all held-out episodes instead of heldout_monitor_max_episodes (0 = never)
+    heldout_monitor_full_every: int = 0
+    # URDF for the end-effector (link6) position error in cm (RoboTwin aloha-agilex only); "auto" = the copy shipped
+    # in the repo (assets/urdf/aloha-agilex), "" or a missing file skips it
+    heldout_monitor_urdf: str = "auto"
+
+    # --- AE-3 (multi-embodiment, full data) ---
+    # split manifest (tools/bpv4cdx/ae3_manifest.py): repos by machine-independent relative id + held-out episodes;
+    # when set it replaces repo_id_file / val_holdout_last. data_roots: local roots the relative ids are resolved under
+    split_manifest: str = ""
+    data_roots: list[str] = field(default_factory=list)
+    manifest_sources: list[str] = field(default_factory=list)  # only these top-level sources (empty = all)
+    # per-repo memory-mapped state / action arrays (BPV4CDX.ae3_data prepare-arrays); "" = read the parquet files
+    array_store: str = ""
+    # cache file layout: task_variant = <cache>/<task>/<variant>/epXXXXX.pt (AE-1 / AE-2, bpv4); rel = <cache>/<relative
+    # repo id>/epXXXXX.pt (AE-3, unique across sources)
+    cache_layout: str = "task_variant"
+    # optional list of available cache files (BPV4CDX.ae3_data cache-index): only these trajectories are used, so
+    # training can start on a partially built cache; "" = every trajectory must have its cache file
+    cache_index: str = ""
+    # threads for loading repo metadata / arrays at start-up
+    load_threads: int = 16
 
     val_holdout_last: dict[str, int] = field(default_factory=lambda: {"clean_50": 5, "randomized_100": 10})
     split: str = "train"
@@ -62,8 +97,10 @@ class BPV4CDXAEDatasetConfig(DatasetConfig):
             raise ValueError("spatial_tokens must be 5 or 64")
         if self.segment_mode not in {"random", "fixed"}:
             raise ValueError("segment_mode must be random or fixed")
-        if not 0.0 <= self.generic_text_prob <= 1.0:
-            raise ValueError("generic_text_prob must be in [0, 1]")
+        if self.cache_layout not in {"task_variant", "rel"}:
+            raise ValueError("cache_layout must be task_variant or rel")
+        if not 0.0 <= self.generic_text_prob <= 1.0 or not 0.0 <= self.text_drop_prob <= 1.0:
+            raise ValueError("generic_text_prob and text_drop_prob must be in [0, 1]")
         if not self.cache_dir or not self.qwen3_5_processor_path:
             raise ValueError("cache_dir and qwen3_5_processor_path must be set explicitly")
 
@@ -86,6 +123,8 @@ class BPV4CDXAEConfig(Q35Config):
 
     # "none" = text-only control model (no Z_demo tokens in the prefix)
     demo_input: str = "video"
+    # learnable BOS vector at prefix position 0; False only for checkpoints trained before it existed
+    prefix_bos: bool = True
     # segment_query: action expert attends only to the segment_query position of the prefix (task book 5.6);
     # full_prefix: it attends to the whole prefix (ablation)
     expert_context: str = "segment_query"
@@ -94,9 +133,16 @@ class BPV4CDXAEConfig(Q35Config):
     use_segment_start_state: bool = False
     segment_start_state_mask_prob: float = 0.5
 
-    # learning rates (Qwen stays frozen, no LoRA)
+    # learning rates (the scheduler scales every group by the same warmup / cosine factor)
     new_modules_lr: float = 1e-4
     act_expert_lr: float = 1e-4
+
+    # Qwen upper-layer LoRA (conditional side branch, off = 0): attention / linear-attention and MLP linears of the
+    # last qwen_lora_layers decoder layers; the original Qwen weights stay frozen
+    qwen_lora_layers: int = 0
+    qwen_lora_rank: int = 16
+    qwen_lora_alpha: float = 32.0
+    qwen_lora_lr: float = 1e-4
 
     preflight_memory_check: bool = True
     preflight_memory_limit_frac: float = 0.9
@@ -113,6 +159,8 @@ class BPV4CDXAEConfig(Q35Config):
             raise ValueError("qformer_dim must be divisible by qformer_num_heads")
         if self.spatial_tokens not in {5, 64}:
             raise ValueError("spatial_tokens must be 5 or 64")
+        if self.qwen_lora_layers < 0 or self.qwen_lora_rank <= 0:
+            raise ValueError("qwen_lora_layers must be >= 0 and qwen_lora_rank > 0")
 
     def get_scheduler_preset(self) -> BPV4GroupedSchedulerConfig:
         return BPV4GroupedSchedulerConfig(

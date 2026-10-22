@@ -1,0 +1,65 @@
+# bpv4_xdemo（BPv4 第二阶段）闭环测评：BP 测试集 10 任务 × 20 次，clean 场景。
+# 示教候选 = 每任务全部 50 条 clean 示教（第一阶段特征缓存），episode 开头选一条：
+#   best50：当前头部首帧与示教首帧 ViT 特征最相似（与 v3 的 bp10_best 可比）
+#   random50：按 (seed, 任务, 第几个 episode) 随机（检验示教是否可替换）
+name: bpv4_xdemo
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: true
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 128
+    host: 0.0.0.0
+    port: 8002
+    debug: false
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  tasks:
+  - place_cans_plasticbox
+  - scan_object
+  - place_shoe
+  - rotate_qrcode
+  - place_mouse_pad
+  - place_empty_cup
+  - move_can_pot
+  - place_phone_stand
+  - handover_mic
+  - place_can_basket
+  gpu_ids:
+  - 1
+  - 2
+  - 3
+  tasks_per_gpu: 3
+  max_retries: 5
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+- name: xdemo
+  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPv4/bpv4_xdemo_main/*/checkpoints/*/pretrained_model
+  steps:
+  - 10000
+  - 20000
+scenes:
+- name: clean_ep20
+  overrides:
+    task_config: my_demo_clean
+    task_config_overrides:
+      episode_num: 20
+variants:
+- name: best50
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpv4x_task_bps_clean_best50.yml
+- name: random50
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpv4x_task_bps_clean_random50.yml

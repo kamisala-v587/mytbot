@@ -13,8 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
 import logging
 import os
+import shutil
 import subprocess
 import time
 import inspect
@@ -965,6 +967,15 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         num_workers = 1
         prefetch_factor = 4
         worker_init_fn = None
+    elif callable(getattr(dataset, "make_train_sampler", None)) and (
+        sampler := dataset.make_train_sampler(0 if cfg.seed is None else cfg.seed)
+    ) is not None:
+        # dataset-defined draw order (e.g. bpv4cdx: length-proportional, task-stratified); same order on every rank
+        shuffle = False
+        num_workers = cfg.num_workers
+        prefetch_factor = 2 if cfg.num_workers > 0 else None
+        worker_init_fn = None
+        logging.info("Using dataset sampler %s", type(sampler).__name__)
     else:
         shuffle = True
         sampler = None
@@ -1001,6 +1012,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         dataloader_kwargs["in_order"] = cfg.dataloader_in_order
     logging.info("DataLoader in_order=%s", cfg.dataloader_in_order)
     dataloader = torch.utils.data.DataLoader(**dataloader_kwargs)
+    # optional dataset-defined held-out generation monitor, run after every checkpoint save (bpv4cdx HOM)
+    heldout_monitor = dataset.make_heldout_monitor() if callable(getattr(dataset, "make_heldout_monitor", None)) else None
 
     # Prepare everything with accelerator
     accelerator.wait_for_everyone()
@@ -1362,9 +1375,31 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
                         checkpoint_dir / "training_state" / _fastwam_family_trainer_state_file(cfg.policy.type),
                     )
                 update_last_checkpoint(checkpoint_dir)
+                keep_states = int(os.environ.get("BPV4CDX_KEEP_TRAINING_STATES", "0"))
+                if keep_states > 0:
+                    older = sorted(p for p in checkpoint_dir.parent.iterdir() if p.name.isdigit())[:-keep_states]
+                    for p in older:
+                        shutil.rmtree(p / "training_state", ignore_errors=True)
                 if wandb_logger:
                     wandb_logger.log_policy(checkpoint_dir)
 
+            accelerator.wait_for_everyone()
+
+        if is_saving_step and heldout_monitor is not None:
+            # dataset-defined held-out generation error (e.g. bpv4cdx HOM); every rank evaluates its shard
+            hom = heldout_monitor(accelerator.unwrap_model(policy), accelerator, step)
+            if is_main_process:
+                from lerobot.policies.BPV4CDX.heldout_monitor import log_line, trend_advice
+
+                hom_file = cfg.output_dir / "heldout_monitor.jsonl"
+                history = [json.loads(line) for line in hom_file.read_text().splitlines()] if hom_file.is_file() else []
+                decay = int(getattr(cfg.policy, "scheduler_decay_steps", 0) or 0)
+                hom["advice"] = trend_advice(history, hom, lr_at_floor=bool(decay and step >= decay))
+                logging.info("HOM @ step %d: %s", step, log_line(hom))
+                with open(hom_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(hom) + "\n")
+                if wandb_logger:
+                    wandb_logger.log_dict({k: v for k, v in hom.items() if isinstance(v, (int, float))}, step, mode="eval")
             accelerator.wait_for_everyone()
 
     if is_main_process and train_pbar is not None:

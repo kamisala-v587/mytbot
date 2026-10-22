@@ -1,0 +1,46 @@
+# bpv4_xdemo 闭环冒烟：1 个任务 × 2 次，只检查服务端适配器与客户端能跑通。
+name: bpv4_xdemo_smoke
+robotwin_root: /vla/workspace/my_robotwin
+output_root: /vla/workspace/my_tbot/launch/ex_plus/results
+continue_on_error: false
+server:
+  conda_env: q35va
+  startup_timeout: 900
+  args:
+    policy: auto
+    device: cuda:0
+    max_batch_size: 4
+    batch_wait_ms: 10
+    queue_size: 128
+    host: 0.0.0.0
+    port: 8003
+    debug: false
+    debug_dir: /vla/workspace/my_tbot/server/debug_logs_smoke
+client:
+  conda_env: myrobotwin
+  base_config: /vla/workspace/my_robotwin/run/fast.yml
+  tasks:
+  - place_empty_cup
+  gpu_ids:
+  - 1
+  tasks_per_gpu: 1
+  max_retries: 1
+  overrides:
+    seed_reuse_file: /vla/workspace/my_robotwin/config/seeds.yml
+    instruction_type: seen
+models:
+- name: xdemo
+  checkpoint_glob: /vla/workspace/my_tbot/outputs/BPv4/bpv4_xdemo_main/*/checkpoints/*/pretrained_model
+  steps:
+  - 2500
+scenes:
+- name: clean_ep2
+  overrides:
+    task_config: my_demo_clean
+    task_config_overrides:
+      episode_num: 2
+variants:
+- name: best50
+  server_args:
+    input_masks: ''
+    bp_mapping_path: /vla/workspace/my_tbot/server/policy_runtime/bpv4x_task_bps_clean_best50.yml

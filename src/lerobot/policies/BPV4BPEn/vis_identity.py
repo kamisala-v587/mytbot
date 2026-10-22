@@ -30,9 +30,13 @@ from lerobot.policies.BPV4BPEn.probe_shortcut import Trajectories
 
 TASKS = {"place_shoe": "shoe", "place_phone_stand": "phone"}
 PANELS = [("vit.inhand", "ViT wrist cam, object in gripper"), ("vit.kf0", "ViT head cam, keyframe 0"),
-          ("random", "random encoder, BP (all keyframes)"), ("main10k", "main 10k, BP (all keyframes)"),
-          ("nomask10k", "nomask 10k, BP (all keyframes)")]
-ARM_FIRST = ("main10k", "main 10k, BP, sorted by ARM first")
+          ("random", "random encoder, BP (all keyframes)")]
+
+
+def model_panels(names: list[str]) -> tuple[list[tuple[str, str]], tuple[str, str]]:
+    """One similarity / confusion panel per checkpoint; the arm-first panel uses the first checkpoint."""
+    panels = PANELS + [(n, f"{n}, BP (all keyframes)") for n in names]
+    return panels, (names[0], f"{names[0]}, BP, sorted by ARM first")
 
 
 def load(repo_file: str, labels: dict):
@@ -52,7 +56,7 @@ def load(repo_file: str, labels: dict):
 def features(items, metas, models, cache_dir):
     loader = torch.utils.data.DataLoader(Trajectories(items, cache_dir, [m["grasp_frame"] for m in metas]),
                                          batch_size=32, num_workers=16)
-    out = {k: [] for k, _ in PANELS}
+    out = {k: [] for k in ("vit.inhand", "vit.kf0", *models)}
     for batch in loader:
         x, t, vis = batch["feats"].cuda(), batch["time"].cuda(), batch["vis"].cuda()
         out["vit.kf0"].append(x[:, 0, 0].float().mean(1).cpu())
@@ -97,9 +101,10 @@ def main():
     feats = features(items, metas, models, args.cache_dir)
     task = np.array([m["task"] for m in metas])
     print("features", {k: v.shape for k, v in feats.items()}, flush=True)
+    panels, arm_first = model_panels(list(ckpts))
 
-    fig_s, ax_s = plt.subplots(len(TASKS), len(PANELS) + 1, figsize=(4.2 * (len(PANELS) + 1), 4.6 * len(TASKS)))
-    fig_c, ax_c = plt.subplots(len(TASKS), len(PANELS), figsize=(3.9 * len(PANELS), 4.0 * len(TASKS)))
+    fig_s, ax_s = plt.subplots(len(TASKS), len(panels) + 1, figsize=(4.2 * (len(panels) + 1), 4.6 * len(TASKS)))
+    fig_c, ax_c = plt.subplots(len(TASKS), len(panels), figsize=(3.9 * len(panels), 4.0 * len(TASKS)))
     for r, (tname, obj) in enumerate(TASKS.items()):
         sel = np.flatnonzero(task == tname)
         ids = np.array([str(metas[i]["grasp_id"]) for i in sel])
@@ -112,9 +117,9 @@ def main():
         idx_num = np.array([classes.index(v) for v in ids])
         arm_num = (arms == "R").astype(int)
         order_obj = order
-        for c, (key, title) in enumerate([*PANELS, ARM_FIRST]):
-            order = np.lexsort((ids, arms)) if c == len(PANELS) else order_obj
-            bounds = np.flatnonzero(np.diff((arm_num if c == len(PANELS) else idx_num)[order])) + 0.5
+        for c, (key, title) in enumerate([*panels, arm_first]):
+            order = np.lexsort((ids, arms)) if c == len(panels) else order_obj
+            bounds = np.flatnonzero(np.diff((arm_num if c == len(panels) else idx_num)[order])) + 0.5
             x = feats[key][sel]
             z = (x - x.mean(0)) / (x.std(0) + 1e-6)
             z = z / np.linalg.norm(z, axis=1, keepdims=True)
@@ -135,7 +140,7 @@ def main():
             ax.set_title(f"{title}\nsame-{obj} gain {g_obj:+.2f} | same-arm gain {g_arm:+.2f}", fontsize=9)
             if c == 0:
                 ax.set_ylabel(f"{tname} ({len(classes)} {obj}s, {n} episodes)\nleft strip: orange = left arm", fontsize=9)
-            if c == len(PANELS):
+            if c == len(panels):
                 continue
 
             folds = min(5, int(np.unique(ids, return_counts=True)[1].min()))

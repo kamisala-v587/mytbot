@@ -22,7 +22,7 @@ import torch
 from lerobot.policies.q35.transform_q35 import ACTION_VALID_MASK
 from lerobot.utils.constants import ACTION
 
-from .common import collate, load_cfg, make_dataset, make_policy, masked_error, to_device, write_result
+from .common import collate, load_cfg, make_dataset, make_policy, masked_error, reproducibility, to_device, write_result
 
 
 def sample(policy, batch, seed: int, n: int, horizon: int, dim: int) -> torch.Tensor:
@@ -45,6 +45,7 @@ def main() -> None:
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", type=int, default=5)
+    ap.add_argument("--name", default="g3", help="result file name (e.g. g3_fullprefix for the diagnostic run)")
     args, overrides = ap.parse_known_args()
     cfg = load_cfg(args.ckpt, overrides)
     ds = make_dataset(cfg)
@@ -90,7 +91,8 @@ def main() -> None:
         "thresholds": {"reduction": 0.8, "distinctness": 0.5},
     }
     result["pass"] = bool(reduction >= 0.8 and distinct >= 0.5 and result["finite_and_shape_ok"])
-    path = write_result(args.out, "g3", result)
+    result["reproducibility"] = reproducibility(cfg, args.ckpt, policy, ds)
+    path = write_result(args.out, args.name, result)
     print(path)
     print({k: result[k] for k in ("error_mean", "baseline_mean_action_error", "reduction_vs_mean_action",
                                   "distinctness_ratio", "pass")})
