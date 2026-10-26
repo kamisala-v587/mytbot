@@ -3,7 +3,7 @@
 Only the AE-3 differences are set here:
   data       split manifest + data roots (machine-independent repo ids, held-out lists), memory-mapped arrays,
              cache layout `rel`, P5-only cache, cache index (train on a partial cache)
-  sampler    from the G0 audit (suf or su)
+  sampler    confirmed after the sampler audit (suf, su or sa)
   batch      128 trajectories in total (16 per GPU on 8 GPUs) x 4 segments
   schedule   warmup 2000, cosine to the floor at 300k steps, then constant; 1M steps cap (stop by hand, see HOM
              advice); save every 10k. Floor: scheduler_decay_lr of ae_main.jsonc (5e-6, i.e. 1e-5 for the 1e-4
@@ -41,7 +41,8 @@ def main() -> None:
     ap.add_argument("--qwen_path", required=True)
     ap.add_argument("--stats_root", required=True)
     ap.add_argument("--out_root", required=True)
-    ap.add_argument("--sampler", choices=["suf", "su"], required=True, help="from `ae3_data audit` (decision)")
+    ap.add_argument("--sampler", choices=["suf", "su", "sa"], required=True,
+                    help="confirmed after `ae3_data audit` (one sampler for the full cache)")
     ap.add_argument("--num_gpus", type=int, default=8)
     ap.add_argument("--decay_lr", type=float, default=None,
                     help="ae3_main scheduler_decay_lr (default: keep the value of ae_main.jsonc)")

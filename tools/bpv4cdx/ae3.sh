@@ -90,10 +90,11 @@ rows = [(int(s), float(u), float(d)) for s, u, d in re.findall(r"(\d+)/200 \[.*?
 rows = [r for r in rows if r[0] > 50] or rows
 peak = max((int(x) for x in open(mem).read().split() if x.isdigit()), default=0)
 if not rows:
-    print(f"batch {bs}/GPU: failed, see {log}"); sys.exit()
+    why = "out of GPU memory" if "OutOfMemoryError" in text else "failed"
+    print(f"batch {bs}/GPU: {why}, see {log}"); sys.exit()
 u = sum(r[1] for r in rows) / len(rows); d = sum(r[2] for r in rows) / len(rows)
 print(f"batch {bs}/GPU: update {u:.3f} s, data {d:.3f} s per step -> {bs * gpus / max(u, d):.0f} trajectories/s "
-      f"(x4 segments), peak GPU memory {peak / 1024:.1f} GB")
+      f"(x4 segments), peak GPU memory {peak / 1024:.1f} GB{' [data-bound]' if d > u else ''}")
 EOF
     done ;;
   g3)

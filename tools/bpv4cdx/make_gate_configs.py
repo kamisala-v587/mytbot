@@ -74,14 +74,18 @@ VARIANTS = {
     # not AE-3 (AE-3 "full" means the ~6000 h dataset)
     **{f"ae2l_{k}": {"dataset": dict(d), "top": {"steps": 20000, "save_freq": 2500},
                      "policy": {"scheduler_decay_steps": 20000, **p}}
-       for k, d, p in (("main", {}, {}), ("textonly", {}, {"demo_input": "none"}), ("su", {"sampler": "su"}, {}))},
+       for k, d, p in (("main", {}, {}), ("textonly", {}, {"demo_input": "none"}), ("su", {"sampler": "su"}, {}),
+                       # AE-2 supplement (2026-10-22 evening): S-UF, and P64 (no spatial pooling) with S-UF / S-U
+                       ("suf", {"sampler": "suf"}, {}),
+                       ("suf_p64", {"sampler": "suf", "spatial_tokens": 64}, {"spatial_tokens": 64}),
+                       ("su_p64", {"sampler": "su", "spatial_tokens": 64}, {"spatial_tokens": 64}))},
 }
 
 
 def sampler_cache_dir(cache_dir: str, sampler: str) -> str:
-    """<parent>/<prefix>_<sa|su|sv> -> same prefix for the variant's sampler."""
+    """<parent>/<prefix>_<sa|su|sv|suf> -> same prefix for the variant's sampler."""
     p = Path(cache_dir)
-    name = re.sub(r"_(sa|su|sv)$", f"_{sampler}", p.name)
+    name = re.sub(r"_(sa|suf|su|sv)$", f"_{sampler}", p.name)
     return str(p.with_name(name if name != p.name or p.name.endswith(f"_{sampler}") else f"{p.name}_{sampler}"))
 
 

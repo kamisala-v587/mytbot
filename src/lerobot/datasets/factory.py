@@ -56,6 +56,7 @@ from lerobot.policies.BPVAv3.configuration_bpvav3 import (
 from lerobot.policies.BPV4BPEn.configuration_bpv4_bpen import BPV4BPEnConfig, BPV4BPEnDatasetConfig
 from lerobot.policies.BPV4XDemo.configuration_bpv4_xdemo import BPV4XDemoConfig, BPV4XDemoDatasetConfig
 from lerobot.policies.BPV4CDX.configuration_bpv4cdx import BPV4CDXAEConfig, BPV4CDXAEDatasetConfig
+from lerobot.policies.BPV4CDXB.configuration_bpv4cdxb import BPV4CDXBConfig, BPV4CDXBDatasetConfig
 from lerobot.policies.BPVAv31.configuration_bpvav31 import (
     BPVAv31Config,
     BPVAv31DatasetConfig,
@@ -844,6 +845,12 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         from lerobot.policies.BPV4CDX.dataset import make_bpv4cdx_ae_dataset
 
         return make_bpv4cdx_ae_dataset(cfg)
+    if isinstance(cfg.dataset, BPV4CDXBDatasetConfig):
+        if not isinstance(cfg.policy, BPV4CDXBConfig):
+            raise ValueError("dataset.type=bpv4cdx_b requires policy.type=bpv4cdx_b")
+        from lerobot.policies.BPV4CDXB.dataset import make_bpv4cdxb_dataset
+
+        return make_bpv4cdxb_dataset(cfg)
     if isinstance(cfg.dataset, (FastWAMDatasetConfig, TBotSA1WanDatasetConfig)):
         if isinstance(cfg.dataset, TBotSA1WanDatasetConfig):
             from lerobot.policies.TBot_SA1_Wan.dataset_tbot_sa1_wan import (

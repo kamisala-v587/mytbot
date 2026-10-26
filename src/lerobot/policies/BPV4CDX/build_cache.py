@@ -230,12 +230,14 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="only the first N pending episodes of this shard (testing)")
     ap.add_argument("--limit_per_repo", type=int, default=0, help="at most N episodes per repo (smoke tests)")
     ap.add_argument("--split", choices=["all", "train", "val"], default="all")
+    ap.add_argument("--embodiment_sampler", action="store_true",
+                    help="repo-list mode: use the AE-3 embodiment samplers (as in manifest mode) instead of the aloha ones")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format=f"[rank {args.rank}] %(asctime)s %(message)s")
     if not args.manifest and not args.repo_file:
         raise SystemExit("--manifest or --repo_file is required")
     layout = "rel" if args.manifest else "task_variant"
-    use_emb = bool(args.manifest) or args.sampler == "suf"
+    use_emb = bool(args.manifest) or args.sampler == "suf" or args.embodiment_sampler
 
     items = pending_items(args)
     # repo-contiguous blocks per shard (each shard opens few repos); held-out-first order is kept inside a shard

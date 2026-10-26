@@ -9,6 +9,7 @@ BPVAV31 = "bpvav31"
 BPV4_BPEN = "bpv4_bpen"
 BPV4_XDEMO = "bpv4_xdemo"
 BPV4CDX_AE = "bpv4cdx_ae"
+BPV4CDX_B = "bpv4cdx_b"
 
 TBOT_SA1_LEGACY_ALIASES = frozenset()
 TBOT_SA1_WAN_LEGACY_ALIASES = frozenset()
@@ -22,6 +23,7 @@ BPVAV31_ALIASES = frozenset({BPVAV31, "bpvav3.1", "bpv3.1"})
 BPV4_BPEN_ALIASES = frozenset({BPV4_BPEN})
 BPV4_XDEMO_ALIASES = frozenset({BPV4_XDEMO})
 BPV4CDX_AE_ALIASES = frozenset({BPV4CDX_AE})
+BPV4CDX_B_ALIASES = frozenset({BPV4CDX_B})
 
 _LOGGED_LEGACY_POLICY_TYPES: set[str] = set()
 
@@ -62,6 +64,10 @@ def is_bpv4cdx_ae(policy_type: str | None) -> bool:
     return policy_type in BPV4CDX_AE_ALIASES
 
 
+def is_bpv4cdx_b(policy_type: str | None) -> bool:
+    return policy_type in BPV4CDX_B_ALIASES
+
+
 def legacy_policy_target(policy_type: str | None) -> str | None:
     return None
 
@@ -91,4 +97,6 @@ def canonical_policy_type(policy_type: str | None) -> str | None:
         return BPV4_XDEMO
     if is_bpv4cdx_ae(policy_type):
         return BPV4CDX_AE
+    if is_bpv4cdx_b(policy_type):
+        return BPV4CDX_B
     return policy_type

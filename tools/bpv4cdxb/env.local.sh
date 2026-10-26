@@ -1,0 +1,20 @@
+# bpv4cdx Stage B paths of this machine. `source tools/bpv4cdxb/env.local.sh`
+export PATH=/vla/workspace/shiliangchao/env/q35va/bin:$PATH
+export PYTHONPATH=/vla/workspace/my_tbot/src${PYTHONPATH:+:$PYTHONPATH}
+export BPV4CDXB_REPO=/vla/workspace/my_tbot
+export BPV4CDXB_QWEN_PATH=/vla/workspace/models/q35/base_800m
+export BPV4CDXB_STATS_ROOT=/vla/workspace/my_tbot/norm_stats
+export BPV4CDXB_FROZEN=/vla/workspace/models/BPVA/BPv4CDX/StageA_AE_frozen/0750000
+export BPV4CDXB_DATA_ROOT=/vla/workspace/my_robotwin/data_bp/p1_n10_lerobot
+export BPV4CDXB_INDEX=/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/stage_b_index.json
+export BPV4CDXB_DEMO_CACHE=/vla/workspace/cache/bpv4cdxb_su_p1
+export BPV4CDXB_ZDEMO=/vla/workspace/cache/bpv4cdxb_zdemo
+export BPV4CDXB_OUT_ROOT=/vla/workspace/my_tbot/outputs
+export BPV4CDXB_NUM_GPUS=4
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export TOKENIZERS_PARALLELISM=false
+export HF_HOME=/vla/workspace/cache/hf_home
+export HF_DATASETS_CACHE=/vla/workspace/cache/hf_datasets
+export LEROBOT_PARALLEL_DATASET_LOAD=1
+export LEROBOT_TORCHCODEC_CACHE_SIZE=16
