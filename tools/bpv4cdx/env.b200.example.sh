@@ -31,3 +31,7 @@ export TRANSFORMERS_OFFLINE=1
 export TOKENIZERS_PARALLELISM=false
 export LEROBOT_PARALLEL_DATASET_LOAD=1
 export LEROBOT_TORCHCODEC_CACHE_SIZE=16
+# ae3_main learning-rate floor; unset = the ae_main.jsonc value
+# export BPV4CDX_AE3_DECAY_LR=2.5e-5
+# overlay / xpfs + filelock 3.29: per-rank parquet cache, no fchmod (src/lerobot/datasets/utils.py)
+# export LEROBOT_FILELOCK_WORKAROUND=1

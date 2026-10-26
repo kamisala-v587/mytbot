@@ -1,18 +1,48 @@
-# Example sampling budgets for TBot_SA1 multi-source training.
-#
-# Edit the regexes so they match your real dataset paths. When dataset.repo_id is
-# an absolute local path, matching is done against the full path string.
-#
+# Stage 2 sampling for pretrain-bpdatav2.txt.
+# Frame share from meta/info.json (1131 repos, 219,464,476 frames):
+#   interndata     1029 repos   195,965,440 frames   89.29%
+#   robochallenge    17 repos    12,625,779 frames    5.75%
+#   agibot            6 repos     6,047,659 frames    2.76%
+#   robotwin         72 repos     4,789,923 frames    2.18%
+#   egodex            7 repos        35,675 frames    0.02%
+# Budgets below sum to 1. InternData stays the majority but is pulled down
+# from its raw frame share. The three robot sources are lifted so they are
+# not drowned. EgoDex stays at 1%: its action loss is masked, and 7% would
+# repeat 35,675 frames for a large fraction of steps.
 # First match wins.
 
 groups:
   - name: interndata_a1
     match: "(?i)(interndata|(^|/)a1(/|$))"
-    total_weight: 0.75
+    total_weight: 0.78
     inside: frames_pow
     gamma: 0.9
 
+  - name: robochallenge
+    match: "(?i)robochallenge"
+    total_weight: 0.08
+    inside: frames_pow
+    gamma: 1.0
+
+  - name: robotwin
+    match: "(?i)robotwin"
+    total_weight: 0.07
+    inside: frames_pow
+    gamma: 1.0
+
+  - name: agibot
+    match: "(?i)(agibot|agibotworld|a2d|r1lite)"
+    total_weight: 0.05
+    inside: frames_pow
+    gamma: 1.0
+
+  - name: egodex
+    match: "(?i)(^|[\\\\/])egodex[^\\\\/]*([\\\\/]|$)"
+    total_weight: 0.02
+    inside: frames_pow
+    gamma: 1.0
+
 default:
-  total_weight: 0.1
+  total_weight: 0.05
   inside: frames_pow
   gamma: 1.0

@@ -43,3 +43,9 @@ CKPT=/vla/workspace/my_tbot/outputs/Q35/pretrain/2026-09-22/17-33-51_q35-pretrai
 **bpvav3**
 CKPT=/vla/workspace/my_tbot/outputs/BPv3/q35/bpv3-clean-stage2/2026-10-09_18-32/checkpoints/007000/pretrained_model
 
+### 服务器占用 48小时
+```
+cd /home/jovyan/workspace/mytbot/server && mkdir -p logs && setsid nohup /home/jovyan/conda-envs/q35va/bin/python gpu_cuda_stress_test.py --device 0,1,2,3,4,5,6,7 --duration_sec 172800 --util_range 63 77 --memory_range_gib 41 54 --retarget_interval_sec 60 --matrix_size 8192 --log_interval_sec 300 > logs/gpu_stress_$(date +%Y%m%d_%H%M).log 2>&1 < /dev/null &
+```
+
+pkill -TERM -f 'gpu_cuda_stress_test.py --device'

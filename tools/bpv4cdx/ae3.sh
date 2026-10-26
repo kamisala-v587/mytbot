@@ -39,7 +39,7 @@ case $STEP in
     python tools/bpv4cdx/make_ae3_configs.py --manifest "$BPV4CDX_MANIFEST" --data_roots "$BPV4CDX_DATA_ROOTS" \
       --cache_root "$BPV4CDX_CACHE_ROOT" --array_store "$BPV4CDX_ARRAY_STORE" --qwen_path "$BPV4CDX_QWEN_PATH" \
       --stats_root "$BPV4CDX_STATS_ROOT" --out_root "$BPV4CDX_OUT_ROOT" --sampler "$SAMPLER" \
-      --num_gpus "$BPV4CDX_NUM_GPUS" --out_dir "$GEN" "$@" ;;
+      --num_gpus "$BPV4CDX_NUM_GPUS" ${BPV4CDX_AE3_DECAY_LR:+--decay_lr "$BPV4CDX_AE3_DECAY_LR"} --out_dir "$GEN" "$@" ;;
   cache)
     PER=${BPV4CDX_CACHE_PROCS_PER_GPU:-2}
     WORLD=$((BPV4CDX_NUM_GPUS * PER))

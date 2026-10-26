@@ -5,14 +5,15 @@ Only the AE-3 differences are set here:
              cache layout `rel`, P5-only cache, cache index (train on a partial cache)
   sampler    from the G0 audit (suf or su)
   batch      128 trajectories in total (16 per GPU on 8 GPUs) x 4 segments
-  schedule   warmup 2000, cosine to the floor (1e-5 for the 1e-4 groups) at 300k steps, then constant; 1M steps cap
-             (stop by hand, see HOM advice); save every 10k
+  schedule   warmup 2000, cosine to the floor at 300k steps, then constant; 1M steps cap (stop by hand, see HOM
+             advice); save every 10k. Floor: scheduler_decay_lr of ae_main.jsonc (5e-6, i.e. 1e-5 for the 1e-4
+             groups) unless --decay_lr is given (B200 AE-3 run: 2.5e-5, i.e. 5e-5 for the 1e-4 groups)
   HOM        1000 held-out episodes per save (task-stratified), all held-out episodes every 5th save
 Variants: ae3_main, ae3_g3_overfit (G3 on RoboTwin place_shoe clean_50 #0), ae3_smoke (dev machine smoke test).
 
 Usage: python tools/bpv4cdx/make_ae3_configs.py --manifest configs/ds_ids/B200/ae3_split.json --data_roots /share \
          --cache_root <dir> --array_store <dir> --qwen_path <base_800m> --stats_root <norm_stats> --out_root <dir> \
-         --sampler suf --num_gpus 8 [--out_dir configs/Pro6k/bpv4cdx_plan/generated_ae3]
+         --sampler suf --num_gpus 8 [--decay_lr 2.5e-5] [--out_dir configs/Pro6k/bpv4cdx_plan/generated_ae3]
 """
 
 from __future__ import annotations
@@ -42,6 +43,8 @@ def main() -> None:
     ap.add_argument("--out_root", required=True)
     ap.add_argument("--sampler", choices=["suf", "su"], required=True, help="from `ae3_data audit` (decision)")
     ap.add_argument("--num_gpus", type=int, default=8)
+    ap.add_argument("--decay_lr", type=float, default=None,
+                    help="ae3_main scheduler_decay_lr (default: keep the value of ae_main.jsonc)")
     ap.add_argument("--out_dir", default=str(ROOT / "configs/Pro6k/bpv4cdx_plan/generated_ae3"))
     args = ap.parse_args()
     if TOTAL_TRAJECTORIES % args.num_gpus:
@@ -60,6 +63,8 @@ def main() -> None:
     })
     base["policy"].update({"qwen3_5_pretrained_path": args.qwen_path, "scheduler_warmup_steps": 2000,
                            "scheduler_decay_steps": 300_000})
+    if args.decay_lr is not None:
+        base["policy"]["scheduler_decay_lr"] = args.decay_lr
     base.update({"steps": 1_000_000, "save_freq": 10_000, "log_freq": 100, "seed": 42, "num_workers": 16,
                  "batch_size": TOTAL_TRAJECTORIES // args.num_gpus})
     out = Path(args.out_dir)
@@ -69,12 +74,14 @@ def main() -> None:
         "ae3_g3_overfit": {
             "dataset": {"episode_whitelist": [G3_EPISODE], "segment_mode": "fixed", "generic_text_prob": 1.0,
                         "length_weighted_sampling": False, "heldout_monitor": False},
-            "policy": {"scheduler_warmup_steps": 50, "scheduler_decay_steps": 1000, "preflight_memory_check": False},
+            "policy": {"scheduler_warmup_steps": 50, "scheduler_decay_steps": 1000, "scheduler_decay_lr": 5e-6,
+                       "preflight_memory_check": False},
             "top": {"batch_size": 1, "num_workers": 0, "steps": 1000, "save_freq": 1000, "log_freq": 50},
         },
         "ae3_smoke": {
             "dataset": {"heldout_monitor_max_episodes": 24, "heldout_monitor_full_every": 2, "load_threads": 16},
-            "policy": {"scheduler_warmup_steps": 20, "scheduler_decay_steps": 200, "preflight_memory_check": False},
+            "policy": {"scheduler_warmup_steps": 20, "scheduler_decay_steps": 200, "scheduler_decay_lr": 5e-6,
+                       "preflight_memory_check": False},
             "top": {"batch_size": 4, "num_workers": 4, "steps": 300, "save_freq": 100, "log_freq": 20},
         },
     }

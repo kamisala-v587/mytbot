@@ -17,6 +17,7 @@ import contextlib
 import importlib.resources
 import json
 import logging
+import os
 from collections import deque
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -104,6 +105,53 @@ def update_chunk_file_indices(chunk_idx: int, file_idx: int, chunks_size: int) -
     return chunk_idx, file_idx
 
 
+# B200 (overlay / xpfs + filelock 3.29) needs both workarounds below. Off by default so other machines keep the
+# shared HF datasets cache and the stock filelock behavior. Enable with LEROBOT_FILELOCK_WORKAROUND=1.
+_FILELOCK_WORKAROUND = os.environ.get("LEROBOT_FILELOCK_WORKAROUND", "0").lower() in {"1", "true", "yes"}
+
+
+def _disable_filelock_fchmod() -> None:
+    """Skip filelock's fchmod.
+
+    datasets always passes an explicit mode, and filelock 3.29 then calls
+    os.fchmod after open. A concurrent unlock unlinks that file first. On
+    overlay and xpfs, fchmod returns ENOENT and the local dataset is treated
+    as missing.
+    """
+    from datasets.utils._filelock import FileLock as _DatasetsFileLock
+    from filelock import FileLock as _RawFileLock
+
+    if getattr(_DatasetsFileLock, "_lerobot_no_fchmod", False):
+        return
+
+    def __init__(self, lock_file, *args, **kwargs):
+        kwargs.pop("mode", None)
+        lock_file = type(self).hash_filename_if_too_long(lock_file)
+        _RawFileLock.__init__(self, lock_file, *args, **kwargs)
+
+    _DatasetsFileLock.__init__ = __init__
+    _DatasetsFileLock._lerobot_no_fchmod = True
+
+
+if _FILELOCK_WORKAROUND:
+    _disable_filelock_fchmod()
+
+
+def _parquet_cache_dir() -> str | None:
+    """Per-rank datasets cache on local disk (None: the default HF datasets cache).
+
+    ``Dataset.from_parquet`` takes a filelock in this directory. filelock 3.29
+    unlinks the lock between ``open`` and ``fchmod``, which raises
+    FileNotFoundError on overlay and xpfs when several ranks share one cache.
+    """
+    if not _FILELOCK_WORKAROUND:
+        return None
+    rank = os.environ.get("LOCAL_RANK", "0")
+    cache_dir = f"/tmp/hf_datasets_cache/rank{rank}"
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
+
+
 def load_nested_dataset(
     pq_dir: Path,
     features: datasets.Features | None = None,
@@ -132,6 +180,7 @@ def load_nested_dataset(
                 [str(path) for path in paths],
                 features=features,
                 columns=columns,
+                cache_dir=_parquet_cache_dir(),
             )
 
         arrow_dataset = pa_ds.dataset(paths, format="parquet")

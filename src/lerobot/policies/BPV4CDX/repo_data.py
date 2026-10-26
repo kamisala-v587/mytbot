@@ -98,7 +98,9 @@ def write_store(repo: str | Path, store_root: str | Path, emb: Embodiment | None
 
 
 class RepoData:
-    def __init__(self, repo: str, cfg, train_cfg, store_root: str | None = None) -> None:
+    def __init__(self, repo: str, cfg, train_cfg, store_root: str | None = None, load_arrays: bool = True) -> None:
+        """load_arrays=False: metadata and transforms only (`open_arrays` later), so the object can be built in a
+        worker process and pickled back without copying the frame arrays."""
         from lerobot.datasets.factory import _load_external_stats_for_dataset
 
         self.repo = repo
@@ -124,14 +126,22 @@ class RepoData:
         # the same task folder exists for several robots
         self.task = task_name(repo) if is_robotwin_like(repo) else f"{self.emb.resolved}/{task_name(repo)}"
         self.text = canonical_text(repo)
-        sd = store_dir(store_root, repo) if store_root else None
-        if sd is not None and (sd / "index.json").is_file():
+        self.states = self.actions = None
+        if load_arrays:
+            self.open_arrays(store_root)
+
+    def has_store(self, store_root: str | None) -> bool:
+        return bool(store_root) and (store_dir(store_root, self.repo) / "index.json").is_file()
+
+    def open_arrays(self, store_root: str | None) -> None:
+        if self.has_store(store_root):
+            sd = store_dir(store_root, self.repo)
             index = json.loads((sd / "index.json").read_text())
             state = np.load(sd / "state.npy", mmap_mode="r")
             action = np.load(sd / "action.npy", mmap_mode="r")
             spans = {int(ep): (int(s), int(e)) for ep, s, e in index["episodes"]}
         else:
-            state, action, spans = read_arrays(repo, self.emb)
+            state, action, spans = read_arrays(self.repo, self.emb)
         self.states, self.actions = EpView(state, spans), EpView(action, spans)
 
     def query(self, episode: int, frame: int, horizon: int) -> dict[str, torch.Tensor]:

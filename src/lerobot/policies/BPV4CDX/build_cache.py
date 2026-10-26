@@ -168,7 +168,7 @@ def build_sv(items, args, vlm, device) -> None:
 
 
 def pending_items(args) -> list[tuple[str, int]]:
-    """All (repo, episode) of the selected split whose cache file is missing, in build order."""
+    """All (repo, episode) of the selected split, in build order (existing cache files: `drop_existing`)."""
     layout = "rel" if args.manifest else "task_variant"
     items = []
     if args.manifest:
@@ -191,7 +191,20 @@ def pending_items(args) -> list[tuple[str, int]]:
         for repo in read_repo_list(args.repo_file, args.data_root):
             n = int(pd.read_json(Path(repo, "meta", "info.json"), typ="series")["total_episodes"])
             items += [(repo, ep) for ep in split_episodes(repo, n, args.split, rules)]
-    return [(r, e) for r, e in items if not demo_cache_path(args.cache_dir, r, e, layout).is_file()]
+    return items
+
+
+def drop_existing(items: list[tuple[str, int]], cache_dir: str, layout: str) -> list[tuple[str, int]]:
+    # one directory listing per repo instead of one stat per episode (network file system)
+    listed: dict[Path, set[str]] = {}
+    out = []
+    for r, e in items:
+        p = demo_cache_path(cache_dir, r, e, layout)
+        if p.parent not in listed:
+            listed[p.parent] = set(os.listdir(p.parent)) if p.parent.is_dir() else set()
+        if p.name not in listed[p.parent]:
+            out.append((r, e))
+    return out
 
 
 def main() -> None:
@@ -226,7 +239,7 @@ def main() -> None:
 
     items = pending_items(args)
     # repo-contiguous blocks per shard (each shard opens few repos); held-out-first order is kept inside a shard
-    items = items[args.rank :: args.world]
+    items = drop_existing(items[args.rank :: args.world], args.cache_dir, layout)
     if args.limit:
         items = items[: args.limit]
     logging.info("sampler %s, layout %s, store_spatial %d, pending episodes: %d", args.sampler, layout,
