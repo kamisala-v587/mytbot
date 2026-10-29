@@ -1,0 +1,152 @@
+{
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpvav3",
+        "repo_id": "bpvav3_stage2",
+        "repo_id_file": "/home/jovyan/workspace/mytbot/configs/ds_ids/B200/pretrain-bpdatav2.txt",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_root": "/home/jovyan/workspace/mytbot/norm_stats",
+        "use_imagenet_stats": true,
+        "video_backend": "pyav",
+        "homogeneous_batch": true,
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": true,
+        "weight_rules_path": "/home/jovyan/workspace/mytbot/configs/ds_ids/weight_rules_bp.yaml",
+        "height": 224,
+        "width": 224,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "current_image_index": 0,
+        "qwen3_5_processor_path": "/home/jovyan/workspace/models/q35/base_800m",
+        "qwen3_5_processor_revision": null,
+
+        // false 时当前观测不编码 instruction，也不调用 tokenizer。
+        "use_language": false,
+        "bp_num_chunks": 8,
+        "bp_seed": 0,
+        // random: 同任务随机，可能抽到当前 episode。
+        // origin: 示教就是当前轨迹整段。阶段 1 用，并且 lambda_bp_encoder 必须为 0。
+        // avoid: 同任务随机，排除当前 episode。可在阶段 2 用。
+        "bp_sampling_mode": "random",
+
+        // true 时额外产出 future_prompt，只作为对齐监督，不进入 VLM 条件。
+        "align_bp_encoder": true,
+
+        // 只过滤 future_prompt 里锚点早于当前帧的 chunk。
+        "future_filter": true,
+        "bp_camera_keys": [
+            "observation.images.image0"
+        ],
+
+        "image_transforms": {
+            "enable": false,
+            "preset": null
+        }
+    },
+
+    "env": null,
+    "policy": {
+        "type": "bpvav3",
+        "pretrained_path": "/home/jovyan/workspace/mytbot/outputs/bpv3/stage1/frozen_vit/2026-09-29_12-20/checkpoints/019000/pretrained_model",
+        "push_to_hub": false,
+        "device": null,
+
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/home/jovyan/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+
+        "use_language": false,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 50,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+        "image_resolution": [224, 224],
+        "image_delta_indices": [0],
+        "num_camera_views": 3,
+        "empty_cameras": 0,
+
+        "bp_num_chunks": 8,
+        "bp_action_chunk_size": 50,
+        "bp_camera_keys": [
+            "observation.images.image0"
+        ],
+        "bp_compressor_dim": 512,
+        "bp_state_action_hidden_dim": 256,
+        "bp_num_query_tokens": 8,
+        "bp_compressor_num_layers": 2,
+        "bp_compressor_num_heads": 8,
+        "bp_compressor_ff_mult": 4,
+        // 0 只算 action loss。阶段 2 设成 0.1 到 0.5，同时 dataset.align_bp_encoder=true，
+        // 并且 bp_sampling_mode 用 random 或 avoid。origin 不能和这个系数同时打开。
+        "lambda_bp_encoder": 0.25,
+        // true 时只冻结 bp_obs_encoder 里 ViT 以外的部分：投影、MLP 和 compressor。
+        "frozen_bp_encoder": false,
+        // true 时冻结共享 Qwen3.5 ViT。当前观测和 BP 图像是同一份参数，两边都不再更新。
+        "frozen_vit": true,
+
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+
+        "normalization_mapping": {
+            "VISUAL": "IDENTITY",
+            "STATE": "IDENTITY",
+            "ACTION": "IDENTITY"
+        },
+
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 1000,
+        "scheduler_decay_steps": 999999,
+        "scheduler_decay_lr": 5e-5
+    },
+
+    "output_dir": "outputs/bpv3/stage2/frozen_vit",
+    "resume": false,
+    "seed": 42,
+    "num_workers": 16,
+    "batch_size": 32,
+    "gradient_accumulation_steps": 1,
+    "steps": 999999,
+    "eval_freq": 0,
+    "log_freq": 25,
+    "save_checkpoint": true,
+    "save_freq": 500,
+    "use_policy_training_preset": true,
+
+    "eval": {
+        "n_episodes": 50,
+        "batch_size": 50,
+        "use_async_envs": false
+    },
+
+    "wandb": {
+        "enable": false,
+        "project": "BPVAv3",
+        "mode": "offline"
+    },
+
+    "rename_map": {}
+}

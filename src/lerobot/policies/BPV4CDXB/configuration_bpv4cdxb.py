@@ -48,6 +48,17 @@ class BPV4CDXBDatasetConfig(DatasetConfig):
     fixed_pairs: list[list[str]] = field(default_factory=list)
     # all query time steps 0, 1, ... instead of stratified random ones (single-pair overfitting)
     all_frames: bool = False
+    # dtype of obs.pixel_values handed from the loader workers to the trainer: "bfloat16" halves the transfer; the
+    # model casts pixels to the ViT dtype (bf16) first anyway, so the ViT input is bit-identical (main-path dataset)
+    pixel_transfer_dtype: str = "float32"
+    # demo input of an item: "zdemo" = cached Z_demo (`demo.z`); "p5" = the demo's AE-3 P5 record (`demo.feats`,
+    # `demo.time`, `demo.camera_valid`) for online encoding by a trainable demo encoder (B-4); demo_cache_dir = the
+    # P5 cache in `rel` layout (main-path dataset)
+    demo_features: str = "zdemo"
+    demo_cache_dir: str = ""
+    # main-path dataset: max |decoded frame pts - requested time| (s); a frame that cannot be decoded or lies
+    # farther away is logged with its repo / episode / camera and the item is redrawn
+    video_tolerance_s: float = 0.5
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -77,6 +88,22 @@ class BPV4CDXBConfig(Q35Config):
     demo_input: str = "video"
     use_state: bool = True
     state_drop_prob: float = 0.0
+    # one batched attention call per ViT layer when all images have the same patch count (BPV4CDXB/vit_batched.py)
+    vit_batched_attention: bool = False
+    # B-3: start from a B-2 checkpoint (`<pretrained_model>` dir, loaded before the LoRA injection) and add LoRA to
+    # the last qwen_lora_layers Qwen decoder layers (0 = off); original Qwen weights stay frozen (BPV4CDXB/lora_b3.py)
+    init_from: str = ""
+    qwen_lora_layers: int = 0
+    # explicit decoder layer indices for the LoRA (overrides qwen_lora_layers when non-empty; the last layer gets only
+    # k_proj / v_proj, the rest of it is never read by the Action Expert)
+    qwen_lora_layer_ids: list[int] = field(default_factory=list)
+    # B-4: keep training the LoRA (False freezes it), and train the demo encoder (Q-Former + embeddings + projector of
+    # the frozen delivery) on online Z_demo from P5 features (needs dataset.demo_features="p5"); ViT stays frozen
+    qwen_lora_trainable: bool = True
+    demo_encoder_trainable: bool = False
+    demo_encoder_lr: float = 1e-5
+    qwen_lora_rank: int = 16
+    qwen_lora_alpha: float = 32.0
 
     new_modules_lr: float = 1e-4
     act_expert_lr: float = 1e-4

@@ -50,6 +50,48 @@ class BPV4CDXBModel(Q35Model):
             self.obs_end = nn.Parameter(torch.randn(hidden) * 0.02)
         if config.frozen_encoder:
             self.load_frozen_tokens(config.frozen_encoder)
+        # B-3 / B-4: optional modules (Qwen LoRA, trainable demo encoder) are built BEFORE loading `init_from` when the
+        # checkpoint already contains them, otherwise after it (the LoRA renames the targeted linears)
+        init_from = getattr(config, "init_from", "")
+        lora_ids = list(getattr(config, "qwen_lora_layer_ids", []) or [])
+        want = {"lora": int(getattr(config, "qwen_lora_layers", 0)) > 0 or bool(lora_ids),
+                "demo_encoder": bool(getattr(config, "demo_encoder_trainable", False))}
+        if init_from:
+            from .b4_encoder import checkpoint_flags
+
+            have = checkpoint_flags(init_from)
+        else:
+            have = {"lora": False, "demo_encoder": False}
+
+        def build(part):
+            if part == "lora":
+                from .lora_b3 import add_qwen_lora
+
+                self.qwen_lora_tensors = add_qwen_lora(self.core.backbone.vlm, config.qwen_lora_layers,
+                                                       config.qwen_lora_rank, config.qwen_lora_alpha, lora_ids)
+            else:
+                from .b4_encoder import make_demo_encoder
+
+                self.demo_encoder = make_demo_encoder(config.frozen_encoder)
+
+        for part in ("lora", "demo_encoder"):
+            if want[part] and have[part]:
+                build(part)
+        if init_from:
+            from .lora_b3 import load_init_weights
+
+            load_init_weights(self, init_from)
+        for part in ("lora", "demo_encoder"):
+            if want[part] and not have[part]:
+                build(part)
+        if want["lora"] and not getattr(config, "qwen_lora_trainable", True):
+            for name, p in self.core.backbone.vlm.named_parameters():
+                if "lora_" in name:
+                    p.requires_grad_(False)
+        if getattr(config, "vit_batched_attention", False):
+            from .vit_batched import patch_vision_attention
+
+            self.vit_attention_patched = patch_vision_attention(self.core.backbone.vlm)
 
     def load_frozen_tokens(self, frozen_dir: str) -> None:
         from .frozen import load_frozen
@@ -72,7 +114,11 @@ class BPV4CDXBModel(Q35Model):
         sp = prefix_spans(cfg, ids.shape[1])
         parts = []
         if cfg.demo_input == "video":
-            z = batch["demo.z"].to(dtype)  # [B, M, D]
+            if getattr(self, "demo_encoder", None) is not None and "demo.feats" in batch:  # B-4: online Z_demo
+                z = self.demo_encoder(batch["demo.feats"].float(), batch["demo.time"].float(),
+                                      batch["demo.camera_valid"].bool()).to(dtype)
+            else:
+                z = batch["demo.z"].to(dtype)  # [B, M, D]
             if blank_demo is not None:
                 z = z * (~blank_demo.to(z.device))[:, None, None].to(dtype)
             z = z.repeat_interleave(s, dim=0)
@@ -189,9 +235,15 @@ class BPV4CDXBPolicy(Q35Policy):
         for name, p in self.named_parameters():
             if not p.requires_grad:
                 continue
+            if name.startswith("model.demo_encoder."):  # B-4: own (lower) learning rate
+                groups.setdefault("demo_enc", []).append(p)
+                continue
             groups["b_new" if name.startswith(tuple(f"model.{x}" for x in NEW_MODULE_PREFIXES)) else "act"].append(p)
-        return [{"name": "b_new", "params": groups["b_new"], "lr": float(cfg.new_modules_lr)},
-                {"name": "act", "params": groups["act"], "lr": float(cfg.act_expert_lr)}]
+        out = [{"name": "b_new", "params": groups["b_new"], "lr": float(cfg.new_modules_lr)},
+               {"name": "act", "params": groups["act"], "lr": float(cfg.act_expert_lr)}]
+        if groups.get("demo_enc"):
+            out.append({"name": "demo_enc", "params": groups["demo_enc"], "lr": float(cfg.demo_encoder_lr)})
+        return out
 
     def forward(self, batch, *, validation_mode: str | None = None):
         losses = self.model.forward_queries(batch)
