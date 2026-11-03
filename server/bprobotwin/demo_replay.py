@@ -4,11 +4,16 @@ For each episode (episode_uid) one demonstration of the candidate set's LeRobot 
 response at step t (bp_step from the client) is that demonstration's actions [t, t + horizon), padded with its last
 action. It ignores the current observation, so it measures how far copying the demonstration gets in a jittered
 scene, and it tests the whole client / server / demonstration plumbing without a model.
+
+replay_self=True: on training scenes (episode_uid '<set>|train<k>|r<rep>', client scene_source: train) replay the
+scene's own recorded episode (training scene k of a set = LeRobot episode k of its repo). A recorded trajectory
+replayed in its own scene should succeed; failures point at data / execution mismatches, not at the policy.
 """
 
 from __future__ import annotations
 
 import random
+import re
 import threading
 from pathlib import Path
 from typing import Any
@@ -21,10 +26,11 @@ class DemoReplayPolicy:
     name = "demo_replay"
     family = "bp"
 
-    def __init__(self, index: dict[str, dict], horizon: int = 30, seed: int = 0) -> None:
+    def __init__(self, index: dict[str, dict], horizon: int = 30, seed: int = 0, replay_self: bool = False) -> None:
         self.index = index
         self.horizon = int(horizon)
         self.seed = int(seed)
+        self.replay_self = bool(replay_self)
         self._repos: dict[str, dict[int, np.ndarray]] = {}
         self._lock = threading.Lock()
         self._metadata = {
@@ -57,7 +63,13 @@ class DemoReplayPolicy:
             repo = self.index[cs]["repo"]
             episodes = self._episodes(repo)
             keys = sorted(episodes)
-            ep = keys[random.Random(f"{self.seed}:{obs.get('episode_uid') or cs}").randrange(len(keys))]
+            own = re.search(r"\|train(\d+)\|", str(obs.get("episode_uid") or "")) if self.replay_self else None
+            if self.replay_self and own is None:
+                raise ValueError("replay_self needs training scenes (client scene_source: train)")
+            if own is not None:
+                ep = keys[int(own.group(1))]
+            else:
+                ep = keys[random.Random(f"{self.seed}:{obs.get('episode_uid') or cs}").randrange(len(keys))]
             actions = episodes[ep]
             t = int(obs.get("bp_step", 0))
             chunk = actions[t: t + self.horizon]

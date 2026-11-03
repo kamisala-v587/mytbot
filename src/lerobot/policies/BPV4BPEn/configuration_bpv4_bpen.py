@@ -82,6 +82,8 @@ class BPV4BPEnDatasetConfig(DatasetConfig):
 class BPV4GroupedSchedulerConfig(LRSchedulerConfig):
     """所有参数组共用 warmup + cosine；参数组可带 lr_zero_steps / lr_ramp_steps（先为 0 再线性升温）。
 
+    参数组可带 decay_lr（绝对值）：该组从自己的峰值 lr cosine 衰减到 decay_lr；没有时用全局比例 decay_lr / peak_lr。
+
     带 reset_state_at_unfreeze 的参数组，在升温开始那一步清零 AdamW 状态（exp_avg / exp_avg_sq / step）。
     清零是原地操作，显存不变；断点续训时由 last_epoch 判断，只会发生一次。
     """
@@ -98,7 +100,7 @@ class BPV4GroupedSchedulerConfig(LRSchedulerConfig):
             warmup, decay = int(warmup * scale), num_training_steps
         floor = self.decay_lr / self.peak_lr
 
-        def base(step: int) -> float:
+        def base(step: int, floor: float = floor) -> float:
             if step < warmup:
                 return (step + 1) / (warmup + 1)
             s = min(step, decay)
@@ -107,12 +109,15 @@ class BPV4GroupedSchedulerConfig(LRSchedulerConfig):
 
         def make(group: dict):
             zero, ramp = int(group.get("lr_zero_steps", 0)), int(group.get("lr_ramp_steps", 0))
+            g_floor = floor
+            if group.get("decay_lr") is not None:
+                g_floor = float(group["decay_lr"]) / float(group.get("initial_lr", group["lr"]))
 
             def fn(step: int) -> float:
                 if step <= zero and zero > 0:
                     return 0.0
                 mult = 1.0 if ramp <= 0 else min(1.0, (step - zero) / ramp)
-                return base(step) * mult
+                return base(step, g_floor) * mult
 
             return fn
 

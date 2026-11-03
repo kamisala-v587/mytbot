@@ -1,0 +1,5631 @@
+{
+ "version": 1,
+ "source": "/vla/workspace/data/robotwin2.5_bp",
+ "rule": "all episodes, no held-out",
+ "repos": [
+  {
+   "rel": "robotwin2.5_bp/adjust_bottle_bp/I0_L3_coke",
+   "robot_type": "aloha",
+   "total_episodes": 51,
+   "total_frames": 7995,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/adjust_bottle_bp/I0_L3_sprite",
+   "robot_type": "aloha",
+   "total_episodes": 51,
+   "total_frames": 7685,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/adjust_bottle_bp/I0_L7_coke",
+   "robot_type": "aloha",
+   "total_episodes": 49,
+   "total_frames": 7558,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/adjust_bottle_bp/I0_L7_sprite",
+   "robot_type": "aloha",
+   "total_episodes": 49,
+   "total_frames": 7585,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/beat_block_hammer_bp/I0_L0_beat_a",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 6262,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/beat_block_hammer_bp/I0_L0_beat_b",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 6093,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/beat_block_hammer_bp/I0_L3_beat_a",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 6257,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/beat_block_hammer_bp/I0_L3_beat_b",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 6099,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4706,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4829,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4778,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4826,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4959,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L0_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4929,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4916,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4814,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4922,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4950,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4841,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L10_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4903,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4924,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4860,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4937,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4888,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4812,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L1_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4807,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4917,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5031,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4874,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4913,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5151,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L2_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4973,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4646,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4701,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4687,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4755,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4753,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L30_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4776,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4977,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4976,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4930,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4909,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4919,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L3_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4868,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4998,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4992,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5043,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5060,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4991,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L5_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5001,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4867,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4834,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4843,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4864,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4821,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_rgb_bp/I0_L7_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4784,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L0_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7399,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L0_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7531,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L10_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 7090,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L10_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 6817,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L18_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 7056,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L18_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 7146,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L1_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7407,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L1_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7504,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L2_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7426,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L2_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 15,
+   "total_frames": 7279,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L46_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 13,
+   "total_frames": 6165,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L46_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 13,
+   "total_frames": 6245,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L9_large_to_small",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 7095,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/blocks_ranking_size_bp/I0_L9_small_to_large",
+   "robot_type": "aloha",
+   "total_episodes": 14,
+   "total_frames": 7104,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L12_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 589,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L12_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 552,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L1_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 608,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L1_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 546,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L3_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 658,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L3_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 559,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L4_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 645,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I0_L4_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 547,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L12_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 568,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L12_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 469,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L1_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 558,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L1_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 467,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L24_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 532,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L24_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 487,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L6_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 537,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I1_L6_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 471,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L12_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 497,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L12_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 471,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L1_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 510,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L1_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 467,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L3_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 574,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L3_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 476,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L4_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 557,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I2_L4_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 466,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L12_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 571,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L12_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 470,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L1_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 558,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L1_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 471,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L24_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 534,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L24_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 484,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L6_click_alarm",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 539,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/click_bell_alarm_bp/I3_L6_click_bell",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 471,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I2_L13_dump_bin",
+   "robot_type": "aloha",
+   "total_episodes": 34,
+   "total_frames": 5926,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I2_L13_put_bottles",
+   "robot_type": "aloha",
+   "total_episodes": 34,
+   "total_frames": 14242,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I4_L1_dump_bin",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 691,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I4_L1_put_bottles",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1679,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I5_L13_dump_bin",
+   "robot_type": "aloha",
+   "total_episodes": 34,
+   "total_frames": 5978,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I5_L13_put_bottles",
+   "robot_type": "aloha",
+   "total_episodes": 34,
+   "total_frames": 14276,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I5_L8_dump_bin",
+   "robot_type": "aloha",
+   "total_episodes": 28,
+   "total_frames": 9891,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/dump_bin_bottles_bp/I5_L8_put_bottles",
+   "robot_type": "aloha",
+   "total_episodes": 28,
+   "total_frames": 11768,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_block_bp/I0_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 29245,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_block_bp/I0_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 29232,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_mic_bp/I0_L2_hold_left",
+   "robot_type": "aloha",
+   "total_episodes": 40,
+   "total_frames": 9566,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_mic_bp/I1_L0_hold_right",
+   "robot_type": "aloha",
+   "total_episodes": 40,
+   "total_frames": 9503,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_mic_bp/I1_L3_hold_left",
+   "robot_type": "aloha",
+   "total_episodes": 40,
+   "total_frames": 9539,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_mic_bp/I2_L1_hold_right",
+   "robot_type": "aloha",
+   "total_episodes": 40,
+   "total_frames": 9437,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/handover_mic_bp/I2_L2_hold_left",
+   "robot_type": "aloha",
+   "total_episodes": 40,
+   "total_frames": 9354,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I1_L6_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4368,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I1_L6_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4353,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I2_L6_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4425,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I2_L6_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4402,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I3_L0_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4305,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I3_L0_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4379,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I4_L0_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4298,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I4_L0_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4491,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I5_L7_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1925,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I5_L7_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1927,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I6_L4_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4161,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I6_L4_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4451,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I7_L0_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4345,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I7_L0_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4363,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I8_L0_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4382,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I8_L0_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 4427,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I9_L0_rack_middle",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 3994,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/hanging_mug_bp/I9_L0_rack_right",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 4049,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I0_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1553,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I0_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1535,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I0_L8_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1455,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I0_L8_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1430,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I1_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1551,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I1_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1535,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I1_L8_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1452,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I1_L8_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1420,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I2_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I2_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1595,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I2_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1537,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I2_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1522,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I3_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1645,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I3_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1639,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I3_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1542,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I3_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1526,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I4_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1537,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I4_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1524,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I4_L8_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1448,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_pillbottle_pad_bp/I4_L8_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1431,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I0_L0_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 1964,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I0_L0_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2206,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I0_L3_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2182,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I0_L3_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 1970,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I1_L1_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 1997,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I1_L1_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2205,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I1_L2_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2241,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I1_L2_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2013,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I2_L1_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 1864,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I2_L1_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2049,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I2_L2_push_left",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2059,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_playingcard_away_bp/I2_L2_push_right",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 1932,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1747,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1638,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L1_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1200,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1632,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1671,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I0_L2_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1195,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1742,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1731,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L0_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1159,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L37_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1527,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L37_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1497,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I1_L37_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1177,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1625,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1596,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L1_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1179,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1554,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I2_L2_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1161,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1557,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1589,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L2_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1165,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L5_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1554,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L5_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1511,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I3_L5_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1183,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L17_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1647,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L17_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1610,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L17_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1157,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L3_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1693,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L3_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1658,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I4_L3_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1199,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1784,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1740,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L0_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1156,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1680,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1668,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I5_L1_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1198,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1740,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1739,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L0_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1158,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L1_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1705,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L1_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1696,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/move_stapler_pad_bp/I6_L1_press",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1210,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I0_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3549,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I0_L3_open",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3650,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I10_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1705,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I10_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1716,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I1_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1433,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I1_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1580,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I2_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2018,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I2_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2098,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I3_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2075,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I3_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2112,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I4_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2097,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I4_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2112,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I5_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2373,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I5_L3_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2388,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I6_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2081,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I6_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2105,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I7_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2086,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I7_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2137,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I8_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2090,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I8_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2119,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I9_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1434,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_laptop_bp/I9_L1_open",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1439,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_microwave_bp/I0_L4_open",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 33520,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_microwave_bp/I1_L0_open",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 42517,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/open_microwave_bp/I1_L2_open",
+   "robot_type": "aloha",
+   "total_episodes": 66,
+   "total_frames": 63365,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/pick_diverse_bottles_bp/I7_L3_pick_both",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 8818,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/pick_diverse_bottles_bp/I7_L3_pick_left",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 8057,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/pick_diverse_bottles_bp/I7_L3_pick_right",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 8586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1015_L1_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1631,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1015_L1_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1015_L1_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1560,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1015_L1_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1648,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1264_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1497,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1264_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1511,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1264_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1677,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1264_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1671,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1610_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1599,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1610_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1513,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1610_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1738,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1610_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1748,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1872_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1500,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1872_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1532,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1872_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1621,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I1872_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1700,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I2275_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1503,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I2275_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1529,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I2275_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1656,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I2275_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1700,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I326_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1601,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I326_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1514,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I326_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1676,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I326_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1673,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I575_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I575_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1519,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I575_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I575_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1689,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I840_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1590,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I840_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1530,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I840_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1667,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I840_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1724,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I892_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1614,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I892_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1640,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I892_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1697,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I892_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1737,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I923_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I923_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I923_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1630,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I923_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1680,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I944_L0_A_left_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1679,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I944_L0_A_right_of_B",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1612,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I944_L0_B_left_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1677,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_a2b_bp/I944_L0_B_right_of_A",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1639,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I0_L0_place_left",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4418,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I0_L0_place_right",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4291,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I1_L0_place_left",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4392,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I1_L0_place_right",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4316,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I2_L0_place_left",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4299,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I2_L0_place_right",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4298,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I3_L0_place_left",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4323,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_basket_bp/I3_L0_place_right",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4324,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_skillet_bp/I0_L1_place",
+   "robot_type": "aloha",
+   "total_episodes": 98,
+   "total_frames": 17591,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_bread_skillet_bp/I0_L5_place",
+   "robot_type": "aloha",
+   "total_episodes": 102,
+   "total_frames": 17812,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_burger_fries_bp/I0_L0_together",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 18195,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_burger_fries_bp/I0_L1_left_first",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 23154,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_burger_fries_bp/I0_L1_right_first",
+   "robot_type": "aloha",
+   "total_episodes": 67,
+   "total_frames": 23062,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_can_basket_bp/I0_L14_pick_left",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1021,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_can_basket_bp/I0_L14_pick_right",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1046,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_can_basket_bp/I1_L3_pick_left",
+   "robot_type": "aloha",
+   "total_episodes": 96,
+   "total_frames": 24249,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_can_basket_bp/I1_L3_pick_right",
+   "robot_type": "aloha",
+   "total_episodes": 96,
+   "total_frames": 24108,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I0_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1516,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I0_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1577,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I10_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1536,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I10_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1590,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I11_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1524,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I11_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1622,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I12_L1_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1566,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I12_L1_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1631,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I13_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1579,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I13_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I14_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I14_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1627,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I15_L1_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1591,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I15_L1_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1596,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I1_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1236,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I1_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1225,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I2_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1602,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I2_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1555,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I3_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1538,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I3_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1510,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I4_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1540,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I4_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1550,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I5_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1273,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I5_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1282,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I6_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1551,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I6_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1568,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I7_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1537,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I7_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1577,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I8_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1537,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I8_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 1593,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I9_L1_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1237,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_cans_plasticbox_bp/I9_L1_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 1238,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I0_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 2930,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I0_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 12,
+   "total_frames": 2868,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I1_L2_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2693,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I1_L2_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2625,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I2_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2516,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I2_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2383,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I3_L6_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2758,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I3_L6_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2836,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I4_L4_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 1425,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I4_L4_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 1561,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I5_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2753,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I5_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2682,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I6_L0_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2741,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I6_L0_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2629,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I7_L4_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I7_L4_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2853,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I8_L2_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2844,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I8_L2_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 2859,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I9_L2_slots_default",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 1812,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_dual_shoes_bp/I9_L2_slots_swapped",
+   "robot_type": "aloha",
+   "total_episodes": 7,
+   "total_frames": 1823,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_empty_cup_bp/I0_L0_coaster_inner",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 8940,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_empty_cup_bp/I0_L0_coaster_outer",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 8916,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_empty_cup_bp/I0_L1_coaster_inner",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 9036,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_empty_cup_bp/I0_L1_coaster_outer",
+   "robot_type": "aloha",
+   "total_episodes": 50,
+   "total_frames": 9220,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I0_L0_face_away",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4102,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I0_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3509,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I0_L1_face_away",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4051,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I0_L1_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3675,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I1_L0_face_away",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4173,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I1_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3541,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I1_L1_face_away",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3943,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_fan_bp/I1_L1_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3686,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I0_L0_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2540,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I0_L0_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2892,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I0_L2_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2604,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I0_L2_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2908,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I1_L0_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2554,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I1_L0_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2860,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I1_L2_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2609,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I1_L2_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 17,
+   "total_frames": 2922,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I2_L0_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2378,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I2_L0_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2812,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I2_L2_front_away",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2441,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_mouse_pad_bp/I2_L2_front_toward",
+   "robot_type": "aloha",
+   "total_episodes": 16,
+   "total_frames": 2728,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_basket_bp/I0_L14_pick_left",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 1509,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_basket_bp/I0_L14_pick_right",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 1599,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_basket_bp/I1_L10_pick_left",
+   "robot_type": "aloha",
+   "total_episodes": 94,
+   "total_frames": 23920,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_basket_bp/I1_L10_pick_right",
+   "robot_type": "aloha",
+   "total_episodes": 94,
+   "total_frames": 23929,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I0_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 752,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I0_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 751,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I0_L6_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 780,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I0_L6_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 733,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I10_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 608,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I10_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 625,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I10_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 653,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I10_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 603,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I11_L3_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I11_L3_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 601,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I11_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I11_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 622,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I1_L3_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 786,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I1_L3_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 777,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I1_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 762,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I1_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 775,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I2_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 623,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I2_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 619,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I2_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I2_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 606,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I3_L3_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 614,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I3_L3_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 616,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I3_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 604,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I3_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 627,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I4_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 622,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I4_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 610,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I4_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 601,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I4_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 630,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I5_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 626,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I5_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 621,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I5_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 621,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I5_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 656,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I6_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I6_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 614,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I6_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 630,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I6_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 596,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I7_L3_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I7_L3_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 603,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I7_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 603,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I7_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 637,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I8_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 626,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I8_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 602,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I8_L4_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 608,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I8_L4_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 614,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I9_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 646,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I9_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I9_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 609,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_scale_bp/I9_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 634,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I0_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 734,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I0_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 744,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I0_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 771,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I0_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 732,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I10_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I10_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I10_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 596,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I10_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 601,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I11_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 593,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I11_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I11_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 591,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I11_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 584,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I1_L1_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 724,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I1_L1_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 753,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I1_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 742,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I1_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 758,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I2_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 590,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I2_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 608,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I2_L3_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 609,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I2_L3_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 625,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I3_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 588,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I3_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I3_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 627,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I3_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 585,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I4_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 604,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I4_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 592,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I4_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I4_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 583,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I5_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 593,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I5_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 593,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I5_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 590,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I5_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 587,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I6_L1_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 599,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I6_L1_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 597,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I6_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 594,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I6_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I7_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 590,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I7_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 577,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I7_L5_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I7_L5_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 612,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I8_L0_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 580,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I8_L0_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 609,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I8_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 653,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I8_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 605,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I9_L1_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 613,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I9_L1_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 592,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I9_L2_place_a",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 587,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_object_stand_bp/I9_L2_place_b",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 582,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I0_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1677,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I0_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1697,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I0_L4_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 605,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I0_L4_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I1_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 765,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I1_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 775,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I1_L22_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 607,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I1_L22_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 613,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I2_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1679,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I2_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1689,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I2_L21_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I2_L21_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 615,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I3_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 904,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I3_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 937,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I3_L21_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 621,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I3_L21_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 613,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I4_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1680,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I4_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1706,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I4_L4_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 609,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I4_L4_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 619,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I5_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 761,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I5_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 5,
+   "total_frames": 768,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I5_L22_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 610,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I5_L22_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I6_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1520,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I6_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1549,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I6_L4_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 603,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I6_L4_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 617,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I7_L0_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1384,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I7_L0_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1433,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I7_L21_stand_inner",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 600,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_phone_stand_bp/I7_L21_stand_outer",
+   "robot_type": "aloha",
+   "total_episodes": 4,
+   "total_frames": 606,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I0_L13_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1763,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I0_L13_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1799,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I0_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1918,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I0_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1706,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I1_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1903,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I1_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1711,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I1_L2_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1749,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I1_L2_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1786,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I2_L34_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1845,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I2_L34_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1797,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I2_L4_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1904,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I2_L4_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1858,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I3_L0_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1804,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I3_L0_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1834,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I3_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1928,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I3_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1742,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I4_L4_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1897,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I4_L4_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1861,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I5_L0_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1804,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I5_L0_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1846,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I5_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1946,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I5_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1745,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I6_L0_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1800,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I6_L0_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1852,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I6_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1921,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I6_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1743,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I7_L13_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1803,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I7_L13_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1853,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I7_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1941,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I7_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1741,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I8_L0_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1807,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I8_L0_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1852,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I8_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1950,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I8_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1742,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I9_L0_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1818,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I9_L0_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1877,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I9_L1_toe_left",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1939,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/place_shoe_bp/I9_L1_toe_right",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1740,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I0_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2899,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I10_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2871,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I11_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 1686,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I12_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2510,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I13_L10_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2755,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I13_L12_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2870,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I14_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2517,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I15_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2840,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I16_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2898,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I19_L7_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2810,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I1_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2842,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I23_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2878,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I24_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2878,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I2_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2595,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I3_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2574,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I4_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2804,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I5_L13_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2793,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I6_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2548,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I7_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2920,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I8_L4_put",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2840,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/put_object_cabinet_bp/I9_L3_put",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 2535,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/roller_pot_bp/I0_L5_grab_roller",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 9794,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/roller_pot_bp/I0_L5_lift_pot",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 11932,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I0_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 3966,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I0_L2_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4020,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I1_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4009,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I1_L2_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4027,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I2_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4004,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I2_L2_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4042,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I3_L0_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4058,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/rotate_qrcode_bp/I3_L2_face_robot",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 4220,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/scan_object_bp/I0_L12_scan",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 17705,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/scan_object_bp/I0_L4_scan",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 17586,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I10_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3003,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I10_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2668,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I10_L2_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3035,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I10_L2_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2719,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I11_L1_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3128,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I11_L1_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2694,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I11_L6_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3059,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I11_L6_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2680,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I13_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3080,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I13_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2752,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I13_L18_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3066,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I13_L18_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2769,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I14_L1_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3009,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I14_L1_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2800,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I14_L2_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3055,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I14_L2_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2742,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I15_L15_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3045,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I15_L15_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2642,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I1_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2984,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I1_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2663,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I1_L6_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3120,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I1_L6_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2657,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I2_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3029,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I2_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2688,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I2_L2_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3001,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I2_L2_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2718,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I4_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2920,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I4_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2654,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I4_L3_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2996,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I4_L3_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2693,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I6_L18_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3089,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I6_L18_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2790,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I6_L1_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3024,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I6_L1_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2611,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I7_L13_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3035,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I7_L13_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2688,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I7_L4_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3015,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I7_L4_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2702,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I8_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3008,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I8_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2759,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I8_L2_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3100,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I8_L2_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2762,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I9_L0_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3006,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I9_L0_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2681,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I9_L2_horizontal",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 3055,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/shake_bottle_bp/I9_L2_upright",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 2732,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4885,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5015,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4941,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5052,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4837,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L14_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4948,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5040,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4951,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4947,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4937,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4931,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L17_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5036,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5082,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4958,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4927,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4859,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4821,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L1_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5085,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5015,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5121,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5065,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5175,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5102,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L2_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5099,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4887,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4903,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5044,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4924,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4990,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L3_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4888,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5002,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4931,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 5080,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4963,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4996,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L6_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4983,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_bgr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4923,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_brg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4873,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_gbr",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4899,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_grb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4870,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_rbg",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4837,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_three_bp/I0_L7_rgb",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 4810,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L0_gr",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8440,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L0_rg",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8336,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L14_gr",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 7870,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L14_rg",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8185,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L2_gr",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8371,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L2_rg",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8358,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L4_gr",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8450,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_blocks_two_bp/I0_L4_rg",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8341,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L0_a_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8413,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L0_b_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8480,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L1_a_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8365,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L1_b_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8323,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L21_a_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8076,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L21_b_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8306,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L2_a_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8139,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stack_bowls_two_bp/I0_L2_b_bottom",
+   "robot_type": "aloha",
+   "total_episodes": 25,
+   "total_frames": 8324,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I0_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1687,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I0_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1762,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I0_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 906,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I0_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 6,
+   "total_frames": 921,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I1_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1640,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I1_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1646,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I1_L5_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1470,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I1_L5_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1509,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I2_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1474,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I2_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1523,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I2_L3_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1657,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I2_L3_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1702,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I3_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1680,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I3_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1694,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I3_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1466,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I3_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 10,
+   "total_frames": 1515,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I4_L0_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1679,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I4_L0_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 11,
+   "total_frames": 1723,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I4_L2_pad_inner",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1336,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/stamp_seal_bp/I4_L2_pad_outer",
+   "robot_type": "aloha",
+   "total_episodes": 9,
+   "total_frames": 1353,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/turn_switch_bp/I0_L2_switch_left",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 10294,
+   "fps": 30,
+   "heldout": []
+  },
+  {
+   "rel": "robotwin2.5_bp/turn_switch_bp/I0_L2_switch_right",
+   "robot_type": "aloha",
+   "total_episodes": 100,
+   "total_frames": 9974,
+   "fps": 30,
+   "heldout": []
+  }
+ ]
+}

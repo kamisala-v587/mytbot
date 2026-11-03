@@ -56,3 +56,24 @@ def add_qwen_lora(vlm: torch.nn.Module, layers: int, rank: int, alpha: float, la
     if lora == 0:
         raise RuntimeError(f"qwen LoRA: no module matched {target}")
     return lora
+
+
+def merge_qwen_lora(vlm: torch.nn.Module) -> int:
+    """Fold every peft LoRA layer of `vlm` into its base linear (W + B A * alpha / r, computed in float32, stored in
+    the base dtype) and put the plain linear back in place; returns the number of merged layers."""
+    from peft.tuners.lora import LoraLayer
+
+    merged = 0
+    for name, module in list(vlm.named_modules()):
+        if not isinstance(module, LoraLayer):
+            continue
+        parent_name, _, child = name.rpartition(".")
+        parent = vlm.get_submodule(parent_name) if parent_name else vlm
+        dtype = module.get_base_layer().weight.dtype
+        module.float()
+        module.merge(safe_merge=True)
+        setattr(parent, child, module.get_base_layer().to(dtype))
+        merged += 1
+    if any("lora_" in n for n, _ in vlm.named_parameters()):
+        raise RuntimeError("LoRA parameters left after merging")
+    return merged

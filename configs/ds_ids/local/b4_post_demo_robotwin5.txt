@@ -1,0 +1,5 @@
+/public-data/dataset/RoboTwin-LeRobot-v3.0/stack_blocks_three/aloha-agilex_randomized_500
+/public-data/dataset/RoboTwin-LeRobot-v3.0/blocks_ranking_rgb/aloha-agilex_randomized_500
+/public-data/dataset/RoboTwin-LeRobot-v3.0/blocks_ranking_size/aloha-agilex_randomized_500
+/public-data/dataset/RoboTwin-LeRobot-v3.0/stack_blocks_two/aloha-agilex_randomized_500
+/public-data/dataset/RoboTwin-LeRobot-v3.0/handover_block/aloha-agilex_randomized_500

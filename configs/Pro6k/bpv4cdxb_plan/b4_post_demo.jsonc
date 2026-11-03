@@ -1,0 +1,125 @@
+{
+    // bpv4cdx Stage B — 在 B-4 10k（B200 训练）上继续后训练的示例配置（本机路径）。
+    // 结构同 generated_b200/b4_main.json：主路径 bucket 数据集 + Qwen LoRA + 可训练示教编码器（P5 在线编码 Z_demo）。
+    // 示例数据：configs/ds_ids/local/b4_post_demo_robotwin5.txt（5 个 RoboTwin aloha randomized_500 repo）
+    //   -> pairs_main.py -> outputs/BPv4CDX/stage_b/b4_post_demo_index.json。换数据时重建索引，改 dataset.index 即可。
+    // 启动：source tools/bpv4cdxb/env.local.sh; bash tools/bpv4cdxb/train_b2_local.sh configs/Pro6k/bpv4cdxb_plan/b4_post_demo.jsonc
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpv4cdx_b",
+        "repo_id": "bpv4cdx_b4_post_demo",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        "external_stats_root": "/vla/workspace/my_tbot/norm_stats",
+        "video_backend": "torchcodec",
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": false,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
+
+        // 主路径：索引含 "buckets" 即走 dataset_main.py。pairing 必须保持 "candidate_set"，
+        // "same_task" 会改走本地 dataset_pretrain.py（只支持缓存 Z_demo，不能训示教编码器）
+        "pairing": "candidate_set",
+        "index": "/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/b4_post_demo_index.json",
+        "data_root": "/public-data/dataset",
+        // demo_features="p5" 时不读 Z_demo，但配置校验要求非空
+        "zdemo_dir": "/vla/workspace/cache/bpv4cdxb_zdemo/89ef6e438045",
+        "demo_features": "p5",
+        "demo_cache_dir": "/vla/workspace/cache/bpv4cdx_ae3_su",
+        "image_size": 224,
+        "split": "train",
+        "queries_per_item": 4,
+        "contrast_prob": 0.0,
+        "pixel_transfer_dtype": "bfloat16",
+        "image_transforms": {"enable": false, "preset": null}
+    },
+    "env": null,
+    "policy": {
+        "type": "bpv4cdx_b",
+        "pretrained_path": null,
+        "push_to_hub": false,
+        "device": null,
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 25,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+
+        "frozen_encoder": "/vla/workspace/models/BPVA/BPv4CDX/StageA_AE_frozen/0750000",
+        "num_demo_tokens": 128,
+        "obs_marker_tokens": true,
+        "expert_visibility": "full",
+        "fusion_layers": 0,
+        "demo_input": "video",
+        "use_state": true,
+        "state_drop_prob": 0.0,
+
+        // 起点：B-4 10k。init_from 严格加载：下面 LoRA 层号 / rank / alpha 与 demo_encoder_trainable
+        // 必须与该 checkpoint 一致，否则直接报 missing / unexpected key
+        "init_from": "/vla/workspace/models/BPVA/BPv4CDX/B4/10k",
+        "qwen_lora_layers": 0,
+        "qwen_lora_layer_ids": [0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23],
+        "qwen_lora_rank": 16,
+        "qwen_lora_alpha": 32.0,
+        "qwen_lora_trainable": true,
+        "demo_encoder_trainable": true,
+        "demo_encoder_lr": 5e-6,
+        "vit_batched_attention": true,
+
+        "new_modules_lr": 5e-5,
+        "act_expert_lr": 5e-5,
+
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+        "normalization_mapping": {"VISUAL": "IDENTITY", "STATE": "IDENTITY", "ACTION": "IDENTITY"},
+
+        // 新优化器：500 步 warmup 后恒定 5e-5（decay 终点 = 峰值）
+        "optimizer_lr": 5e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 100000,
+        "scheduler_decay_lr": 5e-5,
+
+        "preflight_memory_check": true,
+        "preflight_memory_limit_frac": 0.9
+    },
+    "output_dir": "/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/b4_post_demo",
+    "resume": false,
+    "seed": 2025,
+    "num_workers": 8,
+    "batch_size": 4,
+    "gradient_accumulation_steps": 1,
+    "steps": 5000,
+    "eval_freq": 0,
+    "log_freq": 10,
+    "save_checkpoint": true,
+    "save_freq": 1000,
+    "use_policy_training_preset": true,
+    "eval": {"n_episodes": 50, "batch_size": 50, "use_async_envs": false},
+    "wandb": {"enable": false, "project": "BPV4CDXB", "mode": "offline"},
+    "rename_map": {}
+}

@@ -564,6 +564,8 @@ class DynamicBatchServer:
                 self._config.port,
                 compression=None,
                 max_size=None,
+                # inference can hold the event loop longer than the default 20 s pong deadline under load
+                ping_timeout=None,
                 process_request=_health_check,
             ) as server:
                 await server.serve_forever()

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -25,6 +26,18 @@ from lerobot.policies.BPV4CDX.dataset import pool_spatial
 from lerobot.policies.BPV4CDX.sampling import SAMPLER_VERSIONS
 
 from .frozen import describe, load_frozen, sha256_file
+
+
+def index_episodes(index: dict) -> dict[str, dict]:
+    """"rel|ep" -> {repo, episode}: P1 index (`episodes`) or main-path bucket index (`buckets`, pairs_pretrain)."""
+    if "buckets" not in index:
+        return index["episodes"]
+    out = {}
+    for b in index["buckets"]:
+        rel = index["repos"][b["repo"]]["rel"]
+        for ep in b["train"] + b["heldout"]:
+            out[f"{rel}|{int(ep)}"] = {"repo": rel, "episode": int(ep)}
+    return out
 
 
 def zdemo_path(root: str | Path, tag: str, repo_rel: str, episode: int) -> Path:
@@ -59,14 +72,29 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--verify", type=int, default=32, help="episodes re-encoded through the full Stage A model")
+    ap.add_argument("--skip_missing", action="store_true",
+                    help="leave out episodes whose demo ViT cache file does not exist yet (cache still building)")
     args = ap.parse_args()
     device = "cuda"
     frozen = load_frozen(args.frozen, device)
     spatial = int(frozen.manifest["vit"]["spatial_tokens_used"])
     want_version = frozen.manifest["sampler"]["version"]
     index = json.loads(Path(args.index).read_text())
-    eps = sorted(index["episodes"].items())
     demo_cache, out_root = Path(args.demo_cache), Path(args.out)
+    eps = sorted(index_episodes(index).items())
+    missing = 0
+    if args.skip_missing:
+        listed: dict[str, set[str]] = {}
+        kept = []
+        for k, e in eps:
+            if e["repo"] not in listed:
+                d = demo_cache / e["repo"]
+                listed[e["repo"]] = set(os.listdir(d)) if d.is_dir() else set()
+            if f"ep{int(e['episode']):05d}.pt" in listed[e["repo"]]:
+                kept.append((k, e))
+        missing = len(eps) - len(kept)
+        eps = kept
+        print(f"{len(eps)} episodes with a demo ViT cache, {missing} not cached yet", flush=True)
     t0, done, versions, skipped = time.time(), 0, {}, 0
     for s in range(0, len(eps), args.batch):
         chunk = eps[s : s + args.batch]
@@ -116,7 +144,8 @@ def main() -> None:
     manifest = {"frozen": describe(frozen), "frozen_dir": str(Path(args.frozen).resolve()),
                 "demo_cache": str(demo_cache), "index": str(Path(args.index).resolve()),
                 "index_sha256": sha256_file(Path(args.index)), "episodes": len(eps), "written": done,
-                "skipped_existing": skipped, "sampler_versions_seen": versions, "spatial": spatial, "verify": verify}
+                "skipped_existing": skipped, "not_cached_yet": missing, "sampler_versions_seen": versions,
+                "spatial": spatial, "verify": verify}
     (out_root / frozen.tag).mkdir(parents=True, exist_ok=True)
     (out_root / frozen.tag / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False))
     print(json.dumps({k: manifest[k] for k in ("episodes", "written", "skipped_existing", "sampler_versions_seen", "verify")},

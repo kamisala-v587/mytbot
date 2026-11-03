@@ -42,6 +42,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--robotwin_root", default=str(DEFAULT_ROBOTWIN_ROOT))
     ap.add_argument("--replay_horizon", type=int, default=30, help="demo_replay: actions per response")
     ap.add_argument("--replay_seed", type=int, default=0, help="demo_replay: demonstration choice per episode_uid")
+    ap.add_argument("--replay_self", action="store_true",
+                    help="demo_replay on training scenes: replay the scene's own recorded episode")
     own, rest = ap.parse_known_args(argv)
     policy_name = serve_policy._build_parser().parse_known_args(rest)[0].policy or serve_policy.POLICY
 
@@ -54,7 +56,7 @@ def main(argv: list[str] | None = None) -> None:
         from bprobotwin.demo_replay import DemoReplayPolicy
 
         config = serve_policy.build_config(rest + ["--ckpt_path", "demo_replay", "--no-debug"])
-        inner = DemoReplayPolicy(index, horizon=own.replay_horizon, seed=own.replay_seed)
+        inner = DemoReplayPolicy(index, horizon=own.replay_horizon, seed=own.replay_seed, replay_self=own.replay_self)
     else:
         config = serve_policy.build_config(rest)
         if config.bp_mapping_path and Path(config.bp_mapping_path).resolve() != mapping.resolve():

@@ -65,6 +65,11 @@ class BPV4CDXBMainDataset(torch.utils.data.Dataset):
         self.split = "val" if cfg.split == "val" else "train"
         self.buckets = index["buckets"]
         self.zdemo_dir = Path(cfg.zdemo_dir or index["zdemo_dir"])
+        # spatial tokens per image the demo encoder was trained on (P5 = 5); P64 records are pooled to it on load
+        self.demo_spatial = None
+        if getattr(cfg, "demo_features", "zdemo") == "p5" and getattr(policy_cfg, "frozen_encoder", ""):
+            enc_cfg = json.loads((Path(policy_cfg.frozen_encoder) / "pretrained_model" / "config.json").read_text())
+            self.demo_spatial = int(enc_cfg["spatial_tokens"])
         eps = index["episodes"]
         self.items = [eid for b in self.buckets for eid in b[self.split]]
         if cfg.query_whitelist:
@@ -151,10 +156,19 @@ class BPV4CDXBMainDataset(torch.utils.data.Dataset):
         return torch.load(self.zdemo_dir / rel / f"ep{ep:05d}.pt", map_location="cpu", weights_only=False)["z_demo"]
 
     def demo_p5(self, demo: str) -> dict[str, torch.Tensor]:
-        """B-4: the demo's AE-3 P5 record for online encoding (`demo_features="p5"`)."""
+        """B-4: the demo's AE-3 record for online encoding (`demo_features="p5"`); a P64 record is pooled to the
+        encoder's spatial tokens with the same pooling as the P5 cache build (pooling here runs on the CPU, the build
+        pools on the GPU: rare 1-ulp bf16 differences from the float32 summation order)."""
+        from lerobot.policies.BPV4CDX.dataset import pool_spatial
+
         rel, ep = self.ep[demo][0], int(self.ep[demo][1])
         rec = torch.load(Path(self.cfg.demo_cache_dir) / rel / f"ep{ep:05d}.pt", map_location="cpu", weights_only=False)
-        return {"demo.feats": rec["feats"], "demo.time": rec["time_ratio"].float(),
+        feats = rec["feats"]
+        if self.demo_spatial is not None and feats.shape[2] != self.demo_spatial:
+            if feats.shape[2] != 64:
+                raise ValueError(f"{rel} ep {ep}: {feats.shape[2]} spatial tokens cannot be pooled to {self.demo_spatial}")
+            feats = pool_spatial(feats, self.demo_spatial)
+        return {"demo.feats": feats, "demo.time": rec["time_ratio"].float(),
                 "demo.camera_valid": rec["camera_valid"].bool()}
 
     def _frames(self, repo: RepoData, episode: int, frames: list[int], cam: str) -> torch.Tensor:
@@ -190,6 +204,14 @@ class BPV4CDXBMainDataset(torch.utils.data.Dataset):
             raise FrameDecodeError(f"{where}: decoded pts off by {gap:.3f} s > tolerance {tol} s")
         return out.data.float() / 255.0  # [S, C, H, W] in [0, 1]
 
+    def cached_obs(self, query: str, frames: list[int]) -> torch.Tensor:
+        """[S x 3 slots, tokens, D] bf16 ViT tokens of the query frames from `obs_cache_dir` (same order as the images
+        of current_inputs: frame-major, then camera slot)."""
+        rel, ep = self.ep[query][0], int(self.ep[query][1])
+        arr = np.load(Path(self.cfg.obs_cache_dir) / rel / f"ep{ep:05d}.npy", mmap_mode="r")
+        x = torch.from_numpy(np.ascontiguousarray(arr[frames])).view(torch.bfloat16)
+        return x.reshape(-1, *x.shape[2:])
+
     def current_inputs(self, query: str, frames: list[int]) -> dict[str, torch.Tensor]:
         from lerobot.transforms.utils import resize_with_pad
 
@@ -200,12 +222,19 @@ class BPV4CDXBMainDataset(torch.utils.data.Dataset):
             self._processor, self._token_ids = load_qwen35_vision(self.cfg.qwen3_5_processor_path)
         rel, ep = self.ep[query][0], int(self.ep[query][1])
         repo, size = self.repos[rel], int(self.cfg.image_size)
-        per_slot = [self._frames(repo, ep, frames, cam) if cam else None for cam in repo.emb.cameras]
+        cached = bool(getattr(self.cfg, "obs_cache_dir", ""))
+        if cached:
+            # token layout only: every image has the same size, so the grid of black images is the grid of the frames
+            per_slot = [None] * len(repo.emb.cameras)
+        else:
+            per_slot = [self._frames(repo, ep, frames, cam) if cam else None for cam in repo.emb.cameras]
         black = torch.zeros(3, size, size)
         images = [resize_with_pad(per_slot[c][j][None], size, size)[0] if per_slot[c] is not None else black
                   for j in range(len(frames)) for c in range(len(per_slot))]
-        out = self._processor(images, do_rescale=False)
+        out = self._processor(images[: len(per_slot)] if cached else images, do_rescale=False)
         grid = torch.as_tensor(out["image_grid_thw"], dtype=torch.long)
+        if cached:
+            grid = grid.repeat(len(frames), 1)
         tid = self._token_ids
         ids = [PLACEHOLDER_ID] * self.demo_tokens + [PLACEHOLDER_ID] * self.markers
         types = [0] * len(ids)
@@ -217,10 +246,14 @@ class BPV4CDXBMainDataset(torch.utils.data.Dataset):
         types += [0] * self.markers
         s = len(frames)
         input_ids = torch.tensor(ids)[None].expand(s, -1).clone()
-        pixels = torch.as_tensor(out["pixel_values"])
-        if getattr(self.cfg, "pixel_transfer_dtype", "float32") == "bfloat16":
-            pixels = pixels.to(torch.bfloat16)  # the model casts to the ViT dtype (bf16) first: identical ViT input
-        return {"obs.pixel_values": pixels, "obs.image_grid_thw": grid,
+        if cached:
+            image = {"obs.vit": self.cached_obs(query, frames)}
+        else:
+            pixels = torch.as_tensor(out["pixel_values"])
+            if getattr(self.cfg, "pixel_transfer_dtype", "float32") == "bfloat16":
+                pixels = pixels.to(torch.bfloat16)  # the model casts to the ViT dtype (bf16) first: identical ViT input
+            image = {"obs.pixel_values": pixels}
+        return {**image, "obs.image_grid_thw": grid,
                 "obs.input_ids": input_ids, "obs.mm_token_type_ids": torch.tensor(types)[None].expand(s, -1).clone(),
                 "obs.attention_mask": torch.ones_like(input_ids, dtype=torch.bool),
                 "obs.camera_valid": torch.tensor([c is not None for c in repo.emb.cameras])}

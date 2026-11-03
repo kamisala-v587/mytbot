@@ -1,0 +1,149 @@
+{
+    // bpv4cdx Stage B — BP RoboTwin 后训练：从 B-4 350k 出发（同 b4_sft* 的数据 / 索引 / 统计），全量训练 10000 步。
+    // 起点 = B4/350k 的 LoRA 合并进 Qwen 权重后的 checkpoint（tools/bpv4cdxb/merge_lora.py -> B4/350k_lora_merged）；
+    // 训练：Qwen 语言模型全部参数（vlm_trainable）+ Action Expert + 示教编码器 + [obs_start]/[obs_end]，ViT 冻结；
+    // 当前观测用离线 ViT 缓存（dataset.obs_cache_dir，tools/bpv4cdxb/build_obs_cache.sh），与在线计算逐位一致；
+    // 学习率（500 步 warmup 后各组 cosine 衰减，共 10000 步，新优化器）：
+    //   Action Expert + 投影层 + [obs_start]/[obs_end]  5e-5 -> 5e-6（直接决定动作精度，回到预训练的 5e-5）
+    //   Qwen 语言模型                                 2e-5 -> 5e-6（太大会破坏预训练表示；定位物体需要它，不冻结）
+    //   示教编码器                                     5e-6 -> 2e-6（维持在 2e-6 ~ 5e-6）
+    //   ViT 冻结
+    // 数据：bp_tasks/splits/v1/train_repos.txt（674 repo / 38 任务 / 8540 ep）的副本 /vla/workspace/data/robotwin2.5_bp
+    //   -> configs/ds_ids/local/robotwin2.5_bp_train_v1.txt
+    //   -> pairs_main.py --bucket_by repo（一个 repo = 一个候选集，示教只在本候选集内抽）
+    //   -> outputs/BPv4CDX/stage_b/b4_sft_bp_v1_index.json
+    // 启动：source tools/bpv4cdxb/env.local.sh; bash tools/bpv4cdxb/train_b2_local.sh configs/Pro6k/bpv4cdxb_plan/b4_350k_sft.jsonc
+    "dataloader_in_order": false,
+    "dataset": {
+        "type": "bpv4cdx_b",
+        // 只是名字；训练数据由 index 决定
+        "repo_id": "bpv4cdx_b4_350k_sft_bp_v1",
+        "action_mode": "delta",
+        "use_external_stats": true,
+        // 单个统计文件用 external_stats_path（external_stats_root 要求 <root>/<robot_type>/<action_mode>/stats.json 目录结构）
+        "external_stats_path": "/vla/workspace/my_tbot/norm_stats/bprobotwin_delta_h50/stats.json",
+        "video_backend": "torchcodec",
+        "skip_video_file_validation": true,
+        "streaming": false,
+        "dist_loading": false,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "qwen3_5_processor_path": "/vla/workspace/models/q35/base_800m",
+
+        // 主路径：索引含 "buckets" 即走 dataset_main.py。pairing 必须保持 "candidate_set"，
+        // "same_task" 会改走本地 dataset_pretrain.py（只支持缓存 Z_demo，不能训示教编码器）
+        "pairing": "candidate_set",
+        "index": "/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/b4_sft_bp_v1_index.json",
+        // 索引里的 repo 是 robotwin2.5_bp/<task>/<候选集>，在此根目录下解析
+        "data_root": "/vla/workspace/data",
+        // demo_features="p5" 时不读 Z_demo，但配置校验要求非空
+        "zdemo_dir": "/vla/workspace/cache/bpv4cdxb_zdemo/89ef6e438045",
+        // "p5" = 示教用 AE-3 ViT 缓存在线编码（取值固定叫 p5）。缓存是 P64（[32, 3, 64, 1024]），
+        // 读取时按示教编码器的 spatial_tokens（5）池化，与直接建 P5 缓存数值等价（偶有 1 个 bf16 精度单位的差）
+        "demo_features": "p5",
+        "demo_cache_dir": "/vla/workspace/data/robotwin2.5_vit_cache",
+        // 当前观测的 ViT 缓存（只含训练索引的 8540 条 episode；冻结的 Qwen 原版 ViT，不能与图像增强同时用）
+        "obs_cache_dir": "/vla/workspace/cache/bpv4cdxb_obs_vit",
+        "image_size": 224,
+        "split": "train",
+        "queries_per_item": 4,
+        "contrast_prob": 0.0,
+        "pixel_transfer_dtype": "bfloat16",
+        "image_transforms": {"enable": false, "preset": null}
+    },
+    "env": null,
+    "policy": {
+        "type": "bpv4cdx_b",
+        "pretrained_path": null,
+        "push_to_hub": false,
+        "device": null,
+        "dtype": "bfloat16",
+        "expert_type": "action",
+        "qwen3_5_pretrained_path": "/vla/workspace/models/q35/base_800m",
+        "qwen3_5_model_revision": null,
+        "qwen3_5_processor_path": null,
+        "qwen3_5_processor_revision": null,
+        "qwen3_5_fingerprint": null,
+        "expert_width_ratio": 0.5,
+
+        "n_obs_steps": 1,
+        "chunk_size": 50,
+        "n_action_steps": 25,
+        "max_state_dim": 32,
+        "max_action_dim": 32,
+        "num_inference_steps": 10,
+
+        "frozen_encoder": "/vla/workspace/models/BPVA/BPv4CDX/StageA_AE_frozen/0750000",
+        "num_demo_tokens": 128,
+        "obs_marker_tokens": true,
+        "expert_visibility": "full",
+        "fusion_layers": 0,
+        "demo_input": "video",
+        "use_state": true,
+        "state_drop_prob": 0.0,
+
+        // 起点：B4/350k 合并 LoRA 后（无 LoRA、带示教编码器）。init_from 严格加载：LoRA 必须关闭、
+        // demo_encoder_trainable 必须为 true，与该 checkpoint 一致
+        "init_from": "/vla/workspace/models/BPVA/BPv4CDX/B4/350k_lora_merged",
+        "qwen_lora_layers": 0,
+        "qwen_lora_layer_ids": [],
+        "qwen_lora_rank": 16,
+        "qwen_lora_alpha": 32.0,
+        "qwen_lora_trainable": true,
+        // Qwen 语言模型全部参数训练（embedding、全部 decoder 层、final norm），ViT 冻结；单独的参数组：
+        // 峰值 vlm_lr，cosine 衰减到 vlm_decay_lr
+        "vlm_trainable": true,
+        "vlm_lr": 2e-5,
+        "vlm_decay_lr": 5e-6,
+        // 示教编码器：峰值 demo_encoder_lr，衰减到 demo_encoder_decay_lr
+        "demo_encoder_trainable": true,
+        "demo_encoder_lr": 5e-6,
+        "demo_encoder_decay_lr": 2e-6,
+        "vit_batched_attention": true,
+
+        "new_modules_lr": 5e-5,
+        "act_expert_lr": 5e-5,
+
+        "attention_implementation": "sdpa",
+        "gradient_checkpointing": false,
+        "causal_vlm": false,
+        "compile_model": false,
+        "compile_mode": "default",
+        "time_sampling_beta_alpha": 1.5,
+        "time_sampling_beta_beta": 1.0,
+        "time_sampling_scale": 0.999,
+        "time_sampling_offset": 0.001,
+        "min_period": 4e-3,
+        "max_period": 4.0,
+        "normalization_mapping": {"VISUAL": "IDENTITY", "STATE": "IDENTITY", "ACTION": "IDENTITY"},
+
+        // 新优化器。optimizer_lr 不是任何组的学习率，只和 scheduler_decay_lr 一起给出默认衰减终点比例（这里 0.1）：
+        // act / b_new 组 5e-5 -> 5e-6；vlm、demo_enc 组用各自的 *_decay_lr
+        "optimizer_lr": 2e-5,
+        "optimizer_betas": [0.9, 0.95],
+        "optimizer_eps": 1e-8,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_grad_clip_norm": 1.0,
+        "scheduler_warmup_steps": 500,
+        "scheduler_decay_steps": 100000,
+        "scheduler_decay_lr": 2e-6,
+
+        "preflight_memory_check": true,
+        "preflight_memory_limit_frac": 0.9
+    },
+    "output_dir": "/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/b4_350k_sft",
+    "resume": false,
+    "seed": 2026,
+    "num_workers": 16,
+    "batch_size": 16,
+    "gradient_accumulation_steps": 1,
+    "steps": 100000,
+    "eval_freq": 0,
+    "log_freq": 10,
+    "save_checkpoint": true,
+    "save_freq": 2000,
+    "use_policy_training_preset": true,
+    "eval": {"n_episodes": 50, "batch_size": 50, "use_async_envs": false},
+    "wandb": {"enable": false, "project": "BPV4CDXB", "mode": "offline"},
+    "rename_map": {}
+}

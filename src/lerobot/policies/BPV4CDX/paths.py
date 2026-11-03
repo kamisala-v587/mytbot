@@ -9,7 +9,8 @@ from pathlib import Path
 GENERIC_TEXT = "reconstruct the demonstrated action segment"
 
 # machine-specific dataset roots, stripped to get a relative repo id shared by all machines (AE-3 plan 3.1)
-ROOT_PREFIXES = ("/public-data/dataset/", "/share/", "/vla/workspace/data/")
+ROOT_PREFIXES = ("/public-data/dataset/agibot-world3.0-fix/beta2025/", "/public-data/dataset/", "/share/",
+                 "/vla/workspace/data/")
 # the same dataset stored under different names on different machines
 ALIASES = {"lerobot_out/agibotworld": "agibotworld", "robochallenge": "RoboChallenge-lerobotv3.0",
            "robotwin2.0": "RoboTwin-LeRobot-v3.0"}

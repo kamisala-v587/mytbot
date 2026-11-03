@@ -13,12 +13,16 @@ Error: MSE of the sampled 50-step chunk vs the query's true chunk (normalized de
 dims). Ratios E_cond / E_matched with a query-episode bootstrap 95% CI; per robot type for blank.
 
 usage: python -m lerobot.policies.BPV4CDXB.gate_g9_main --ckpt <run>/checkpoints/0005000/pretrained_model \
-         --out outputs/BPv4CDX/stage_b/g9 --name b2_005k [--queries 1000 --workers 16 --batch 8]
+         --out outputs/BPv4CDX/stage_b/g9 --name b2_005k [--queries 1000 --workers 16 --batch 8] \
+         [--index <bucket index whose val pools are the queries>] [--groups <json: repo rel id -> group>]
+--index replaces the checkpoint's training index (e.g. a G9 index of chosen candidate sets); --groups adds
+`by_group` (matched error, blank / alt / wrong ratios per group of query repos).
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import time
 from pathlib import Path
@@ -100,7 +104,8 @@ def make_jobs(ds, n_queries: int, seed: int) -> list[dict]:
         matched = pool[int(rng.integers(len(pool)))]
         parts = rel.split("/")
         source = f"InternData/{parts[2]}" if parts[0].startswith("full-InternData") and len(parts) > 2 else parts[0]
-        job = {"q": q, "matched": matched, "frames": [int(round(0.25 * (length - 1))), int(round(0.65 * (length - 1)))],
+        job = {"q": q, "rel": rel, "matched": matched,
+               "frames": [int(round(0.25 * (length - 1))), int(round(0.65 * (length - 1)))],
                "raw_dim": int(sum(repo.emb.action_sizes)), "robot": b["robot_type"], "bucket": bi, "text_arm": b["arm"],
                "pool": len(pool), "source": source}
         others = [e for e in pool if e != matched]
@@ -156,17 +161,26 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=8, help="queries per forward (x 2 time steps)")
     ap.add_argument("--workers", type=int, default=16)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--index", default="", help="bucket index to draw the queries from (default: the checkpoint's)")
+    ap.add_argument("--groups", default="", help="json {repo rel id: group} for per-group results")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     ckpt = Path(args.ckpt)
     cfg = TrainPipelineConfig.from_pretrained(str(ckpt))
     cfg.dataset.split = "val"
+    if args.index:
+        cfg.dataset.index = args.index
+    rel_group = json.loads(Path(args.groups).read_text()) if args.groups else {}
     ds, _ = make_bpv4cdxb_dataset(cfg)
     t0 = time.time()
     jobs = make_jobs(ds, args.queries, args.seed)
     logging.info("jobs %d (alt %d, wrong %d, cross-arm %d) in %.0f s", len(jobs), sum("alt" in j for j in jobs),
                  sum("wrong" in j for j in jobs), sum("left" in j for j in jobs), time.time() - t0)
-    policy = BPV4CDXBPolicy.from_pretrained(str(ckpt)).cuda().eval()
+    from lerobot.configs.policies import PreTrainedConfig
+
+    policy_cfg = PreTrainedConfig.from_pretrained(str(ckpt))
+    policy_cfg.init_from = ""  # every weight is in the checkpoint; init_from was only the training start point
+    policy = BPV4CDXBPolicy.from_pretrained(str(ckpt), config=policy_cfg).cuda().eval()
     loader = torch.utils.data.DataLoader(Jobs(ds, jobs), batch_size=args.batch, num_workers=args.workers,
                                          prefetch_factor=2 if args.workers else None)
     rows = []
@@ -197,7 +211,7 @@ def main() -> None:
             for s in range(S):
                 n = i * S + s
                 row = {"q": j["q"], "robot": j["robot"], "bucket": j["bucket"], "frame": j["frames"][s],
-                       "pool": j["pool"], "source": j["source"],
+                       "pool": j["pool"], "source": j["source"], "group": rel_group.get(j["rel"]),
                        "matched": float(err["matched"][n]), "blank": float(err["blank"][n])}
                 for k in COND:
                     if k in err and bool(b[f"has.{k}"][i]):
@@ -237,6 +251,19 @@ def main() -> None:
                 entry[k] = paired_bootstrap_ratio(np.array([r[k] for r in sk]), np.array([r["matched"] for r in sk]),
                                                   np.array([r["q"] for r in sk]))
         res["by_source"][src] = entry
+    if rel_group:
+        res["by_group"] = {}
+        for grp in sorted({r["group"] for r in rows if r["group"] is not None}):
+            sel = [r for r in rows if r["group"] == grp]
+            entry = {"samples": len(sel), "queries": len({r["q"] for r in sel}),
+                     "matched_mse": float(np.mean([r["matched"] for r in sel]))}
+            for k in ("blank", "alt", "wrong"):
+                sk = [r for r in sel if k in r]
+                if sk:
+                    entry[f"{k}_mse"] = float(np.mean([r[k] for r in sk]))
+                    entry[k] = paired_bootstrap_ratio(np.array([r[k] for r in sk]), np.array([r["matched"] for r in sk]),
+                                                      np.array([r["q"] for r in sk]))
+            res["by_group"][grp] = entry
     for name, lo, hi in (("2-3", 2, 3), ("4-6", 4, 6), ("7-15", 7, 15), ("16+", 16, 10**9)):
         sk = [r for r in rows if "alt" in r and lo <= r["pool"] <= hi]
         if sk:

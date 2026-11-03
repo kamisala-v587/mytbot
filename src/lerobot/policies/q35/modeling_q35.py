@@ -368,6 +368,8 @@ class Q35Model(nn.Module):
         if config.gradient_checkpointing:
             self.core.backbone.vlm_language_model.gradient_checkpointing = True
             self.core.backbone.vlm_visual.gradient_checkpointing = True
+        if getattr(config, "freeze_vision_encoder", False):
+            self.core.backbone.vlm_visual.requires_grad_(False)
         self._install_compiled_callables(config)
 
     def _install_compiled_callables(self, config) -> None:

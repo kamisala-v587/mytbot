@@ -202,7 +202,13 @@ class ContrastSampler(torch.utils.data.Sampler):
         return iter(out[:n])
 
 
-def make_bpv4cdxb_dataset(train_cfg) -> tuple[BPV4CDXBDataset, dict]:
+def make_bpv4cdxb_dataset(train_cfg) -> tuple[torch.utils.data.Dataset, dict]:
+    # pairs_pretrain.py indexes also carry "buckets", so the explicit pairing must be checked before the index format
+    if train_cfg.dataset.pairing == "same_task":
+        from .dataset_pretrain import BPV4CDXBPretrainDataset
+
+        ds = BPV4CDXBPretrainDataset(train_cfg.dataset, train_cfg, train_cfg.policy)
+        return ds, ds.stats
     index = json.loads(Path(train_cfg.dataset.index).read_text())
     if "buckets" in index:  # main-path bucket index (pairs_main.py)
         from .dataset_main import make_main_dataset

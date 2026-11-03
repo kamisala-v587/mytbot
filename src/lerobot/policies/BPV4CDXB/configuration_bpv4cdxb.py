@@ -56,14 +56,32 @@ class BPV4CDXBDatasetConfig(DatasetConfig):
     # P5 cache in `rel` layout (main-path dataset)
     demo_features: str = "zdemo"
     demo_cache_dir: str = ""
+    # main-path dataset: current-observation ViT tokens of every frame (`<dir>/<rel>/epXXXXX.npy`, [T, 3 slots, tokens,
+    # D] bf16 bits as int16, BPV4CDXB.build_obs_cache) instead of decoding video; the model skips the frozen ViT.
+    # Only valid while the ViT is frozen and the images are not augmented
+    obs_cache_dir: str = ""
     # main-path dataset: max |decoded frame pts - requested time| (s); a frame that cannot be decoded or lies
     # farther away is logged with its repo / episode / camera and the item is redrawn
     video_tolerance_s: float = 0.5
+
+    # candidate_set: P1 branch index (BPV4CDXB.pairs); same_task: main path, bucket index (BPV4CDXB.pairs_pretrain),
+    # demo drawn from the query's (repo, description text) bucket of the same split
+    pairing: str = "candidate_set"
+    array_store: str = ""
+    # same_task: share of demos drawn from the other arm of the bucket (falls back to any demo when there is none)
+    cross_arm_prob: float = 0.5
+    load_threads: int = 32
+    max_buckets: int = 0  # smoke tests: only the first N buckets
+    # same_task: training-time G9 monitor (matched / blank / cross-arm on held-out queries) at every checkpoint save
+    heldout_monitor: bool = True
+    monitor_queries: int = 128
 
     def __post_init__(self) -> None:
         super().__post_init__()
         if self.split not in {"train", "val", "all"}:
             raise ValueError("split must be train, val or all")
+        if self.pairing not in {"candidate_set", "same_task"}:
+            raise ValueError("pairing must be candidate_set or same_task")
         if not 0.0 <= self.contrast_prob <= 1.0:
             raise ValueError("contrast_prob must be in [0, 1]")
         if not self.index or not self.zdemo_dir or not self.qwen3_5_processor_path:
@@ -102,8 +120,15 @@ class BPV4CDXBConfig(Q35Config):
     qwen_lora_trainable: bool = True
     demo_encoder_trainable: bool = False
     demo_encoder_lr: float = 1e-5
+    # end of the cosine decay of the demo encoder group (None: scheduler_decay_lr / optimizer_lr of its peak)
+    demo_encoder_decay_lr: float | None = None
     qwen_lora_rank: int = 16
     qwen_lora_alpha: float = 32.0
+    # train every Qwen language-model weight (embeddings, all decoder layers, final norm); the ViT stays frozen.
+    # Own parameter group at vlm_lr (None = act_expert_lr); off keeps the frozen-Qwen (+ LoRA) setups unchanged
+    vlm_trainable: bool = False
+    vlm_lr: float | None = None
+    vlm_decay_lr: float | None = None  # end of the vlm group's cosine decay (None: same ratio as the other groups)
 
     new_modules_lr: float = 1e-4
     act_expert_lr: float = 1e-4

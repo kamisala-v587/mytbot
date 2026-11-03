@@ -88,6 +88,9 @@ class BPV4CDXBModel(Q35Model):
             for name, p in self.core.backbone.vlm.named_parameters():
                 if "lora_" in name:
                     p.requires_grad_(False)
+        if getattr(config, "vlm_trainable", False):
+            for name, p in self.core.backbone.vlm.named_parameters():
+                p.requires_grad_(not name.startswith("model.visual."))
         if getattr(config, "vit_batched_attention", False):
             from .vit_batched import patch_vision_attention
 
@@ -102,6 +105,14 @@ class BPV4CDXBModel(Q35Model):
         self.frozen_sha256 = frozen.ckpt_sha256
 
     # --- prefix -------------------------------------------------------------------------------------------------
+    def embed_cached_images(self, feats: torch.Tensor, input_ids: torch.Tensor) -> torch.Tensor:
+        """embed_vlm with the ViT output given: [..., tokens, D] in image order fills the image placeholders."""
+        vlm = self.core.backbone.vlm
+        embeddings = vlm.get_input_embeddings()(input_ids)
+        flat = embeddings.reshape(-1, embeddings.shape[-1])
+        flat[input_ids.reshape(-1) == vlm.config.image_token_id] = feats.reshape(-1, feats.shape[-1]).to(flat.dtype)
+        return flat.reshape_as(embeddings)
+
     def build_prefix(self, batch: dict, *, blank_demo: torch.Tensor | None = None):
         """-> prefix [N, L, D], input ids [N, L], valid [N, L]; N = B x S (pairs x query time steps)."""
         cfg = self.config
@@ -109,7 +120,10 @@ class BPV4CDXBModel(Q35Model):
         b, s = ids.shape[:2]
         n = b * s
         ids = ids.reshape(n, -1)
-        emb = self.embed_vlm(batch["obs.pixel_values"], batch["obs.image_grid_thw"].reshape(-1, 3), ids)
+        if "obs.vit" in batch:  # dataset obs_cache_dir: tokens of the frozen ViT, computed offline
+            emb = self.embed_cached_images(batch["obs.vit"], ids)
+        else:
+            emb = self.embed_vlm(batch["obs.pixel_values"], batch["obs.image_grid_thw"].reshape(-1, 3), ids)
         dtype = emb.dtype
         sp = prefix_spans(cfg, ids.shape[1])
         parts = []
@@ -238,11 +252,22 @@ class BPV4CDXBPolicy(Q35Policy):
             if name.startswith("model.demo_encoder."):  # B-4: own (lower) learning rate
                 groups.setdefault("demo_enc", []).append(p)
                 continue
+            # only with vlm_trainable: otherwise the LoRA stays in "act" (optimizer state layout of B-3 / B-4 runs)
+            if getattr(cfg, "vlm_trainable", False) and name.startswith("model.core.backbone.vlm."):
+                groups.setdefault("vlm", []).append(p)
+                continue
             groups["b_new" if name.startswith(tuple(f"model.{x}" for x in NEW_MODULE_PREFIXES)) else "act"].append(p)
         out = [{"name": "b_new", "params": groups["b_new"], "lr": float(cfg.new_modules_lr)},
                {"name": "act", "params": groups["act"], "lr": float(cfg.act_expert_lr)}]
         if groups.get("demo_enc"):
             out.append({"name": "demo_enc", "params": groups["demo_enc"], "lr": float(cfg.demo_encoder_lr)})
+            if getattr(cfg, "demo_encoder_decay_lr", None) is not None:
+                out[-1]["decay_lr"] = float(cfg.demo_encoder_decay_lr)  # own end lr (bpv4_bpen_grouped scheduler)
+        if groups.get("vlm"):
+            lr = cfg.vlm_lr if getattr(cfg, "vlm_lr", None) is not None else cfg.act_expert_lr
+            out.append({"name": "vlm", "params": groups["vlm"], "lr": float(lr)})
+            if getattr(cfg, "vlm_decay_lr", None) is not None:
+                out[-1]["decay_lr"] = float(cfg.vlm_decay_lr)
         return out
 
     def forward(self, batch, *, validation_mode: str | None = None):

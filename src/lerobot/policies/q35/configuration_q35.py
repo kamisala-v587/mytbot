@@ -156,6 +156,8 @@ class Q35Config(PreTrainedConfig):
     empty_cameras: int = 0
     num_camera_views: int = 3
     gradient_checkpointing: bool = False
+    # Qwen3.5 ViT (backbone.vlm_visual) not trained: its parameters get requires_grad=False
+    freeze_vision_encoder: bool = False
     attention_implementation: str = "sdpa"
     causal_vlm: bool = False
     compile_model: bool = False
