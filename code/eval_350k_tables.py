@@ -1,4 +1,4 @@
-"""Numbers for the 350k report tables: per model x checkpoint success by evaluation type, contrast-group all-correct,
+"""Numbers for the 350k report tables: per model x checkpoint success by evaluation type,
 per-task wins, held-out examples. usage: python code/eval_350k_tables.py"""
 
 from __future__ import annotations
@@ -8,17 +8,9 @@ from collections import defaultdict
 from eval_350k_figs import CKPTS, MODELS, eps, sr, task
 
 
-def contrast(rows: list[dict]) -> tuple[int, int]:
-    g = defaultdict(list)
-    for r in rows:
-        g[(r["anchor_id"], r["scene_source"], r["scene_index"], r.get("repeat", 0))].append(r)
-    groups = [v for v in g.values() if len({r["goal"] for r in v}) >= 2]
-    return sum(all(r["success"] for r in v) for v in groups), len(groups)
-
-
 def main() -> None:
     names = list(MODELS)
-    print("| model | ckpt | train scenes | new scenes (n) | contrast all-correct | held-out sets (n) | held-out tasks | total |")
+    print("| model | ckpt | train scenes | new scenes (n) | held-out sets (n) | held-out tasks | total |")
     data = {}
     for c in CKPTS:
         for m in names:
@@ -26,9 +18,8 @@ def main() -> None:
             tr, nw, held = eps(s["train"](c)), eps(s["new"].format(c)), eps(s["held"].format(c))
             hs = [r for r in held if r["group"] == "heldout_sets"]
             ht = [r for r in held if r["group"] == "heldout_tasks"]
-            ok, n = contrast(nw)
             data[(m, c)] = {"train": tr, "new": nw, "hs": hs, "ht": ht}
-            print(f"| {m} | {c} | {sr(tr):.1%} ({len(tr)}) | {sr(nw):.1%} ({len(nw)}) | {ok / max(n, 1):.1%} ({ok}/{n}) | "
+            print(f"| {m} | {c} | {sr(tr):.1%} ({len(tr)}) | {sr(nw):.1%} ({len(nw)}) | "
                   f"{sr(hs):.1%} ({len(hs)}) | {sum(r['success'] for r in ht)}/{len(ht)} | {sr(nw + hs + ht):.1%} |")
     for c in CKPTS:
         for a, b in ((names[0], names[2]), (names[0], names[1])):

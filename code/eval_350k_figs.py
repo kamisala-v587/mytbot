@@ -22,7 +22,7 @@ import pandas as pd
 EVAL = Path("/vla/workspace/my_robotwin/eval_result_bp")
 G9_DIR = Path("/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/g9_bp")
 CKPTS = ("c50k", "c80k", "c100k")
-MAIN = "c80k"
+MAIN = "c100k"
 BP10_TRAIN = {"c50k": "b4full_full_30k", "c80k": "b4full2_full2_30k", "c100k": "b4full2_full2_50k"}
 MODELS = {
     "BP (B-4 350k start)": {"train": lambda c: f"b350train_{c}", "new": "b350ood_{}", "held": "b350held_{}",
@@ -143,7 +143,11 @@ def fig_novelty(out: Path) -> dict:
         p = EVAL / spec["gap"].format(MAIN)
         if not p.is_file():
             continue
-        g = [r for r in (json.loads(x) for x in p.read_text().splitlines()) if r["group"] != "heldout_tasks"]
+        g, seen = [], set()
+        for r in (json.loads(x) for x in p.read_text().splitlines()):
+            if r["group"] != "heldout_tasks" and (r["eval"], r["uid"]) not in seen:  # helper reruns: first record only
+                seen.add((r["eval"], r["uid"]))
+                g.append(r)
         ys = [sr([r for r in g if lo < r["train_gap"] <= hi]) for lo, hi, _ in bins]
         table[m] = (ys, [sum(1 for r in g if lo < r["train_gap"] <= hi) for lo, hi, _ in bins])
         ax.plot([b[2] for b in bins], ys, marker="o", color=spec["color"], label=m)
