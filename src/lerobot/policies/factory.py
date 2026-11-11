@@ -25,6 +25,7 @@ from lerobot.policies.InternVLA_A1_3B.configuration_internvla_a1 import QwenA1Co
 from lerobot.policies.InternVLA_A1_2B.configuration_internvla_a1 import InternA1Config
 from lerobot.policies.qwenaction.configuration_qwenaction import QwenActionConfig
 from lerobot.policies.q35.configuration_q35 import Q35Config
+from lerobot.policies.wall_oss.configuration_wall_oss import WallOSSConfig
 from lerobot.policies.TBot_SA1.configuration_tbot_sa1 import TBotSA1Config
 from lerobot.policies.BPVA.configuration_bpva import BPVAConfig
 from lerobot.policies.BPVAv2.configuration_bpva import BPVAv2Config
@@ -84,6 +85,10 @@ def get_policy_class(name: str) -> type[PreTrainedPolicy]:
         from lerobot.policies.q35.modeling_q35 import Q35Policy
 
         return Q35Policy
+    elif name == "wall_oss":
+        from lerobot.policies.wall_oss.modeling_wall_oss import WallOSSPolicy
+
+        return WallOSSPolicy
     elif is_tbot_sa1(name):
         from lerobot.policies.TBot_SA1.modeling_tbot_sa1 import TBotSA1Policy
 
@@ -177,6 +182,8 @@ def make_policy_config(policy_type: str, **kwargs) -> PreTrainedConfig:
         return QwenActionConfig(**kwargs)
     elif policy_type == "q35":
         return Q35Config(**kwargs)
+    elif policy_type == "wall_oss":
+        return WallOSSConfig(**kwargs)
     elif policy_type == TBOT_SA1:
         return TBotSA1Config(**kwargs)
     elif policy_type == "fastwam":

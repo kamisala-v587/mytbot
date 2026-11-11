@@ -1,0 +1,979 @@
+from __future__ import annotations
+
+import math
+
+import torch
+import torch.nn as nn
+import torch.utils.checkpoint as cp
+
+from torch.distributed.fsdp import MixedPrecision as MP
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+
+from peft import LoraConfig, get_peft_model
+
+from transformers import GenerationMixin
+from transformers.utils import logging
+
+from wall_x.utils.constant import is_action_dataset_name
+
+from wall_x.model.core.action.processor import ActionProcessor
+from wall_x.model.core.action.moe import (
+    TokenTypeRouter,
+    SparseMoeBlock,
+)
+from wall_x.model.core.action.layout import TwoExpertLayout, prepare_two_expert_layout
+from wall_x.model.core.ops.attention_mask import (
+    update_position_ids,
+    update_position_ids_packed,
+    update_joint_attention_mask_2d,
+    update_joint_attention_mask_2d_packed,
+    update_joint_attention_flash_mask,
+    update_joint_attention_flash_mask_packed,
+    pack_block_bounds,
+)
+
+logger = logging.get_logger(__name__)
+
+
+def _adarms_horizon(config, cond):
+    if isinstance(cond, torch.Tensor) and cond.dim() == 3:
+        return cond.shape[1]
+    return config.action_horizon_flow
+
+
+def _replace_interval_scored(
+    per_token, logits, loss_mask, interval_rows, interval_accepted
+):
+    """Score the marked answer positions against their accepted set.
+
+    Some answers have more than one right token -- a keyframe written one
+    candidate early records the same progress -- and the batch says which
+    positions those are. Everything else keeps its ordinary cross-entropy.
+    """
+    if interval_rows is None or interval_accepted is None or loss_mask is None:
+        return per_token
+    from wall_x.model.core.selection_loss import interval_cross_entropy
+
+    rows = interval_rows[..., 1:].to(loss_mask.device)[loss_mask]
+    marked = rows >= 0
+    if not bool(marked.any()):
+        return per_token
+    scored = interval_cross_entropy(
+        logits[marked], interval_accepted.to(logits.device)[rows[marked]])
+    out = per_token.clone()
+    out[marked] = scored.to(out.dtype)
+    return out
+
+
+class ActionModelMixMin:
+    # config: Qwen2_5_VLConfig
+    action_preprocessor: ActionProcessor
+    router: "TokenTypeRouter"
+    moe: "SparseMoeBlock"
+
+    def __init__(self, config, action_preprocessor, router, moe):
+        self.config = config
+        self.action_preprocessor = action_preprocessor
+        self.router = router
+        self.moe = moe
+        self._mot_opt_warned = False
+
+    def set_normalizer(self, normalizer_action, normalizer_propri):
+        if hasattr(self, "action_preprocessor"):
+            self.action_preprocessor.set_normalizer(
+                normalizer_action, normalizer_propri
+            )
+        else:
+            # WARNING: normalizer cannot be set when action_preprocessor is missing
+            logger.warning(
+                "ActionModelMixMin.set_normalizer is called but action_preprocessor is not set"
+            )
+
+    def _apply_mlp_moe(
+        self,
+        hidden_states,
+        token_types,
+        action_starts=None,
+        action_ends=None,
+        expert_segments=None,
+        two_expert_layout: TwoExpertLayout = None,
+    ):
+        if self.config.mlp_moe:
+            hidden_states = self.moe(
+                hidden_states,
+                token_types,
+                action_starts,
+                action_ends,
+                expert_segments,
+                two_expert_layout,
+            )
+        else:
+            hidden_states = self.mlp(hidden_states)
+        return hidden_states
+
+    def _apply_norm_moe(
+        self,
+        hidden_states,
+        token_types,
+        adarms_conds,
+        norms,  # list of norm layers (expert-wise)
+        norm,  # shared norm if not norm_moe
+        action_starts=None,
+        action_ends=None,
+        expert_segments=None,
+        two_expert_layout: TwoExpertLayout = None,
+        use_selective_recompute=False,
+    ):
+        """
+        MoE-aware LayerNorm with optional selective activation recomputation.
+
+        Only activation math is recomputed. No GEMM is recomputed.
+        Safe for FSDP (use_reentrant=False).
+        """
+
+        gate = None
+        gate_mask = None
+
+        # -------------------------
+        # Case 1: norm_moe=True (expert-wise norm)
+        # -------------------------
+        if self.config.norm_moe:
+
+            # ---------------------------------------------------------
+            # Case 1A: mot_opt=True (segments assigned by fixed LLM/action layout)
+            # ---------------------------------------------------------
+            if self.config.mot_opt:
+                new_hidden_states = torch.zeros_like(hidden_states)
+                batch_size, seq_length = token_types.shape
+                if two_expert_layout is None:
+                    two_expert_layout = prepare_two_expert_layout(
+                        token_types,
+                        batch_size=batch_size,
+                        seq_length=seq_length,
+                        action_starts=action_starts,
+                        action_ends=action_ends,
+                        device=hidden_states.device,
+                    )
+                expert_segments = two_expert_layout.expert_segments
+
+                for expert_idx, expert_norm in enumerate(norms):
+                    start, end = expert_segments[expert_idx]
+                    if start == end:
+                        continue
+
+                    dim_input = self.config.dim_inputs[expert_idx]
+                    selected = hidden_states[start:end]  # [K, D]
+
+                    # ====== reshape if adarms on flow expert ======
+                    if self.config.use_adarms and expert_idx == 1:
+                        action_horizon = _adarms_horizon(
+                            self.config, adarms_conds[expert_idx]
+                        )
+                        selected = selected.view(
+                            -1,
+                            action_horizon,
+                            selected.shape[-1],
+                        )
+                        input_slice = selected[:, :, :dim_input]
+                        cond = adarms_conds[expert_idx]
+                    else:
+                        input_slice = selected[:, :dim_input]
+                        cond = adarms_conds[expert_idx]
+
+                    if use_selective_recompute:
+
+                        def norm_chunk(t_x, t_cond, expert_norm=expert_norm):
+                            if t_cond is None or (
+                                isinstance(t_cond, torch.Tensor) and t_cond.numel() == 0
+                            ):
+                                out, _ = expert_norm(t_x)
+                            else:
+                                out, _ = expert_norm(t_x, t_cond)
+                            return out
+
+                        cond_for_cp = (
+                            cond
+                            if cond is not None
+                            else torch.empty(0, device=input_slice.device)
+                        )
+                        processed = cp.checkpoint(
+                            norm_chunk,
+                            input_slice,
+                            cond_for_cp,
+                            use_reentrant=False,
+                        )
+                    else:
+                        processed, gate = expert_norm(input_slice, cond)
+
+                    # reshape back if needed
+                    if self.config.use_adarms and expert_idx == 1:
+                        processed = processed.view(-1, dim_input)
+
+                    new_hidden_states[start:end, :dim_input] = processed.to(
+                        hidden_states.dtype
+                    )
+
+                hidden_states = new_hidden_states
+
+            # ---------------------------------------------------------
+            # Case 1B: mot_opt=False (token-level mask)
+            # ---------------------------------------------------------
+            else:
+
+                new_hidden_states = torch.zeros_like(hidden_states)
+                B, S, D = hidden_states.shape
+
+                for expert_idx, expert_norm in enumerate(norms):
+                    mask = token_types == expert_idx
+                    if mask.sum() == 0:
+                        continue
+
+                    dim_input = self.config.dim_inputs[expert_idx]
+                    selected = hidden_states[mask]  # [K, D]
+
+                    if self.config.use_adarms and expert_idx == 1:
+                        action_horizon = _adarms_horizon(
+                            self.config, adarms_conds[expert_idx]
+                        )
+                        gate_mask = mask
+                        selected = selected.view(
+                            -1,
+                            action_horizon,
+                            selected.shape[-1],
+                        )
+                        input_slice = selected[:, :, :dim_input]
+                        cond = adarms_conds[expert_idx]
+                    else:
+                        input_slice = selected[:, :dim_input]
+                        cond = adarms_conds[expert_idx]
+
+                    if use_selective_recompute:
+
+                        def norm_chunk(t_x, t_cond, expert_norm=expert_norm):
+                            if t_cond is None or (
+                                isinstance(t_cond, torch.Tensor) and t_cond.numel() == 0
+                            ):
+                                out, _ = expert_norm(t_x)
+                            else:
+                                out, _ = expert_norm(t_x, t_cond)
+                            return out
+
+                        cond_for_cp = (
+                            cond
+                            if cond is not None
+                            else torch.empty(0, device=input_slice.device)
+                        )
+
+                        processed = cp.checkpoint(
+                            norm_chunk,
+                            input_slice,
+                            cond_for_cp,
+                            use_reentrant=False,
+                        )
+                    else:
+                        processed, gate = expert_norm(input_slice, cond)
+
+                    if self.config.use_adarms and expert_idx == 1:
+                        processed = processed.view(-1, dim_input)
+
+                    # scatter back
+                    b_id, s_id = torch.where(mask)
+                    new_hidden_states[b_id, s_id, :dim_input] = processed.to(
+                        hidden_states.dtype
+                    )
+
+                hidden_states = new_hidden_states
+
+        # -------------------------
+        # Case 2: norm_moe=False (single LN)
+        # -------------------------
+        else:
+
+            def norm_chunk_shared(t_x, dummy, norm_module=norm):
+                out, _ = norm_module(t_x)
+                return out
+
+            if use_selective_recompute:
+                dummy = torch.empty(0, device=hidden_states.device)
+                hidden_states = cp.checkpoint(
+                    norm_chunk_shared,
+                    hidden_states,
+                    dummy,
+                    use_reentrant=False,
+                )
+            else:
+                hidden_states, gate = norm(hidden_states)
+
+        return hidden_states, gate, gate_mask
+
+    def _gated_residual(
+        self,
+        x,
+        y,
+        gate,
+        token_types=None,
+        action_starts=None,
+        action_ends=None,
+        expert_segments=None,
+        two_expert_layout: TwoExpertLayout = None,
+    ):
+        """
+        Applies gated residual connection with optional gate parameter.
+
+        Args:
+            x: Input tensor (residual)
+            y: Output tensor to be added
+            gate: Optional gate tensor to modulate the addition
+
+        Returns:
+            x + y if gate is None, otherwise x + y * gate
+        """
+        if x is None and y is None:
+            return None
+        if x is None or y is None:
+            return x if x is not None else y
+        if gate is None:
+            return x + y
+
+        new_y = y.clone()
+        if self.config.mot_opt:
+            if two_expert_layout is None:
+                if token_types is None:
+                    raise ValueError(
+                        "token_types or two_expert_layout must be provided for "
+                        "mot_opt gated residual"
+                    )
+                batch_size, seq_length = token_types.shape
+                two_expert_layout = prepare_two_expert_layout(
+                    token_types,
+                    batch_size=batch_size,
+                    seq_length=seq_length,
+                    action_starts=action_starts,
+                    action_ends=action_ends,
+                    device=y.device,
+                )
+            _, action_segment = two_expert_layout.expert_segments
+            start, end = action_segment
+            selected_y = y[start:end]
+        else:
+            if token_types is None:
+                raise ValueError("token_types must be provided for gated residual")
+            action_mask = token_types == 1
+            selected_y = y[action_mask]
+
+        # ours (align_cw): dynamic action horizon — use gate's horizon dim when the
+        # gate is 3-D with horizon>1, else fall back to the static action_horizon_flow.
+        action_horizon = (
+            gate.shape[1]
+            if isinstance(gate, torch.Tensor) and gate.dim() == 3 and gate.shape[1] > 1
+            else self.config.action_horizon_flow
+        )
+        selected_y = selected_y.view(-1, action_horizon, selected_y.shape[-1])[
+            :, :, : self.config.dim_inputs[1]
+        ]
+        selected_y = selected_y.to(torch.float32) * gate
+        selected_y = selected_y.view(-1, self.config.dim_inputs[1]).to(new_y.dtype)
+        if self.config.mot_opt:
+            new_y[start:end, : self.config.dim_inputs[1]] = selected_y
+        else:
+            new_y[action_mask, : self.config.dim_inputs[1]] = selected_y
+
+        return x + new_y
+
+    def scatter_proprioception_embeddings(
+        self, input_ids, inputs_embeds, proprioception, dataset_names, agent_pos_mask
+    ):
+        use_state_string_representation = getattr(
+            self.config, "use_state_string_representation", False
+        )
+        if proprioception is not None and not use_state_string_representation:
+            proprioception = proprioception.to(inputs_embeds.device).to(
+                inputs_embeds.dtype
+            )
+            agent_pos_mask = agent_pos_mask.to(inputs_embeds.device).to(
+                inputs_embeds.dtype
+            )
+            proprioception = self.action_preprocessor.proprioception_proj(
+                proprioception,
+                dataset_names,
+                agent_pos_mask,
+                use_history=proprioception.shape[1] > 1,
+            )
+            mask = input_ids == self.action_token_id_set["propri_token_id"]
+            mask_unsqueezed = mask.unsqueeze(-1)
+            mask_expanded = mask_unsqueezed.expand_as(inputs_embeds)
+            proprioception_mask = mask_expanded.to(inputs_embeds.device)
+
+            proprioception = proprioception.to(
+                inputs_embeds.device, inputs_embeds.dtype
+            )
+            inputs_embeds = inputs_embeds.masked_scatter(
+                proprioception_mask, proprioception
+            )
+
+        return inputs_embeds
+
+    def scatter_flow_action_embeddings(
+        self,
+        input_ids,
+        inputs_embeds,
+        action_chunk,
+        dataset_names,
+        sample_time,
+        dof_mask,
+    ):
+        if not self.config.use_flow_action_expert:
+            return inputs_embeds, None, None
+        adarms_cond, flow = None, None
+        if action_chunk is not None:
+            action_chunk = action_chunk.to(inputs_embeds.device)
+            dof_mask = dof_mask.to(inputs_embeds.device)
+            noisy_action_emb, flow, adarms_cond = self.action_preprocessor(
+                action_chunk, dataset_names, sample_time, dof_mask
+            )
+            mask = input_ids == self.action_token_id_set["action_token_id"]
+            mask_unsqueezed = mask.unsqueeze(-1)
+            mask_expanded = mask_unsqueezed.expand_as(inputs_embeds)
+            action_mask = mask_expanded.to(inputs_embeds.device)
+
+            noisy_action_emb = noisy_action_emb.to(
+                inputs_embeds.device, inputs_embeds.dtype
+            )
+            inputs_embeds = inputs_embeds.masked_scatter(action_mask, noisy_action_emb)
+
+        return inputs_embeds, flow, adarms_cond
+
+    @staticmethod
+    def _update_position_ids(
+        position_ids, moe_token_types, positional_masks, pack_seq_lens=None
+    ):
+        if pack_seq_lens is not None:
+            return update_position_ids_packed(
+                position_ids, moe_token_types, positional_masks, pack_seq_lens
+            )
+        return update_position_ids(position_ids, moe_token_types, positional_masks)
+
+    def _update_joint_attention_mask_2d(
+        self, attention_mask, moe_token_types, positional_masks, pack_seq_lens=None
+    ):
+        if pack_seq_lens is not None:
+            reference = moe_token_types if moe_token_types is not None else attention_mask
+            starts, ends = pack_block_bounds(
+                pack_seq_lens, reference.shape[1], reference.device
+            )
+            return update_joint_attention_mask_2d_packed(
+                attention_mask,
+                moe_token_types,
+                positional_masks,
+                starts,
+                ends,
+                causal_action_attention_mask=self.config.causal_action_attention_mask,
+            )
+        return update_joint_attention_mask_2d(
+            attention_mask,
+            moe_token_types,
+            positional_masks,
+            causal_action_attention_mask=self.config.causal_action_attention_mask,
+        )
+
+    def _update_joint_attention_flash_mask(
+        self,
+        attention_mask,
+        moe_token_types,
+        positional_masks,
+        debug=False,
+        batch_size=None,
+        seq_len=None,
+        device=None,
+        pack_seq_lens=None,
+    ):
+        if pack_seq_lens is not None:
+            starts, ends = pack_block_bounds(pack_seq_lens, seq_len, device)
+            return update_joint_attention_flash_mask_packed(
+                attention_mask,
+                moe_token_types,
+                positional_masks,
+                starts,
+                ends,
+                causal_action_attention_mask=self.config.causal_action_attention_mask,
+                debug=debug,
+                batch_size=batch_size,
+                seq_len=seq_len,
+                device=device,
+            )
+        return update_joint_attention_flash_mask(
+            attention_mask,
+            moe_token_types,
+            positional_masks,
+            causal_action_attention_mask=self.config.causal_action_attention_mask,
+            debug=debug,
+            batch_size=batch_size,
+            seq_len=seq_len,
+            device=device,
+        )
+
+
+class ActionGenerationMixin(GenerationMixin):
+    action_preprocessor: ActionProcessor
+
+    def should_compute_ar_loss(self, labels) -> bool:
+        """Return whether this batch should materialize AR logits and CE loss."""
+        return labels is not None and float(
+            getattr(self.config, "ar_loss_weight", 1.0)
+        ) != 0.0
+
+    def to_bfloat16_for_selected_params(self, fsdp_plugin=None, accelerator=None):
+        """
+        Keep selected model parameters in float32 and cast the rest to bfloat16.
+        - If fsdp_plugin exists, use FSDP v1 mixed_precision wrapping.
+        - Otherwise, modify parameter dtypes directly.
+        """
+
+        def _assign_child(root_module, dotted_name: str, new_child):
+            parts = dotted_name.split(".")
+            parent = root_module
+            for p in parts[:-1]:
+                parent = getattr(parent, p)
+            setattr(parent, parts[-1], new_child)
+
+        if fsdp_plugin:
+            fsdp_version = getattr(fsdp_plugin, "fsdp_version", None)
+            if fsdp_version != 1:
+                raise RuntimeError("Only FSDP v1 (fsdp_version=1) is supported.")
+
+            device = getattr(
+                accelerator, "device", torch.device("cuda", torch.cuda.current_device())
+            )
+            if isinstance(device, torch.device) and device.type == "cuda":
+                if device.index is not None:
+                    torch.cuda.set_device(device.index)
+            device_id = device.index
+
+            # Move the model to the target device first
+            self = self.to(device)
+
+            # Define the mixed precision policy
+            bf16_policy = MP(
+                param_dtype=torch.bfloat16,
+                reduce_dtype=torch.float32,
+                buffer_dtype=torch.bfloat16,
+                cast_forward_inputs=False,
+                cast_root_forward_inputs=False,
+            )
+
+            fp32_policy = MP(
+                param_dtype=torch.float32,
+                reduce_dtype=torch.float32,
+                buffer_dtype=torch.float32,
+                cast_forward_inputs=False,
+                cast_root_forward_inputs=False,
+            )
+
+            from wall_x.model.qact.qwen2_5.modeling_qwen2_5_vl_act import (
+                Qwen2_5_VLDecoderLayer_with_MoE,
+            )
+            from wall_x.model.qact.qwen2_5.modeling_qwen2_5_vl import (
+                Qwen2_5_VLVisionBlock,
+            )
+
+            target_classes = (
+                Qwen2_5_VLDecoderLayer_with_MoE,
+                Qwen2_5_VLVisionBlock,
+            )
+
+            # Step 1️⃣: Find top-level ActionProcessor modules and wrap them separately with FSDP (FP32)
+            for name, module in list(self.named_modules()):
+                if isinstance(module, nn.Module) and any(
+                    k in name.lower()
+                    for k in [
+                        "input_layernorm",
+                        "post_attention_layernorm",
+                        "model.norm",
+                        "pos_embed",
+                        "action_preprocessor",
+                    ]
+                ):
+                    if any(
+                        True for _ in module.children()
+                    ):  # Wrap only leaves to avoid parent-child duplication
+                        continue
+                    if getattr(module, "_fsdp_wrapped", False):
+                        continue
+
+                    logger.info("[FSDP v1] wrapping module in FP32: %s", name)
+                    wrapped = FSDP(
+                        module,
+                        mixed_precision=fp32_policy,
+                        sharding_strategy=torch.distributed.fsdp.ShardingStrategy.SHARD_GRAD_OP,
+                        backward_prefetch="BACKWARD_PRE",
+                        device_id=device_id,
+                        use_orig_params=True,
+                    )
+                    _assign_child(self, name, wrapped)
+                    setattr(wrapped, "_fsdp_wrapped", True)
+
+            for name, module in list(self.named_modules()):
+                if isinstance(module, target_classes):
+
+                    if getattr(module, "_fsdp_wrapped", False):
+                        continue
+
+                    logger.info("[FSDP v1] wrapping module in BF16: %s", name)
+                    wrapped = FSDP(
+                        module,
+                        mixed_precision=bf16_policy,
+                        sharding_strategy=torch.distributed.fsdp.ShardingStrategy.SHARD_GRAD_OP,
+                        backward_prefetch="BACKWARD_PRE",
+                        device_id=device_id,
+                        use_orig_params=True,
+                    )
+                    _assign_child(self, name, wrapped)
+                    setattr(wrapped, "_fsdp_wrapped", True)
+
+            # Step 2️⃣: Wrap the outer module with FSDP using the BF16 policy
+            logger.info("[FSDP v1] wrapping root model with bf16 mixed precision...")
+            self = FSDP(
+                self,
+                mixed_precision=bf16_policy,
+                sharding_strategy=torch.distributed.fsdp.ShardingStrategy.SHARD_GRAD_OP,
+                backward_prefetch="BACKWARD_PRE",
+                device_id=device_id,
+                use_orig_params=True,
+            )
+
+            return self
+
+        # ----------------- Non-FSDP path -----------------
+        else:
+            logger.info("Running manual dtype conversion (no FSDP).")
+            params_to_keep_float32 = []
+            for name, _ in self.named_parameters():
+                if any(
+                    k in name
+                    for k in [
+                        "input_layernorm",
+                        "post_attention_layernorm",
+                        "model.norm",
+                        "pos_embed",
+                        "action_preprocessor",
+                        "action_processor",
+                    ]
+                ):
+                    params_to_keep_float32.append(name)
+
+            for name, param in self.named_parameters():
+                if name not in params_to_keep_float32:
+                    param.data = param.data.to(torch.bfloat16)
+                if name in params_to_keep_float32:
+                    param.data = param.data.to(torch.float32)
+
+            return self
+
+    def define_action_token_id(self):
+        # Get the action token list through tokenizer_mixin; compatible with pure flow mode
+        if self.processor is not None:
+            action_token_list = []
+            if self.tokenizer_mixin is not None:
+                action_token_list = self.tokenizer_mixin.get_action_token_list(
+                    self.processor
+                )
+
+            action_token_id = self.processor.tokenizer.convert_tokens_to_ids(
+                "<|action|>"
+            )
+            propri_token_id = self.processor.tokenizer.convert_tokens_to_ids(
+                "<|propri|>"
+            )
+            self.action_token_id_set = {
+                "action_token_list": action_token_list,
+                "propri_token_id": propri_token_id,
+                "action_token_id": action_token_id,
+            }
+
+    def add_lora(
+        self, r=8, lora_alpha=32, target_modules=["q_proj", "v_proj"], lora_dropout=0.1
+    ):
+        """Add LoRA adapters"""
+        config = LoraConfig(
+            r=r,
+            lora_alpha=lora_alpha,
+            target_modules=target_modules,
+            lora_dropout=lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        self.model = get_peft_model(self.model, config)
+        # Log trainable parameter information
+        self.model.print_trainable_parameters()
+
+    def compute_loss(
+        self,
+        hidden_states,
+        logits,
+        input_ids=None,
+        dataset_names=None,
+        labels=None,
+        action_chunk=None,
+        dof_mask=None,
+        interval_rows=None,
+        interval_accepted=None,
+        flow=None,
+        flow_loss_mask=None,
+        _lm_loss_mask=None,
+        action_hidden_states=None,
+        ar_action_loss_weight=None,
+        packing_active=False,
+        packing_dummy_active=False,
+        **kwargs,
+    ):
+        if input_ids is not None:
+            batch_size, seq_length = input_ids.shape
+
+        loss = 0
+        cross_entropy_loss, flow_loss = None, None
+
+        if packing_active and ar_action_loss_weight is not None:
+            raise ValueError(
+                "Packed training does not support ar_action_loss_weight yet"
+            )
+        if ar_action_loss_weight is not None:
+            ar_action_loss_weight = float(ar_action_loss_weight)
+            if not math.isfinite(ar_action_loss_weight) or ar_action_loss_weight < 0.0:
+                raise ValueError(
+                    "ar_action_loss_weight must be a finite non-negative number"
+                )
+            if dataset_names is None:
+                raise ValueError(
+                    "dataset_names is required when ar_action_loss_weight is configured"
+                )
+            if len(dataset_names) != batch_size:
+                raise ValueError(
+                    "dataset_names length must match the batch size when AR action "
+                    "loss weight is configured"
+                )
+
+        if dataset_names is not None and not packing_active:
+            unique_datasets_name = list(set(dataset_names))
+            _device = hidden_states.device
+            _flow_channel_names = [
+                f"{name}_flow"
+                for name in unique_datasets_name
+                if is_action_dataset_name(name)
+            ]
+            channel_loss_dict = {
+                name: torch.tensor(0.0, device=_device)
+                for name in unique_datasets_name + _flow_channel_names
+            }
+            channel_loss_count_dict = {
+                name: torch.tensor(0, device=_device)
+                for name in unique_datasets_name + _flow_channel_names
+            }
+        else:
+            unique_datasets_name, channel_loss_dict, channel_loss_count_dict = (
+                None,
+                {} if packing_active else None,
+                {} if packing_active else None,
+            )
+
+        if self.should_compute_ar_loss(labels):
+            if _lm_loss_mask is not None:
+                # ===== Optimized path: logits already gathered for loss tokens only =====
+                # logits: [N_loss, V] or None, _lm_loss_mask: [B, S-1]
+                if logits is not None:
+                    shift_logits = logits.to(torch.float32)  # [N_loss, V]
+                    shift_labels = labels[..., 1:].contiguous()
+                    shift_labels_flat = shift_labels[_lm_loss_mask]  # [N_loss]
+                    shift_labels_flat = shift_labels_flat.to(shift_logits.device)
+
+                    _cross_entropy_loss = self.loss_fct(shift_logits, shift_labels_flat)
+                    _cross_entropy_loss = _replace_interval_scored(
+                        _cross_entropy_loss, shift_logits, _lm_loss_mask,
+                        interval_rows, interval_accepted)
+
+                    batch_idx = (
+                        torch.arange(batch_size, device=_lm_loss_mask.device)
+                        .unsqueeze(1)
+                        .expand_as(_lm_loss_mask)
+                    )
+                    loss_batch_idx = batch_idx[_lm_loss_mask]  # [N_loss]
+                    if ar_action_loss_weight is None or ar_action_loss_weight == 1.0:
+                        cross_entropy_loss = _cross_entropy_loss.mean()
+                    else:
+                        action_sample_mask = torch.tensor(
+                            [is_action_dataset_name(name) for name in dataset_names],
+                            device=_lm_loss_mask.device,
+                            dtype=torch.bool,
+                        )
+                        token_weights = torch.where(
+                            action_sample_mask[loss_batch_idx],
+                            ar_action_loss_weight,
+                            1.0,
+                        ).to(device=shift_logits.device, dtype=_cross_entropy_loss.dtype)
+                        cross_entropy_loss = (_cross_entropy_loss * token_weights).mean()
+
+                    # compute channel loss
+                    if unique_datasets_name is not None:
+                        for dataset_name_i in unique_datasets_name:
+                            ds_mask = torch.tensor(
+                                [name == dataset_name_i for name in dataset_names],
+                                device=_lm_loss_mask.device,
+                                dtype=torch.bool,
+                            )
+                            tok_ds_mask = ds_mask[loss_batch_idx]
+                            channel_loss_dict[dataset_name_i] = (
+                                _cross_entropy_loss[tok_ds_mask].sum()
+                                if tok_ds_mask.any()
+                                else torch.tensor(0.0, device=shift_logits.device)
+                            )
+                            channel_loss_count_dict[dataset_name_i] += tok_ds_mask.sum()
+                else:
+                    cross_entropy_loss = torch.tensor(0.0, device=hidden_states.device)
+            else:
+                # ===== Original path (inference / no labels optimization) =====
+                shift_logits = logits[..., :-1, :].contiguous().to(torch.float32)
+                shift_labels = labels[..., 1:].contiguous()
+                shift_logits = shift_logits.view(-1, self.config.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Enable model parallelism
+                shift_labels = shift_labels.to(shift_logits.device)
+                non_ignored_mask = shift_labels != -100
+                _cross_entropy_loss = self.loss_fct(shift_logits, shift_labels)
+                if non_ignored_mask.any():
+                    valid_ce = _cross_entropy_loss[non_ignored_mask]
+                    if ar_action_loss_weight is None or ar_action_loss_weight == 1.0:
+                        cross_entropy_loss = valid_ce.mean()
+                    else:
+                        action_sample_mask = torch.tensor(
+                            [is_action_dataset_name(name) for name in dataset_names],
+                            device=shift_logits.device,
+                            dtype=torch.bool,
+                        )
+                        token_is_action = action_sample_mask.unsqueeze(1).expand(
+                            batch_size, seq_length - 1
+                        ).reshape(-1)[non_ignored_mask]
+                        token_weights = torch.where(
+                            token_is_action,
+                            ar_action_loss_weight,
+                            1.0,
+                        ).to(dtype=valid_ce.dtype)
+                        cross_entropy_loss = (valid_ce * token_weights).mean()
+                else:
+                    cross_entropy_loss = torch.tensor(0.0, device=shift_logits.device)
+
+                # compute channel loss
+                _cross_entropy_loss = _cross_entropy_loss.view(
+                    batch_size, seq_length - 1
+                )
+                non_ignored_mask = non_ignored_mask.view(batch_size, seq_length - 1)
+                if unique_datasets_name is not None:
+                    for dataset_name_i in unique_datasets_name:
+                        dataset_mask = torch.tensor(
+                            [name == dataset_name_i for name in dataset_names],
+                            device=logits.device,
+                        )
+                        combined_mask = dataset_mask.unsqueeze(1) & non_ignored_mask
+                        channel_loss_dict[dataset_name_i] = (
+                            _cross_entropy_loss[combined_mask].sum()
+                            if combined_mask.any()
+                            else torch.tensor(0.0, device=shift_logits.device)
+                        )
+                        channel_loss_count_dict[dataset_name_i] += combined_mask.sum()
+
+            if not torch.isnan(cross_entropy_loss):
+                loss += cross_entropy_loss * self.config.ar_loss_weight
+            else:
+                with torch.no_grad():
+                    cross_entropy_loss.detach()
+
+            # compute action token accuracy（computed uniformly through tokenizer_mixin）
+            # if self.tokenizer_mixin is not None and self.action_mapper is not None:
+            #     accuracy_dict = self.tokenizer_mixin.compute_accuracy(
+            #         logits, labels, self.action_mapper, self.action_token_id_set
+            #     )
+            #     channel_loss_dict.update(accuracy_dict)
+
+        if action_chunk is not None:
+            action_mask = input_ids == self.action_token_id_set["action_token_id"]
+            if action_mask.any() or packing_dummy_active:
+                if action_hidden_states is None:
+                    action_hidden_states = hidden_states[action_mask].to(torch.float32)
+                else:
+                    action_hidden_states = action_hidden_states.reshape(
+                        -1, action_hidden_states.shape[-1]
+                    ).to(torch.float32)
+                flow = flow.reshape(-1, flow.shape[-1])
+                _flow_loss = self.action_preprocessor.flow_loss(
+                    action_hidden_states, flow, action_chunk, dof_mask, flow_loss_mask
+                )
+                if isinstance(_flow_loss, torch.Tensor):
+                    # Compute the valid-element mask as the intersection of dof_mask and flow_loss_mask
+                    valid_mask = (
+                        dof_mask.reshape(-1, dof_mask.shape[-1])
+                        if dof_mask is not None
+                        else None
+                    )
+                    if flow_loss_mask is not None:
+                        flow_mask_expanded = (
+                            flow_loss_mask.unsqueeze(-1)
+                            .reshape(-1, 1)
+                            .expand(-1, _flow_loss.shape[-1])
+                        )
+                        valid_mask = (
+                            valid_mask * flow_mask_expanded
+                            if valid_mask is not None
+                            else flow_mask_expanded
+                        )
+                    if valid_mask is not None and not valid_mask.all():
+                        valid_count = valid_mask.sum()
+                        if valid_count.item() == 0:
+                            flow_loss = _flow_loss.sum() * 0.0
+                        else:
+                            flow_loss = _flow_loss.sum() / valid_count
+                    else:
+                        flow_loss = _flow_loss.mean()
+                    loss += flow_loss
+                    _flow_loss = _flow_loss.view(
+                        dof_mask.shape[0], dof_mask.shape[1], dof_mask.shape[2]
+                    )
+
+                    # compute flow channel loss
+                    if unique_datasets_name is not None:
+                        B, T, D = _flow_loss.shape
+                        action_ds_names = [
+                            name
+                            for name in dataset_names
+                            if is_action_dataset_name(name)
+                        ]
+                        if valid_mask is not None:
+                            valid_mask_3d = valid_mask.view(B, T, D)
+                        else:
+                            valid_mask_3d = torch.ones_like(
+                                _flow_loss, dtype=torch.bool, device=_flow_loss.device
+                            )
+                        for dataset_name_i in unique_datasets_name:
+                            ds_mask = torch.tensor(
+                                [name == dataset_name_i for name in action_ds_names],
+                                device=_flow_loss.device,
+                                dtype=torch.bool,
+                            )
+                            if not ds_mask.any():
+                                continue
+                            flow_key = f"{dataset_name_i}_flow"
+                            ds_mask_3d = ds_mask.view(-1, 1, 1).expand(B, T, D)
+                            flow_loss_sum = (_flow_loss * ds_mask_3d).sum()
+                            flow_count = (valid_mask_3d * ds_mask_3d).sum()
+                            channel_loss_dict[flow_key] = (
+                                channel_loss_dict[flow_key] + flow_loss_sum
+                            )
+                            channel_loss_count_dict[flow_key] = (
+                                channel_loss_count_dict[flow_key] + flow_count
+                            )
+
+        return (
+            loss,
+            cross_entropy_loss,
+            flow_loss,
+            channel_loss_dict,
+            channel_loss_count_dict,
+        )

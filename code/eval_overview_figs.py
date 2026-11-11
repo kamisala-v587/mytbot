@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-EVAL = Path("/vla/workspace/my_robotwin/eval_result_bp")
+EVAL = Path("/vla/workspace/my_robotwin/eval_result_bp/v1_baseline")
 CKPTS = ("c50k", "c80k", "c100k")
 MAIN = "c80k"  # checkpoint of the per-task / novelty figures (100k is not a formal checkpoint)
 BP_TRAIN = {"c50k": "b4full_full_30k", "c80k": "b4full2_full2_30k", "c100k": "b4full2_full2_50k"}

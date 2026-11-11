@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-EVAL = Path("/vla/workspace/my_robotwin/eval_result_bp")
+EVAL = Path("/vla/workspace/my_robotwin/eval_result_bp/v1_baseline")
 G9_DIR = Path("/vla/workspace/my_tbot/outputs/BPv4CDX/stage_b/g9_bp")
 CKPTS = ("c50k", "c80k", "c100k")
 MAIN = "c100k"
@@ -63,6 +63,16 @@ def task(r: dict) -> str:
     return r["task"].removesuffix("_bp")
 
 
+# the 16 quick-sweep tasks: training-scene numbers across checkpoints use only these (100k has all 38 tasks x 30)
+TASKS16 = {"place_shoe", "stack_blocks_two", "handover_block", "stack_bowls_two", "click_bell_alarm", "place_object_stand",
+           "place_a2b", "place_object_scale", "move_stapler_pad", "blocks_ranking_rgb", "stack_blocks_three",
+           "shake_bottle", "place_phone_stand", "place_cans_plasticbox", "open_laptop", "put_object_cabinet"}
+
+
+def train16(rows: list[dict]) -> list[dict]:
+    return [r for r in rows if task(r) in TASKS16]
+
+
 def fig_training_curve(out: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 3.8))
     pts = []
@@ -76,17 +86,49 @@ def fig_training_curve(out: Path) -> None:
     for m, prefix in (("BP (B-4 350k start)", "b350train_c"), ("q35 (pt-15w start)", "q35train_c")):
         p = []
         for d in EVAL.glob(prefix + "*k"):
-            rows = eps(d.name)
-            if len(rows) >= 100:  # 350k sweep may be partial (>= 100 of 160 episodes)
+            rows = train16(eps(d.name))
+            if len(rows) >= 100:
                 p.append((int(d.name[len(prefix):-1]) * 1000, sr(rows)))
         curves[m] = sorted(p)
     for m, p in curves.items():
         ax.plot([x[0] / 1000 for x in p], [x[1] for x in p], marker="o", ms=4, color=MODELS[m]["color"], label=m)
-    ax.set(ylim=(0, 1), title="Success on training scenes during post-training (16 tasks x 10)",
+    ax.set(ylim=(0, 1), title="Success on training scenes during post-training (16 tasks)",
            xlabel="Post-training step (k; BP 10k: cumulative over 3 stages)", ylabel="Success rate")
     ax.legend(frameon=False, loc="lower right")
     fig.tight_layout()
     fig.savefig(out / "F1_training_scene_curve.png", dpi=200)
+
+
+def fig_new_scene_curve(out: Path) -> None:
+    fig, ax = plt.subplots(figsize=(8, 3.8))
+    curves = {}
+    specs = {
+        "BP (B-4 350k start)": "b350ood_c",
+        "BP (B-4 10k start)": "ood_c",
+        "q35 (pt-15w start)": "q35ood_c",
+    }
+    for m, prefix in specs.items():
+        pts = []
+        for d in EVAL.glob(prefix + "*k"):
+            rows = eps(d.name)
+            # Keep only complete 38-task new-scene sweeps; skip partial/running directories.
+            if len({task(r) for r in rows}) != 38 or len(rows) < 300:
+                continue
+            step = int(d.name[len(prefix):-1]) * 1000
+            pts.append((step, sr(rows), len(rows)))
+        curves[m] = sorted(pts)
+    for m, p in curves.items():
+        if not p:
+            continue
+        ax.plot([x[0] / 1000 for x in p], [x[1] for x in p], marker="o", ms=4, color=MODELS[m]["color"], label=m)
+        for step, y, n in p:
+            if step in (0, 100000):
+                ax.text(step / 1000, y + 0.025, f"{y:.0%}", ha="center", fontsize=7, color=MODELS[m]["color"])
+    ax.set(ylim=(0, 1), title="Success on new scenes during post-training (38 tasks)",
+           xlabel="Post-training step (k; complete 38-task sweeps only)", ylabel="Success rate")
+    ax.legend(frameon=False, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(out / "F1b_new_scene_curve.png", dpi=200)
 
 
 def fig_bars(out: Path) -> dict:
@@ -95,7 +137,7 @@ def fig_bars(out: Path) -> dict:
     for m, spec in MODELS.items():
         for c in CKPTS:
             held = eps(spec["held"].format(c))
-            res[(m, c)] = [sr(eps(spec["train"](c))), sr(eps(spec["new"].format(c))),
+            res[(m, c)] = [sr(train16(eps(spec["train"](c)))), sr(eps(spec["new"].format(c))),
                            sr([r for r in held if r["group"] == "heldout_sets"]),
                            sr([r for r in held if r["group"] == "heldout_tasks"])]
     fig, axs = plt.subplots(1, 3, figsize=(16, 4.4), sharey=True)
@@ -250,6 +292,7 @@ def main() -> None:
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     fig_training_curve(out)
+    fig_new_scene_curve(out)
     res = fig_bars(out)
     fig_per_task(out)
     nov = fig_novelty(out)
