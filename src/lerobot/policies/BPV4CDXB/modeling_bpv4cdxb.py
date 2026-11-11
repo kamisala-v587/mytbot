@@ -11,6 +11,7 @@ replaced here.
 
 from __future__ import annotations
 
+import os
 from collections import deque
 
 import torch
@@ -91,6 +92,13 @@ class BPV4CDXBModel(Q35Model):
         if getattr(config, "vlm_trainable", False):
             for name, p in self.core.backbone.vlm.named_parameters():
                 p.requires_grad_(not name.startswith("model.visual."))
+            fp32_master = getattr(config, "vlm_fp32_master", None)
+            if fp32_master is None:
+                fp32_master = os.environ.get("ACCELERATE_MIXED_PRECISION", "no") == "bf16"
+            if fp32_master:
+                # fp32 master weights: in bf16 an Adam step of ~5e-5 is below the rounding step of most weights and is
+                # lost (autocast still computes in bf16); the tied lm_head is the same Parameter as embed_tokens and follows
+                self.core.backbone.vlm.model.language_model.float()
         if getattr(config, "vit_batched_attention", False):
             from .vit_batched import patch_vision_attention
 

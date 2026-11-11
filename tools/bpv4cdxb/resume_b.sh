@@ -16,6 +16,6 @@ export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
 LOGS=outputs/BPv4CDX/stage_b/logs
 mkdir -p "$LOGS"
 LOG=$LOGS/train_${NAME}_$(date +%m%d_%H%M).log
-setsid nohup accelerate launch --num_processes=8 --main_process_port 29810 -m lerobot.scripts.lerobot_train \
-  --config_path="$CKPT/pretrained_model/train_config.json" --resume=true "$@" > "$LOG" 2>&1 < /dev/null &
+setsid nohup accelerate launch --num_processes=8 --main_process_port 29810 --mixed_precision="${MIXED_PRECISION:-no}" \
+  -m lerobot.scripts.lerobot_train --config_path="$CKPT/pretrained_model/train_config.json" --resume=true "$@" > "$LOG" 2>&1 < /dev/null &
 echo "resumed $CKPT -> $LOG"

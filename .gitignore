@@ -213,3 +213,6 @@ norm_stats_cache/
 # 训练侧 BP 缓存，以及 server 示教视频 / 调试日志
 bp_cache/
 server/debug_logs/
+
+# 配置各机器自己维护，新建的配置不再进 git（已跟踪的仍在 git 里）
+/configs/

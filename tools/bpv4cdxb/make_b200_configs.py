@@ -9,8 +9,12 @@ bit-identical to the original path, StageB_ViT与像素传输提速开发.md V1 
             new optimizer, 500-step warmup
   b4_main   B-4 (--b3_ckpt): + trainable demo encoder (online Z_demo from the AE-3 P5 cache, lr 5e-6); the LoRA
             keeps training; ViT stays frozen; new optimizer, 500-step warmup
+  b5_main   B-5 (--b4_merged): from a B-4 checkpoint with its LoRA merged (tools/bpv4cdxb/merge_lora.py); no LoRA,
+            the whole Qwen language model + demo encoder + Action Expert train at the same constant 5e-5; ViT stays
+            frozen; new optimizer, 500-step warmup
 
 usage: python tools/bpv4cdxb/make_b200_configs.py [--b2_ckpt <pretrained_model>] [--b3_ckpt <pretrained_model>]
+                                                  [--b4_merged <merged dir>]
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ def main() -> None:
     ap.add_argument("--out_dir", default=str(ROOT / "configs/Pro6k/bpv4cdxb_plan/generated_b200"))
     ap.add_argument("--b2_ckpt", default="", help="B-2 <pretrained_model> dir the B-3 variant starts from (b3_main)")
     ap.add_argument("--b3_ckpt", default="", help="B-3 <pretrained_model> dir the B-4 variant starts from (b4_main)")
+    ap.add_argument("--b4_merged", default="", help="LoRA-merged B-4 checkpoint dir the B-5 variant starts from (b5_main)")
     args = ap.parse_args()
     base = load_jsonc(ROOT / "configs/Pro6k/bpv4cdxb_plan/b_main.jsonc")
     base["dataset"].update({"external_stats_root": PATHS["stats"], "qwen3_5_processor_path": PATHS["qwen"],
@@ -65,6 +70,13 @@ def main() -> None:
                                # new seed: B-2 / B-3 used 42, and the sampler order depends only on the seed
                                "dataset": {"demo_features": "p5", "demo_cache_dir": PATHS["p5"]},
                                "top": {**TOP, "seed": 2024}}
+    if args.b4_merged:
+        variants["b5_main"] = {"policy": {"init_from": str(Path(args.b4_merged).resolve()), "qwen_lora_layers": 0,
+                                          "qwen_lora_layer_ids": [], "vlm_trainable": True, "vlm_lr": 5e-5,
+                                          "vlm_decay_lr": 5e-5, "demo_encoder_trainable": True, "demo_encoder_lr": 5e-5,
+                                          "demo_encoder_decay_lr": 5e-5, "scheduler_warmup_steps": 500},
+                               "dataset": {"demo_features": "p5", "demo_cache_dir": PATHS["p5"]},
+                               "top": {**TOP, "num_workers": 16, "seed": 2025}}
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     for name, change in variants.items():

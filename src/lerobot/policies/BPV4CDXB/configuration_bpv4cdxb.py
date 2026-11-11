@@ -129,6 +129,10 @@ class BPV4CDXBConfig(Q35Config):
     vlm_trainable: bool = False
     vlm_lr: float | None = None
     vlm_decay_lr: float | None = None  # end of the vlm group's cosine decay (None: same ratio as the other groups)
+    # with vlm_trainable: keep the Qwen language model in fp32 (master weights) while autocast computes in bf16.
+    # None = only when launched with `accelerate launch --mixed_precision=bf16` (B200 B-5); runs without mixed
+    # precision keep the bf16 weights
+    vlm_fp32_master: bool | None = None
 
     new_modules_lr: float = 1e-4
     act_expert_lr: float = 1e-4
