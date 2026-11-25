@@ -57,12 +57,16 @@ class TrainPipelineConfig(HubMixin):
     num_workers: int = 4
     # Keep PyTorch DataLoader batches in sampler order. Set false to allow workers to return ready batches first.
     dataloader_in_order: bool = True
+    # Keep worker processes alive across epochs (only applies when num_workers > 0).
+    dataloader_persistent_workers: bool = True
     batch_size: int = 8
     gradient_accumulation_steps: int = 1
     steps: int = 100_000
     eval_freq: int = 20_000
     eval_max_batches: int = 2
     log_freq: int = 200
+    # Sample GPU telemetry every N optimizer updates; 0 disables sampling.
+    gpu_stats_freq: int = 10
     save_checkpoint: bool = True
     # Checkpoint is saved every `save_freq` training iterations and after the last training step.
     save_freq: int = 20_000
@@ -122,6 +126,9 @@ class TrainPipelineConfig(HubMixin):
 
         if isinstance(self.dataset.repo_id, list):
             raise NotImplementedError("LeRobotMultiDataset is not currently implemented.")
+
+        if self.gpu_stats_freq < 0:
+            raise ValueError("gpu_stats_freq must be non-negative (0 disables sampling).")
 
         if self.gradient_accumulation_steps <= 0:
             raise ValueError("gradient_accumulation_steps must be a positive integer.")

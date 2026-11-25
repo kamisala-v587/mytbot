@@ -530,14 +530,24 @@ GPU_METRIC_KEYS = (
 )
 
 
+class _GpuStatsMeter(AverageMeter):
+    """Average actual samples; retain the latest value across logging windows."""
+
+    def reset(self) -> None:
+        latest = getattr(self, "val", float("nan"))
+        super().reset()
+        self.val = latest
+        self.avg = latest
+
+
 def _maybe_add_gpu_metrics(train_metrics: dict[str, AverageMeter]) -> None:
     if not torch.cuda.is_available():
         return
-    train_metrics["gpu_mem_allocated_gb"] = AverageMeter("gpu_alloc_gb", ":.2f")
-    train_metrics["gpu_mem_reserved_gb"] = AverageMeter("gpu_res_gb", ":.2f")
-    train_metrics["gpu_mem_peak_gb"] = AverageMeter("gpu_peak_gb", ":.2f")
-    train_metrics["gpu_util_pct"] = AverageMeter("gpu_util", ":.0f")
-    train_metrics["gpu_mem_used_gb"] = AverageMeter("gpu_used_gb", ":.2f")
+    train_metrics["gpu_mem_allocated_gb"] = _GpuStatsMeter("gpu_alloc_gb", ":.2f")
+    train_metrics["gpu_mem_reserved_gb"] = _GpuStatsMeter("gpu_res_gb", ":.2f")
+    train_metrics["gpu_mem_peak_gb"] = _GpuStatsMeter("gpu_peak_gb", ":.2f")
+    train_metrics["gpu_util_pct"] = _GpuStatsMeter("gpu_util", ":.0f")
+    train_metrics["gpu_mem_used_gb"] = _GpuStatsMeter("gpu_used_gb", ":.2f")
 
 
 def _collect_gpu_stats(device: torch.device, local_rank: int) -> dict[str, float]:
@@ -1005,6 +1015,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             prefetch_factor=prefetch_factor,
             worker_init_fn=worker_init_fn,
         )
+    dataloader_kwargs["persistent_workers"] = cfg.dataloader_persistent_workers and num_workers > 0
     if "in_order" not in inspect.signature(torch.utils.data.DataLoader).parameters:
         if not cfg.dataloader_in_order:
             raise RuntimeError("当前 PyTorch DataLoader 不支持 in_order=False；请升级 PyTorch")
@@ -1162,7 +1173,8 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             "dataloading_s": AverageMeter("data_s", ":.3f"),
         }
 
-    _maybe_add_gpu_metrics(train_metrics)
+    if cfg.gpu_stats_freq > 0:
+        _maybe_add_gpu_metrics(train_metrics)
 
     # Use effective batch size for proper epoch calculation in distributed training
     effective_batch_size = cfg.batch_size * accelerator.num_processes * cfg.gradient_accumulation_steps
@@ -1247,6 +1259,13 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         should_log = is_log_step and is_main_process
         is_saving_step = step % cfg.save_freq == 0 or step == cfg.steps
 
+        if (
+            is_main_process
+            and cfg.gpu_stats_freq > 0
+            and step % cfg.gpu_stats_freq == 0
+            and torch.cuda.is_available()
+        ):
+            _update_gpu_metrics(train_tracker, accelerator.device, accelerator.local_process_index)
         if is_main_process and train_pbar is not None:
             train_pbar.update(1)
             train_pbar.set_postfix(train_tracker.to_postfix(use_avg=is_log_step), refresh=False)
@@ -1290,8 +1309,6 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             )
 
         if should_log:
-            if is_main_process and torch.cuda.is_available():
-                _update_gpu_metrics(train_tracker, accelerator.device, accelerator.local_process_index)
             dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             avg_update_time = train_tracker.update_s.avg if hasattr(train_tracker.update_s, "avg") else train_tracker.update_s.val
             steps_per_second = 1.0 / avg_update_time if avg_update_time > 0 else 0
