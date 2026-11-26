@@ -75,7 +75,7 @@ def load_episode(json_path) -> dict:
     return {"key": key, "num_frames": n, "state": np.concatenate(parts, axis=1), "videos": videos}
 
 
-def audit(root, check_videos: bool = True) -> int:
+def audit(root, check_videos: bool = True, expected_count: int = 3500) -> int:
     """Preflight audit: every episode loads; optionally every video frame-count matches.
 
     Returns 0 when every episode passes; prints the per-chunk breakdown. Any anomaly
@@ -111,20 +111,23 @@ def audit(root, check_videos: bool = True) -> int:
         if len(decoders) > 64:
             decoders.clear()
     print(f"audit: {len(episodes) - bad} OK, {bad} bad")
-    return 1 if bad or len(episodes) != 3500 else 0
+    if len(episodes) != expected_count:
+        print(f"expected {expected_count} selected episodes, scanned {len(episodes)}")
+    return 1 if bad or len(episodes) != expected_count else 0
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", required=True, help="converted dataset root (holds chunk-*/episode_*.json)")
     ap.add_argument("--check-videos", action="store_true", help="also open every mp4 and compare frame counts")
+    ap.add_argument("--expected-count", type=int, default=3500, help="expected selected episode count (legacy default: 3500)")
     ap.add_argument("--load-one", help="debug: load this episode json and print a summary")
     args = ap.parse_args()
     if args.load_one:
         ep = load_episode(args.load_one)
         print({k: (v if k != "state" else f"{v.shape} {v.dtype}") for k, v in ep.items()})
         return
-    raise SystemExit(audit(args.root, check_videos=args.check_videos))
+    raise SystemExit(audit(args.root, check_videos=args.check_videos, expected_count=args.expected_count))
 
 
 if __name__ == "__main__":

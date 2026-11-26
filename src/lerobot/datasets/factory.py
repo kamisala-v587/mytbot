@@ -58,6 +58,12 @@ from lerobot.policies.BPV4BPEn.configuration_bpv4_bpen import BPV4BPEnConfig, BP
 from lerobot.policies.BPV4XDemo.configuration_bpv4_xdemo import BPV4XDemoConfig, BPV4XDemoDatasetConfig
 from lerobot.policies.BPV4CDX.configuration_bpv4cdx import BPV4CDXAEConfig, BPV4CDXAEDatasetConfig
 from lerobot.policies.BPV4CDXB.configuration_bpv4cdxb import BPV4CDXBConfig, BPV4CDXBDatasetConfig
+from lerobot.policies.BPV5QFormer.configuration_bpv5qformer import BPV5QFormerConfig, BPV5QFormerDatasetConfig
+from lerobot.policies.BPV5StageB.configuration_bpv5stageb import BPV5StageBConfig, BPV5StageBDatasetConfig
+from lerobot.policies.BPV5StageB.configuration_bpv5stageb_v2 import (
+    BPV5StageBV2Config,
+    BPV5StageBV2DatasetConfig,
+)
 from lerobot.policies.BPVAv31.configuration_bpvav31 import (
     BPVAv31Config,
     BPVAv31DatasetConfig,
@@ -852,6 +858,28 @@ def make_dataset(cfg: TrainPipelineConfig) -> LeRobotDataset | StreamingLeRobotD
         from lerobot.policies.BPV4CDXB.dataset import make_bpv4cdxb_dataset
 
         return make_bpv4cdxb_dataset(cfg)
+    if isinstance(cfg.dataset, BPV5StageBV2DatasetConfig):
+        if not isinstance(cfg.policy, BPV5StageBV2Config):
+            raise ValueError("dataset.type=bpv5_stageb_v2 requires policy.type=bpv5_stageb_v2")
+        from lerobot.policies.BPV5StageB.dataset import make_bpv5_stageb_dataset
+
+        if cfg.policy.phase == "full" and not cfg.policy.pretrained_path:
+            raise ValueError("stage B v2 phase=full requires policy.pretrained_path from a short run")
+        if cfg.policy.phase == "short" and not cfg.policy.stage_a_checkpoint and not cfg.policy.pretrained_path:
+            raise ValueError("stage B v2 phase=short requires policy.stage_a_checkpoint, or pretrained_path when resuming")
+        return make_bpv5_stageb_dataset(cfg)
+    if isinstance(cfg.dataset, BPV5StageBDatasetConfig):
+        if not isinstance(cfg.policy, BPV5StageBConfig):
+            raise ValueError("dataset.type=bpv5_stageb requires policy.type=bpv5_stageb")
+        from lerobot.policies.BPV5StageB.dataset import make_bpv5_stageb_dataset
+
+        return make_bpv5_stageb_dataset(cfg)
+    if isinstance(cfg.dataset, BPV5QFormerDatasetConfig):
+        if not isinstance(cfg.policy, BPV5QFormerConfig) or isinstance(cfg.policy, (BPV5StageBConfig, BPV5StageBV2Config)):
+            raise ValueError("dataset.type=bpv5_qformer requires policy.type=bpv5_qformer")
+        from lerobot.policies.BPV5QFormer.dataset import make_bpv5_qformer_dataset
+
+        return make_bpv5_qformer_dataset(cfg)
     if isinstance(cfg.dataset, (FastWAMDatasetConfig, TBotSA1WanDatasetConfig)):
         if isinstance(cfg.dataset, TBotSA1WanDatasetConfig):
             from lerobot.policies.TBot_SA1_Wan.dataset_tbot_sa1_wan import (

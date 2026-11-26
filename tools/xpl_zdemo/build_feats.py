@@ -142,9 +142,11 @@ def drop_existing(episodes, out: Path) -> list:
 def git_head() -> str:
     head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
                           cwd=str(MYTBOT_ROOT)).stdout.strip()
-    if not head.startswith("94859f7"):
-        raise RuntimeError(f"my_tbot HEAD moved: {head!r} (F1 was pinned to 94859f7) — STOP")
-    return head[:7]
+    # Relevant extractor/sampler files are SHA256-checked by XR1's cotrain
+    # wrapper; unrelated checkout commits must never be falsely stamped as F1.
+    if len(head) != 40 or any(char not in "0123456789abcdef" for char in head):
+        raise RuntimeError(f"cannot resolve actual my_tbot HEAD: {head!r}")
+    return head
 
 
 def build(args) -> None:

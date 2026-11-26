@@ -290,8 +290,14 @@ def trend_advice(history: list[dict], current: dict, lr_at_floor: bool, window: 
     if len(series) < 2:
         return {"recommendation": "continue", "reason": "not enough saves yet"}
 
+    def _num(v):
+        # HOM ratio fields may be floats or {"ratio": float, "ci95": ...}
+        if isinstance(v, dict):
+            v = v.get("ratio")
+        return v
+
     def rel(key, k):
-        a, b = series[-1 - k].get(key), series[-1].get(key)
+        a, b = _num(series[-1 - k].get(key)), _num(series[-1].get(key))
         return None if a in (None, 0) or b is None else (b - a) / abs(a)
 
     k = min(window, len(series) - 1)

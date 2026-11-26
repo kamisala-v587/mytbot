@@ -10,6 +10,9 @@ BPV4_BPEN = "bpv4_bpen"
 BPV4_XDEMO = "bpv4_xdemo"
 BPV4CDX_AE = "bpv4cdx_ae"
 BPV4CDX_B = "bpv4cdx_b"
+BPV5_QFORMER = "bpv5_qformer"
+BPV5_STAGEB = "bpv5_stageb"
+BPV5_STAGEB_V2 = "bpv5_stageb_v2"
 
 TBOT_SA1_LEGACY_ALIASES = frozenset()
 TBOT_SA1_WAN_LEGACY_ALIASES = frozenset()
@@ -24,6 +27,9 @@ BPV4_BPEN_ALIASES = frozenset({BPV4_BPEN})
 BPV4_XDEMO_ALIASES = frozenset({BPV4_XDEMO})
 BPV4CDX_AE_ALIASES = frozenset({BPV4CDX_AE})
 BPV4CDX_B_ALIASES = frozenset({BPV4CDX_B})
+BPV5_QFORMER_ALIASES = frozenset({BPV5_QFORMER})
+BPV5_STAGEB_ALIASES = frozenset({BPV5_STAGEB})
+BPV5_STAGEB_V2_ALIASES = frozenset({BPV5_STAGEB_V2})
 
 _LOGGED_LEGACY_POLICY_TYPES: set[str] = set()
 
@@ -68,6 +74,18 @@ def is_bpv4cdx_b(policy_type: str | None) -> bool:
     return policy_type in BPV4CDX_B_ALIASES
 
 
+def is_bpv5_qformer(policy_type: str | None) -> bool:
+    return policy_type in BPV5_QFORMER_ALIASES
+
+
+def is_bpv5_stageb(policy_type: str | None) -> bool:
+    return policy_type in BPV5_STAGEB_ALIASES
+
+
+def is_bpv5_stageb_v2(policy_type: str | None) -> bool:
+    return policy_type in BPV5_STAGEB_V2_ALIASES
+
+
 def legacy_policy_target(policy_type: str | None) -> str | None:
     return None
 
@@ -99,4 +117,10 @@ def canonical_policy_type(policy_type: str | None) -> str | None:
         return BPV4CDX_AE
     if is_bpv4cdx_b(policy_type):
         return BPV4CDX_B
+    if is_bpv5_qformer(policy_type):
+        return BPV5_QFORMER
+    if is_bpv5_stageb_v2(policy_type):
+        return BPV5_STAGEB_V2
+    if is_bpv5_stageb(policy_type):
+        return BPV5_STAGEB
     return policy_type

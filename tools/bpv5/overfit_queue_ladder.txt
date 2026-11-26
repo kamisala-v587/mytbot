@@ -1,0 +1,11 @@
+# AE-3→ideal ladder on RobotWin×64, 2k steps, batch16, lr with decay
+# Order: S0+S5, then S7 (S0-fail hedge), then S1–S4, S6
+
+configs/bpv5/stage_a_ladder_s0_ae3recipe.jsonc
+configs/bpv5/stage_a_ladder_s5_lr3e4.jsonc
+configs/bpv5/stage_a_ladder_s7_lora4.jsonc
+configs/bpv5/stage_a_ladder_s1_causal.jsonc
+configs/bpv5/stage_a_ladder_s2_ae025.jsonc
+configs/bpv5/stage_a_ladder_s3_statsmask.jsonc
+configs/bpv5/stage_a_ladder_s4_ideal.jsonc
+configs/bpv5/stage_a_ladder_s6_fullprefix.jsonc

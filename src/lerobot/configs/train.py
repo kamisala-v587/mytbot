@@ -59,6 +59,15 @@ class TrainPipelineConfig(HubMixin):
     dataloader_in_order: bool = True
     # Keep worker processes alive across epochs (only applies when num_workers > 0).
     dataloader_persistent_workers: bool = True
+    # None preserves LEROBOT_DDP_FIND_UNUSED_PARAMETERS (default: True).
+    ddp_find_unused_parameters: bool | None = None
+    # Distributed training backend. Default stays DDP; FSDP is opt-in.
+    distributed_backend: str = "ddp"  # ddp|fsdp
+    fsdp_sharding_strategy: str = "full_shard"
+    fsdp_wrap_policy: str = "root"  # root|layer
+    fsdp_use_orig_params: bool = True
+    # Layer compile under FSDP is a later milestone; only false is supported now.
+    fsdp_compile_layers: bool = False
     batch_size: int = 8
     gradient_accumulation_steps: int = 1
     steps: int = 100_000
@@ -132,6 +141,38 @@ class TrainPipelineConfig(HubMixin):
 
         if self.gradient_accumulation_steps <= 0:
             raise ValueError("gradient_accumulation_steps must be a positive integer.")
+
+        if self.distributed_backend not in {"ddp", "fsdp"}:
+            raise ValueError("distributed_backend must be ddp or fsdp.")
+        if self.fsdp_sharding_strategy not in {
+            "full_shard",
+            "shard_grad_op",
+            "no_shard",
+            "hybrid_shard",
+            "hybrid_shard_zero2",
+        }:
+            raise ValueError("Unsupported fsdp_sharding_strategy.")
+        if self.fsdp_wrap_policy not in {"root", "layer"}:
+            raise ValueError("fsdp_wrap_policy must be root or layer.")
+        if not self.fsdp_use_orig_params:
+            raise ValueError("fsdp_use_orig_params=False is not supported; keep True for mixed BF16/FP32.")
+        if self.fsdp_compile_layers:
+            raise ValueError("fsdp_compile_layers=True is not supported yet; keep false.")
+        if self.distributed_backend == "fsdp":
+            from lerobot.policies.names import is_bpv5_stageb, is_bpv5_stageb_v2
+
+            policy_type = getattr(self.policy, "type", None)
+            phase = getattr(self.policy, "phase", None)
+            if not ((is_bpv5_stageb_v2(policy_type) or is_bpv5_stageb(policy_type)) and phase == "full"):
+                raise ValueError(
+                    "FSDP currently only supports bpv5_stageb_v2 (or bpv5_stageb) with phase=full; "
+                    f"got type={policy_type!r} phase={phase!r}."
+                )
+            if self.fsdp_sharding_strategy != "full_shard":
+                raise ValueError(
+                    "FSDP initially only supports fsdp_sharding_strategy=full_shard; "
+                    f"got {self.fsdp_sharding_strategy!r}."
+                )
 
         if not self.use_policy_training_preset and (self.optimizer is None or self.scheduler is None):
             raise ValueError("Optimizer and Scheduler must be set when the policy presets are not used.")

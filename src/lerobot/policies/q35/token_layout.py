@@ -38,8 +38,8 @@ class Q35TokenLayout:
         if expert_type != "action":
             raise ValueError("Q35 contains only the action expert")
         layout = cls.from_lengths(**lengths)
-        if layout.length("state") != 1:
-            raise ValueError("Action-expert robot steps require exactly one state token")
+        if layout.length("state") not in (0, 1):
+            raise ValueError("Action-expert robot steps require zero or one state token")
         if layout.length("action") <= 0:
             raise ValueError("Action-expert robot steps require action tokens")
         return layout

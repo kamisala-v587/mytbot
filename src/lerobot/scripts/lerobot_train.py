@@ -31,6 +31,7 @@ from typing import Any
 import torch
 import multiprocessing as mp
 from accelerate import Accelerator
+from accelerate.state import DistributedType
 from accelerate.utils import send_to_device
 from termcolor import colored
 from torch.optim import Optimizer
@@ -48,6 +49,8 @@ from lerobot.policies.names import (
     TBOT_SA1_WAN,
     TBOT_SA1_WAN_ALIASES,
     TBOT_SA1_WAN_LEGACY_ALIASES,
+    is_bpv5_stageb,
+    is_bpv5_stageb_v2,
     is_bpvav3,
     is_tbot_sa1,
     is_tbot_sa1_wan,
@@ -140,6 +143,202 @@ def _env_int(name: str, default: int) -> int:
         return int(value)
     except ValueError:
         return default
+
+
+def _make_training_accelerator(cfg: TrainPipelineConfig) -> Accelerator:
+    """Build Accelerator for DDP (default) or opt-in FSDP FULL_SHARD."""
+    from accelerate.utils import (
+        DistributedDataParallelKwargs,
+        FullyShardedDataParallelPlugin,
+        InitProcessGroupKwargs,
+    )
+
+    timeout = _env_int("LEROBOT_DDP_TIMEOUT_SEC", _env_int("DDP_TIMEOUT_SEC", 1800))
+    handlers = [InitProcessGroupKwargs(timeout=timedelta(seconds=timeout))]
+    options: dict[str, Any] = {}
+
+    if cfg.distributed_backend == "ddp":
+        find_unused_parameters = (
+            _env_flag("LEROBOT_DDP_FIND_UNUSED_PARAMETERS", default=True)
+            if cfg.ddp_find_unused_parameters is None
+            else cfg.ddp_find_unused_parameters
+        )
+        handlers.insert(0, DistributedDataParallelKwargs(find_unused_parameters=find_unused_parameters))
+    elif cfg.distributed_backend == "fsdp":
+        # Accelerate upcasts FSDP flat parameters when its mixed precision is enabled.
+        # Keep constructed BF16 backbone + FP32 IO; train loop already uses autocast.
+        options["mixed_precision"] = "no"
+        strategy = {
+            "full_shard": "FULL_SHARD",
+            "shard_grad_op": "SHARD_GRAD_OP",
+            "no_shard": "NO_SHARD",
+            "hybrid_shard": "HYBRID_SHARD",
+            "hybrid_shard_zero2": "_HYBRID_SHARD_ZERO2",
+        }[cfg.fsdp_sharding_strategy]
+        options["fsdp_plugin"] = FullyShardedDataParallelPlugin(
+            fsdp_version=1,
+            sharding_strategy=strategy,
+            auto_wrap_policy="no_wrap",
+            use_orig_params=bool(cfg.fsdp_use_orig_params),
+            state_dict_type="SHARDED_STATE_DICT",
+            sync_module_states=True,
+        )
+    else:
+        raise ValueError(f"Unsupported distributed_backend={cfg.distributed_backend!r}")
+
+    accelerator = Accelerator(
+        step_scheduler_with_optimizer=False,
+        gradient_accumulation_steps=cfg.gradient_accumulation_steps,
+        kwargs_handlers=handlers,
+        **options,
+    )
+    if cfg.distributed_backend == "ddp":
+        expected = {DistributedType.MULTI_GPU, DistributedType.MULTI_CPU, DistributedType.NO}
+    else:
+        expected = {DistributedType.FSDP}
+    if accelerator.num_processes > 1 and accelerator.distributed_type not in expected:
+        raise RuntimeError(
+            f"Requested distributed_backend={cfg.distributed_backend}, "
+            f"but Accelerator landed on {accelerator.distributed_type}"
+        )
+    if cfg.distributed_backend == "fsdp" and accelerator.distributed_type != DistributedType.FSDP:
+        raise RuntimeError(
+            f"Requested fsdp but Accelerator distributed_type is {accelerator.distributed_type} "
+            "(refusing silent DDP fallback)"
+        )
+    if cfg.distributed_backend == "fsdp" and accelerator.num_processes <= 1:
+        raise RuntimeError("distributed_backend=fsdp requires a multi-process launch")
+    return accelerator
+
+
+def _isolate_demo_boundary_module(stage_model: torch.nn.Module) -> torch.nn.Module:
+    """Re-parent demo_start/demo_end into one module for a single-dtype FSDP unit.
+
+    Attribute access ``model.demo_start`` / ``demo_end`` is preserved. Training
+    state-dict keys become ``demo_boundary.demo_*`` under FSDP; document remapping
+    when exporting a plain pretrained_model.
+    """
+    existing = getattr(stage_model, "demo_boundary", None)
+    if isinstance(existing, torch.nn.Module) and any(existing.parameters()):
+        return existing
+
+    boundary = torch.nn.Module()
+    for name in ("demo_start", "demo_end"):
+        param = stage_model._parameters.pop(name, None)
+        if param is None:
+            raise RuntimeError(f"FSDP wrap expected parameter {name!r} on Stage B model")
+        boundary.register_parameter(name, param)
+        object.__setattr__(stage_model, name, param)
+    stage_model.add_module("demo_boundary", boundary)
+    return boundary
+
+
+def _configure_bpv5_fsdp_wrap(
+    policy: PreTrainedPolicy,
+    accelerator: Accelerator,
+    wrap_policy: str = "root",
+) -> None:
+    """Configure FSDP auto-wrap targets for BPv5 Stage B v2 (IO + optional joint pairs)."""
+    if not (is_bpv5_stageb_v2(policy.config.type) or is_bpv5_stageb(policy.config.type)):
+        raise ValueError(
+            f"FSDP wrap is only implemented for bpv5_stageb_v2/stageb; got {policy.config.type!r}"
+        )
+
+    stage_model = policy.model
+    core = stage_model.core
+    targets: list[torch.nn.Module] = [
+        core.state_projection,
+        core.action_projection,
+        core.action_time_in,
+        core.action_time_out,
+        core.action_head,
+        stage_model.demo_encoder,
+        _isolate_demo_boundary_module(stage_model),
+    ]
+
+    if wrap_policy == "layer":
+        from lerobot.policies.q35.fsdp_joint import enable_fsdp_joint_pairs
+
+        pairs = enable_fsdp_joint_pairs(core.backbone)
+        targets.extend(list(pairs))
+    elif wrap_policy != "root":
+        raise ValueError(f"Unknown fsdp_wrap_policy={wrap_policy!r}")
+
+    target_ids = {id(module) for module in targets}
+    covered_ids = {id(parameter) for module in targets for parameter in module.parameters()}
+    residual_dtypes = {
+        parameter.dtype
+        for parameter in policy.parameters()
+        if id(parameter) not in covered_ids
+    }
+    if len(residual_dtypes) > 1:
+        raise RuntimeError(
+            "FSDP residual parameters have mixed dtypes after BPv5 IO wrapping: "
+            f"{sorted(str(dtype) for dtype in residual_dtypes)}"
+        )
+    for module in targets:
+        dtypes = {parameter.dtype for parameter in module.parameters()}
+        if len(dtypes) != 1:
+            raise RuntimeError(
+                f"FSDP wrap target {type(module).__name__} contains mixed parameter dtypes: "
+                f"{sorted(str(dtype) for dtype in dtypes)}"
+            )
+
+    # Always isolate IO / markers (and joint pairs when layer wrap). Root wrap
+    # leaves transformer layers on the root FSDP unit; layer wrap adds pairs.
+    if targets:
+        accelerator.state.fsdp_plugin.auto_wrap_policy = (
+            lambda module, recurse, nonwrapped_numel: True if recurse else id(module) in target_ids
+        )
+
+
+@torch.no_grad()
+def _clip_fsdp_mixed_dtype_grad_norm_(
+    model,
+    accelerator: Accelerator,
+    max_norm: float,
+) -> torch.Tensor:
+    """FSDP1 global L2 clipping for mixed BF16/FP32 gradient dtypes.
+
+    FSDP1 rejects mixed gradient dtypes in its local norm helper; accumulate
+    squared norms in FP32 while retaining sharded/nonsharded accounting.
+    """
+    accelerator.unscale_gradients()
+    sharded: list[torch.nn.Parameter] = []
+    nonsharded: list[torch.nn.Parameter] = []
+    seen: set[int] = set()
+    for handle in model._all_handles:
+        parameters = handle.flat_param._params if handle._use_orig_params else (handle.flat_param,)
+        destination = sharded if handle.uses_sharded_strategy else nonsharded
+        for parameter in parameters:
+            if id(parameter) not in seen:
+                seen.add(id(parameter))
+                destination.append(parameter)
+    for parameter in model.parameters():
+        if id(parameter) not in seen:
+            seen.add(id(parameter))
+            nonsharded.append(parameter)
+
+    def squared_norm(parameters):
+        total = torch.zeros((), device=model.compute_device, dtype=torch.float32)
+        for parameter in parameters:
+            if parameter.grad is not None:
+                total += torch.linalg.vector_norm(
+                    parameter.grad.detach(),
+                    ord=2,
+                    dtype=torch.float32,
+                ).square()
+        return total
+
+    total_squared = squared_norm(sharded)
+    if any(handle.uses_sharded_strategy for handle in model._all_handles):
+        torch.distributed.all_reduce(total_squared, group=model.process_group)
+    total_norm = (total_squared + squared_norm(nonsharded)).sqrt()
+    factor = torch.clamp(float(max_norm) / (total_norm + 1e-6), max=1.0)
+    for parameter in (*sharded, *nonsharded):
+        if parameter.grad is not None:
+            parameter.grad.mul_(factor.to(parameter.grad.device, parameter.grad.dtype))
+    return total_norm
 
 
 def _parameter_counts(parameters) -> tuple[str, int, int]:
@@ -445,8 +644,17 @@ def update_policy(
                 if clip_optimizer_params_only
                 else policy.parameters()
             )
+            use_fsdp_mixed_clip = accelerator.distributed_type == DistributedType.FSDP and (
+                is_bpv5_stageb_v2(accelerator.unwrap_model(policy).config.type)
+                or is_bpv5_stageb(accelerator.unwrap_model(policy).config.type)
+            )
             if grad_clip_norm > 0:
-                grad_norm = accelerator.clip_grad_norm_(grad_parameters, grad_clip_norm)
+                if use_fsdp_mixed_clip:
+                    grad_norm = _clip_fsdp_mixed_dtype_grad_norm_(policy, accelerator, grad_clip_norm)
+                else:
+                    grad_norm = accelerator.clip_grad_norm_(grad_parameters, grad_clip_norm)
+            elif use_fsdp_mixed_clip:
+                grad_norm = _clip_fsdp_mixed_dtype_grad_norm_(policy, accelerator, float("inf"))
             else:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     grad_parameters, float("inf"), error_if_nonfinite=False
@@ -599,6 +807,30 @@ def _update_gpu_metrics(train_tracker: MetricsTracker, device: torch.device, loc
             setattr(train_tracker, key, value)
 
 
+def _pop_worker_timing(batch: Any) -> dict[str, float] | None:
+    """Mean/max of worker __getitem__ timers.
+
+    data_s used to be only the main-process next() wait. With prefetch that wait is ~0
+    while cache load, parquet reads and delta/norm still happen in workers.
+    """
+    if not isinstance(batch, dict) or "_timing" not in batch:
+        return None
+    timing = batch.pop("_timing")
+    if not isinstance(timing, dict) or "getitem_s" not in timing:
+        return None
+    out: dict[str, float] = {}
+    for key, value in timing.items():
+        if not torch.is_tensor(value):
+            continue
+        flat = value.detach().float().reshape(-1)
+        if flat.numel() == 0:
+            continue
+        out[key] = float(flat.mean())
+        if key == "getitem_s":
+            out["getitem_max_s"] = float(flat.max())
+    return out or None
+
+
 def _format_train_status_line(
     train_tracker: MetricsTracker,
     cfg: TrainPipelineConfig,
@@ -713,28 +945,16 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     # mp.set_start_method("spawn", force=True)
     cfg.validate()
 
-    # Create Accelerator if not provided
-    # It will automatically detect if running in distributed mode or single-process mode
-    # We set step_scheduler_with_optimizer=False to prevent accelerate from adjusting the lr_scheduler steps based on the num_processes
-    # We set find_unused_parameters=True by default to handle models with conditional computation.
-    # It can be disabled for fully-used models to avoid an extra autograd graph traversal.
+    # Create Accelerator if not provided (DDP by default; FSDP opt-in via cfg.distributed_backend).
     if accelerator is None:
-        from accelerate.utils import DistributedDataParallelKwargs, InitProcessGroupKwargs
-
-        ddp_timeout_s = int(os.environ.get("LEROBOT_DDP_TIMEOUT_SEC", os.environ.get("DDP_TIMEOUT_SEC", "1800")))
-        find_unused_parameters = _env_flag("LEROBOT_DDP_FIND_UNUSED_PARAMETERS", default=True)
-        ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=find_unused_parameters)
-        init_pg_kwargs = InitProcessGroupKwargs(timeout=timedelta(seconds=ddp_timeout_s))
-        accelerator = Accelerator(
-            step_scheduler_with_optimizer=False,
-            gradient_accumulation_steps=cfg.gradient_accumulation_steps,
-            kwargs_handlers=[ddp_kwargs, init_pg_kwargs],
-        )
+        accelerator = _make_training_accelerator(cfg)
 
     assert cfg.output_dir is not None
     if accelerator.is_main_process:
         cfg.output_dir.mkdir(parents=True, exist_ok=True)
     accelerator.wait_for_everyone()
+    if getattr(cfg.policy, "log_sample_loss", False):
+        os.environ["BPV5_SAMPLE_LOSS_DIR"] = str(cfg.output_dir)
 
     train_log_file = cfg.output_dir / "train.log"
     loss_log_file = cfg.output_dir / "loss.log"
@@ -751,6 +971,13 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     if is_main_process:
         logging.info("Training log (log_freq metrics): %s", train_log_file)
         logging.info("Loss CSV: %s", loss_log_file)
+        logging.info(
+            "distributed_backend=%s wrap_policy=%s sharding=%s distributed_type=%s",
+            cfg.distributed_backend,
+            cfg.fsdp_wrap_policy,
+            cfg.fsdp_sharding_strategy,
+            accelerator.distributed_type,
+        )
         logging.info(pformat(cfg.to_dict()))
 
     # Initialize wandb only on main process
@@ -921,6 +1148,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     fastwam_train_sampler = None
     batch_sampler = None
     homogeneous_batch = bool(getattr(cfg.dataset, "homogeneous_batch", False))
+    bpv5_batch_sampler = None
     if homogeneous_batch:
         if cfg.dataset.streaming:
             raise ValueError("dataset.homogeneous_batch=True requires streaming=False")
@@ -928,11 +1156,17 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             raise ValueError(
                 "dataset.homogeneous_batch is not supported for FastWAM / TBot_SA1_Wan policies yet"
             )
-        if not isinstance(dataset, MultiLeRobotDataset):
-            logging.info(
-                "dataset.homogeneous_batch=True ignored: current dataset is not MultiLeRobotDataset"
+        if not isinstance(dataset, MultiLeRobotDataset) and callable(
+            getattr(dataset, "make_train_batch_sampler", None)
+        ):
+            bpv5_batch_sampler = dataset.make_train_batch_sampler(
+                cfg.batch_size, 0 if cfg.seed is None else int(cfg.seed)
             )
-            homogeneous_batch = False
+        if not isinstance(dataset, MultiLeRobotDataset) and bpv5_batch_sampler is None:
+            raise ValueError(
+                "dataset.homogeneous_batch=True requires MultiLeRobotDataset "
+                "or a dataset.make_train_batch_sampler()"
+            )
 
     if _is_fastwam_policy_type(cfg.policy.type):
         fastwam_module = _fastwam_policy_module(cfg.policy.type)
@@ -951,7 +1185,7 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         prefetch_factor = 2 if cfg.num_workers > 0 else None
         worker_init_fn = fastwam_worker_init_fn
         fastwam_train_sampler = sampler
-    elif homogeneous_batch:
+    elif homogeneous_batch and bpv5_batch_sampler is None:
         shuffle = False
         sampler = None
         batch_sampler = MultiLeRobotHomogeneousBatchSampler(
@@ -963,6 +1197,17 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         worker_init_fn = None
         logging.info(
             "Using MultiLeRobotHomogeneousBatchSampler (one source per batch), batch_size=%d",
+            cfg.batch_size,
+        )
+    elif bpv5_batch_sampler is not None:
+        shuffle = False
+        sampler = None
+        batch_sampler = bpv5_batch_sampler
+        num_workers = cfg.num_workers
+        prefetch_factor = 2 if cfg.num_workers > 0 else None
+        worker_init_fn = None
+        logging.info(
+            "Using BPV5HomogeneousBatchSampler (one leaf repo per batch), batch_size=%d",
             cfg.batch_size,
         )
     elif not cfg.dataset.streaming and hasattr(dataset, "dataset_weights") and dataset.dataset_weights is not None:
@@ -1028,6 +1273,14 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
 
     # Prepare everything with accelerator
     accelerator.wait_for_everyone()
+    if cfg.distributed_backend == "fsdp":
+        _configure_bpv5_fsdp_wrap(policy, accelerator, cfg.fsdp_wrap_policy)
+        if is_main_process:
+            logging.info(
+                "Configured BPv5 FSDP wrap_policy=%s (joint pairs=%s)",
+                cfg.fsdp_wrap_policy,
+                cfg.fsdp_wrap_policy == "layer",
+            )
     if cfg.dataset.dist_loading:
         policy, optimizer, lr_scheduler = accelerator.prepare(
             policy, optimizer, lr_scheduler
@@ -1035,6 +1288,10 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     else:
         policy, optimizer, dataloader, lr_scheduler = accelerator.prepare(
             policy, optimizer, dataloader, lr_scheduler
+        )
+    if cfg.distributed_backend == "fsdp" and accelerator.distributed_type != DistributedType.FSDP:
+        raise RuntimeError(
+            f"Requested fsdp but after prepare distributed_type is {accelerator.distributed_type}"
         )
 
     if getattr(cfg.policy, "preflight_memory_check", False) and torch.cuda.is_available() and not cfg.resume:
@@ -1172,6 +1429,14 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             "update_s": AverageMeter("updt_s", ":.3f"),
             "dataloading_s": AverageMeter("data_s", ":.3f"),
         }
+        if cfg.policy.type == "bpv5_qformer":
+            # data_s = mean worker __getitem__ (cache + frames + transform).
+            # wait_s = main-process next() stall; the rest are the same sample, split by stage.
+            train_metrics["data_wait_s"] = AverageMeter("wait_s", ":.3f")
+            train_metrics["data_max_s"] = AverageMeter("data_max_s", ":.3f")
+            train_metrics["data_cache_s"] = AverageMeter("cache_s", ":.3f")
+            train_metrics["data_frames_s"] = AverageMeter("frames_s", ":.3f")
+            train_metrics["data_xform_s"] = AverageMeter("xform_s", ":.3f")
 
     if cfg.gpu_stats_freq > 0:
         _maybe_add_gpu_metrics(train_metrics)
@@ -1203,6 +1468,9 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
     
     accumulated_update_time = 0.0
     accumulated_dataloading_time = 0.0
+    accumulated_wait_time = 0.0
+    accumulated_timing: dict[str, float] = {}
+    timing_batches = 0
     while step < cfg.steps:
         start_time = time.perf_counter()
         if _is_fastwam_policy_type(cfg.policy.type):
@@ -1220,9 +1488,20 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
                 fastwam_batch_in_epoch += 1
         else:
             batch = next(dl_iter)
+        wait_s = time.perf_counter() - start_time
+        worker_timing = _pop_worker_timing(batch)
         if cfg.dataset.dist_loading:
+            h2d_t0 = time.perf_counter()
             batch = send_to_device(batch, accelerator.device, non_blocking=True)
-        accumulated_dataloading_time += time.perf_counter() - start_time
+            wait_s += time.perf_counter() - h2d_t0
+        accumulated_wait_time += wait_s
+        if worker_timing is not None:
+            accumulated_dataloading_time += worker_timing["getitem_s"]
+            timing_batches += 1
+            for key in ("getitem_max_s", "cache_s", "frames_s", "xform_s"):
+                accumulated_timing[key] = accumulated_timing.get(key, 0.0) + worker_timing.get(key, 0.0)
+        else:
+            accumulated_dataloading_time += wait_s
 
         will_log_after_update = cfg.log_freq > 0 and (step + 1) % cfg.log_freq == 0
         policy_forward_kwargs = {}
@@ -1250,10 +1529,21 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
         # Note: eval and checkpoint happens *after* the `step`th training update has completed, so we
         # increment `step` here.
         step += 1
-        train_tracker.dataloading_s = accumulated_dataloading_time
+        n_micro = max(timing_batches, 1)
+        train_tracker.dataloading_s = accumulated_dataloading_time / n_micro
         train_tracker.update_s = accumulated_update_time
+        if "data_wait_s" in train_tracker.metrics:
+            train_tracker.data_wait_s = accumulated_wait_time
+            if timing_batches:
+                train_tracker.data_max_s = accumulated_timing.get("getitem_max_s", 0.0) / timing_batches
+                train_tracker.data_cache_s = accumulated_timing.get("cache_s", 0.0) / timing_batches
+                train_tracker.data_frames_s = accumulated_timing.get("frames_s", 0.0) / timing_batches
+                train_tracker.data_xform_s = accumulated_timing.get("xform_s", 0.0) / timing_batches
         accumulated_dataloading_time = 0.0
         accumulated_update_time = 0.0
+        accumulated_wait_time = 0.0
+        accumulated_timing = {}
+        timing_batches = 0
         train_tracker.step()
         is_log_step = cfg.log_freq > 0 and step % cfg.log_freq == 0
         should_log = is_log_step and is_main_process
@@ -1403,10 +1693,25 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
             accelerator.wait_for_everyone()
 
         if is_saving_step and heldout_monitor is not None:
-            # dataset-defined held-out generation error (e.g. bpv4cdx HOM); every rank evaluates its shard
-            hom = heldout_monitor(accelerator.unwrap_model(policy), accelerator, step)
-            if is_main_process:
-                from lerobot.policies.BPV4CDX.heldout_monitor import log_line, trend_advice
+            # dataset-defined held-out generation error (BP / BPv5 HOM); shard or main-only depending on monitor.
+            # Under FSDP, pass the wrapped policy so all ranks can participate / summon params.
+            hom_policy = (
+                policy
+                if cfg.distributed_backend == "fsdp"
+                else accelerator.unwrap_model(policy)
+            )
+            hom = heldout_monitor(hom_policy, accelerator, step)
+            if is_main_process and hom:
+                mod_name = type(heldout_monitor).__module__
+                if mod_name.endswith(("BPV5QFormer.heldout_monitor", "BPV5StageB.heldout_monitor")):
+                    import importlib
+
+                    _hom = importlib.import_module(mod_name)
+                    log_line, trend_advice, write_g9_json = _hom.log_line, _hom.trend_advice, _hom.write_g9_json
+                else:
+                    from lerobot.policies.BPV4CDX.heldout_monitor import log_line, trend_advice
+
+                    write_g9_json = None
 
                 hom_file = cfg.output_dir / "heldout_monitor.jsonl"
                 history = [json.loads(line) for line in hom_file.read_text().splitlines()] if hom_file.is_file() else []
@@ -1415,10 +1720,66 @@ def train(cfg: TrainPipelineConfig, accelerator: Accelerator | None = None):
                 logging.info("HOM @ step %d: %s", step, log_line(hom))
                 with open(hom_file, "a", encoding="utf-8") as f:
                     f.write(json.dumps(hom) + "\n")
+                if write_g9_json is not None and bool(getattr(cfg.dataset, "heldout_monitor_write_g9_json", False)):
+                    ckpt_dir = cfg.output_dir / "checkpoints" / f"{step:06d}" / "pretrained_model"
+                    write_g9_json(cfg.output_dir, hom, step, ckpt=str(ckpt_dir.resolve()))
                 if wandb_logger:
-                    wandb_logger.log_dict({k: v for k, v in hom.items() if isinstance(v, (int, float))}, step, mode="eval")
-            accelerator.wait_for_everyone()
+                    flat = {}
+                    for k, v in hom.items():
+                        if isinstance(v, (int, float)):
+                            flat[k] = v
+                        elif isinstance(v, dict) and isinstance(v.get("ratio"), (int, float)):
+                            flat[k] = v["ratio"]
+                    wandb_logger.log_dict(flat, step, mode="eval")
+            # Stage B gated C1: arm when blank/match is below threshold;
+            # fix m = max(mse_blank, scale * mse_matched) so hinge is active on this ckpt.
+            gate_thr = float(getattr(cfg.policy, "blank_margin_gate_blank_over_match", 0.0) or 0.0)
+            m_scale = float(getattr(cfg.policy, "blank_margin_m_hom_matched_scale", 0.0) or 0.0)
+            if gate_thr > 0 or m_scale > 0:
+                armed_f = 1.0 if gate_thr <= 0 else 0.0
+                m_fixed_f = float(getattr(cfg.policy, "blank_margin_m", 0.05) or 0.05)
+                if is_main_process and hom:
+                    bom = hom.get("blank_over_match")
+                    blank_r = bom.get("ratio") if isinstance(bom, dict) else bom
+                    mse_m = hom.get("mse_matched")
+                    mse_b = hom.get("mse_blank")
+                    if gate_thr > 0:
+                        armed_f = (
+                            1.0
+                            if blank_r is not None and float(blank_r) < gate_thr
+                            else 0.0
+                        )
+                    if m_scale > 0 and mse_m is not None:
+                        m_from_match = float(m_scale) * float(mse_m)
+                        m_from_blank = float(mse_b) if mse_b is not None else m_from_match
+                        m_fixed_f = max(m_from_blank, m_from_match)
+                    logging.info(
+                        "C1 gate @ step %d: blank/match=%s blank=%.4f match=%.4f thr=%s armed=%s "
+                        "m_fixed=%.4f (=max(blank, %.3g*match))",
+                        step,
+                        blank_r,
+                        float(mse_b) if mse_b is not None else float("nan"),
+                        float(mse_m) if mse_m is not None else float("nan"),
+                        gate_thr,
+                        bool(armed_f > 0.5),
+                        m_fixed_f,
+                        m_scale,
+                    )
+                payload = torch.tensor(
+                    [armed_f, m_fixed_f],
+                    device=accelerator.device,
+                    dtype=torch.float64,
+                )
+                if accelerator.num_processes > 1:
+                    import torch.distributed as dist
 
+                    dist.broadcast(payload, src=0)
+                unwrapped = accelerator.unwrap_model(policy)
+                if gate_thr > 0:
+                    unwrapped._blank_margin_armed = bool(payload[0].item() > 0.5)
+                if m_scale > 0:
+                    unwrapped._blank_margin_m_fixed = float(payload[1].item())
+            accelerator.wait_for_everyone()
     if is_main_process and train_pbar is not None:
         train_pbar.close()
 

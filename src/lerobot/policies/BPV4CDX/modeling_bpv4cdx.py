@@ -47,11 +47,29 @@ class LoRALinear(nn.Linear):
         return out + F.linear(F.linear(x, self.lora_A.to(x.dtype)), self.lora_B.to(x.dtype)) * self.scale
 
 
-def add_qwen_lora(vlm: nn.Module, layers: int, rank: int, alpha: float) -> list[str]:
-    """Wrap every nn.Linear of the last `layers` text decoder layers (attention / linear attention and MLP)."""
+def add_qwen_lora(
+    vlm: nn.Module,
+    layers: int,
+    rank: int,
+    alpha: float,
+    layer_ids: list[int] | tuple[int, ...] | None = None,
+) -> list[str]:
+    """Wrap every nn.Linear of selected text decoder layers (attention / linear attention and MLP).
+
+    If `layer_ids` is non-empty, those absolute indices are used; otherwise the last `layers` layers.
+    """
     decoder = vlm.model.language_model.layers if hasattr(vlm.model, "language_model") else vlm.model.layers
+    total = len(decoder)
+    if layer_ids:
+        ids = sorted({int(i) for i in layer_ids})
+        if any(i < 0 or i >= total for i in ids):
+            raise ValueError(f"qwen LoRA layer ids {ids} outside 0..{total - 1}")
+    else:
+        if layers <= 0:
+            return []
+        ids = list(range(total - int(layers), total))
     wrapped = []
-    for li in range(len(decoder) - layers, len(decoder)):
+    for li in ids:
         for name, module in list(decoder[li].named_modules()):
             for child_name, child in list(module.named_children()):
                 if type(child) is nn.Linear:

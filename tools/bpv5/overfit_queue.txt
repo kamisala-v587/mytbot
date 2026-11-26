@@ -1,0 +1,14 @@
+# BPv5 Stage A overfit / mask / capacity queue (≤10 jobs).
+# Lines: config_path  [optional_note]
+# Daemon: tools/bpv5/run_overfit_queue_daemon.sh
+# Skip if already running or loss.log reached configured steps.
+
+configs/bpv5/stage_a_overfit_rt1.jsonc
+configs/bpv5/stage_a_overfit_rt8.jsonc
+configs/bpv5/stage_a_overfit_idn32.jsonc
+configs/bpv5/stage_a_overfit_agi32.jsonc
+configs/bpv5/stage_a_overfit_rt1_alldims.jsonc
+configs/bpv5/stage_a_overfit_rt1_ae3loss.jsonc
+configs/bpv5/stage_a_overfit_agi32_alldims.jsonc
+configs/bpv5/stage_a_overfit_rt1_fullprefix.jsonc
+configs/bpv5/stage_a_overfit_rt1_ae05.jsonc

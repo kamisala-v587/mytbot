@@ -1,0 +1,7 @@
+# Round 3: fix batch_size (8/16) + AE-3-style dilution on same RobotWin×8
+# Baseline (old, bs=2): overfit_rt8 → ~0.32@2k / 0.23@3k
+
+configs/bpv5/stage_a_overfit_rt8_bs8.jsonc
+configs/bpv5/stage_a_overfit_rt8_bs16.jsonc
+configs/bpv5/stage_a_overfit_rt8_bs8_ae3loss.jsonc
+configs/bpv5/stage_a_overfit_rt8_bs8_alldims.jsonc

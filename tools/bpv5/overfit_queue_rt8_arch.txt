@@ -1,0 +1,7 @@
+# Round 2: RobotWin×8 architecture / causal ablations (same 8 trajs as overfit_rt8)
+# Baseline reference (already done): stage_a_overfit_rt8 → last loss ≈0.23 @3k
+
+configs/bpv5/stage_a_overfit_rt8_nocausal.jsonc
+configs/bpv5/stage_a_overfit_rt8_ae05.jsonc
+configs/bpv5/stage_a_overfit_rt8_fullprefix.jsonc
+configs/bpv5/stage_a_overfit_rt8_nocausal_ae05.jsonc

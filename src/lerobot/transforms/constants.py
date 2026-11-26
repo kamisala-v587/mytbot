@@ -438,6 +438,16 @@ IMAGE_MAPPING["G2_omnipicker_fixed"] = {
     "observation.images.hand_right": f"{OBS_IMAGES}.image2",
 }
 
+# RealMan dual arm (crucible / zhenji realman_65 14D): [left 6 joints, left gripper, right 6 joints,
+# right gripper], same slot order as aloha; cameras main / left wrist / right wrist.
+MASK_MAPPING["realman_65"] = make_bool_mask(6, -1, 6, -1)
+FEATURE_MAPPING["realman_65"] = {OBS_STATE: ["observation.state"], ACTION: ["action"]}
+IMAGE_MAPPING["realman_65"] = {
+    "observation.images.camera_main": f"{OBS_IMAGES}.image0",
+    "observation.images.camera_left": f"{OBS_IMAGES}.image1",
+    "observation.images.camera_right": f"{OBS_IMAGES}.image2",
+}
+
 
 def _feature_key_set(feature_keys):
     if feature_keys is None:

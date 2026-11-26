@@ -63,72 +63,85 @@ class ActionExpert(nn.Module):
         validity = executor._token_validity(attention_mask)
         vlm_valid, suffix_valid = torch.split(validity, lengths, dim=1)
 
-        for vlm_layer, expert_layer in zip(language_model.layers, self.layers, strict=True):
-            if vlm_layer.block_type != expert_layer.block_type:
-                raise ValueError("VLM and action expert layer_types differ")
-            if vlm_layer.block_type == "linear_attention":
-                vlm_hidden = executor._run_linear_stream(
+        if getattr(executor, "_fsdp_joint_pairs", False):
+            # FSDP layer wrap: call each JointLayerPair so both streams are gathered.
+            for pair in executor.joint_pairs:
+                vlm_hidden, suffix_hidden = pair(
+                    executor,
                     vlm_hidden,
-                    input_norm=vlm_layer.input_layernorm,
-                    mixer=vlm_layer.linear_attn,
-                    valid_mask=vlm_valid,
-                    cache=None,
-                )
-                suffix_hidden = executor._run_linear_stream(
                     suffix_hidden,
-                    input_norm=expert_layer.input_layernorm,
-                    mixer=expert_layer.linear_attn,
-                    valid_mask=suffix_valid,
-                    cache=None,
+                    position_embeddings=position_embeddings,
+                    additive_mask=additive_mask,
+                    vlm_valid=vlm_valid,
+                    suffix_valid=suffix_valid,
                 )
-            else:
-                vlm_residual, suffix_residual = vlm_hidden, suffix_hidden
-                vlm_norm = vlm_layer.input_layernorm(vlm_hidden)
-                suffix_norm = expert_layer.input_layernorm(suffix_hidden)
-                vlm_q, vlm_k, vlm_v, vlm_gate = executor._project_full(
-                    vlm_layer.self_attn,
-                    vlm_norm,
-                )
-                suffix_q, suffix_k, suffix_v, suffix_gate = executor._project_full(
-                    expert_layer.self_attn,
-                    suffix_norm,
-                )
-                query = torch.cat((vlm_q, suffix_q), dim=2)
-                key = torch.cat((vlm_k, suffix_k), dim=2)
-                value = torch.cat((vlm_v, suffix_v), dim=2)
-                query, key = executor._qwen35.apply_rotary_pos_emb(
-                    query,
-                    key,
-                    *position_embeddings,
-                )
-                attended = executor._run_attention(
-                    vlm_layer.self_attn,
-                    query,
-                    key,
-                    value,
-                    additive_mask,
-                )
-                vlm_length = vlm_hidden.shape[1]
-                vlm_attended = executor._apply_output_gate(attended[:, :vlm_length], vlm_gate)
-                suffix_attended = executor._apply_output_gate(
-                    attended[:, vlm_length:],
-                    suffix_gate,
-                )
-                vlm_hidden = vlm_residual + vlm_layer.self_attn.o_proj(
-                    vlm_attended.to(vlm_layer.self_attn.o_proj.weight.dtype)
-                )
-                suffix_hidden = suffix_residual + expert_layer.self_attn.o_proj(
-                    suffix_attended.to(expert_layer.self_attn.o_proj.weight.dtype)
-                )
+        else:
+            for vlm_layer, expert_layer in zip(language_model.layers, self.layers, strict=True):
+                if vlm_layer.block_type != expert_layer.block_type:
+                    raise ValueError("VLM and action expert layer_types differ")
+                if vlm_layer.block_type == "linear_attention":
+                    vlm_hidden = executor._run_linear_stream(
+                        vlm_hidden,
+                        input_norm=vlm_layer.input_layernorm,
+                        mixer=vlm_layer.linear_attn,
+                        valid_mask=vlm_valid,
+                        cache=None,
+                    )
+                    suffix_hidden = executor._run_linear_stream(
+                        suffix_hidden,
+                        input_norm=expert_layer.input_layernorm,
+                        mixer=expert_layer.linear_attn,
+                        valid_mask=suffix_valid,
+                        cache=None,
+                    )
+                else:
+                    vlm_residual, suffix_residual = vlm_hidden, suffix_hidden
+                    vlm_norm = vlm_layer.input_layernorm(vlm_hidden)
+                    suffix_norm = expert_layer.input_layernorm(suffix_hidden)
+                    vlm_q, vlm_k, vlm_v, vlm_gate = executor._project_full(
+                        vlm_layer.self_attn,
+                        vlm_norm,
+                    )
+                    suffix_q, suffix_k, suffix_v, suffix_gate = executor._project_full(
+                        expert_layer.self_attn,
+                        suffix_norm,
+                    )
+                    query = torch.cat((vlm_q, suffix_q), dim=2)
+                    key = torch.cat((vlm_k, suffix_k), dim=2)
+                    value = torch.cat((vlm_v, suffix_v), dim=2)
+                    query, key = executor._qwen35.apply_rotary_pos_emb(
+                        query,
+                        key,
+                        *position_embeddings,
+                    )
+                    attended = executor._run_attention(
+                        vlm_layer.self_attn,
+                        query,
+                        key,
+                        value,
+                        additive_mask,
+                    )
+                    vlm_length = vlm_hidden.shape[1]
+                    vlm_attended = executor._apply_output_gate(attended[:, :vlm_length], vlm_gate)
+                    suffix_attended = executor._apply_output_gate(
+                        attended[:, vlm_length:],
+                        suffix_gate,
+                    )
+                    vlm_hidden = vlm_residual + vlm_layer.self_attn.o_proj(
+                        vlm_attended.to(vlm_layer.self_attn.o_proj.weight.dtype)
+                    )
+                    suffix_hidden = suffix_residual + expert_layer.self_attn.o_proj(
+                        suffix_attended.to(expert_layer.self_attn.o_proj.weight.dtype)
+                    )
 
-            vlm_residual = vlm_hidden
-            vlm_hidden = vlm_residual + vlm_layer.mlp(
-                vlm_layer.post_attention_layernorm(vlm_hidden)
-            )
-            suffix_residual = suffix_hidden
-            suffix_hidden = suffix_residual + expert_layer.mlp(
-                expert_layer.post_attention_layernorm(suffix_hidden)
-            )
+                vlm_residual = vlm_hidden
+                vlm_hidden = vlm_residual + vlm_layer.mlp(
+                    vlm_layer.post_attention_layernorm(vlm_hidden)
+                )
+                suffix_residual = suffix_hidden
+                suffix_hidden = suffix_residual + expert_layer.mlp(
+                    expert_layer.post_attention_layernorm(suffix_hidden)
+                )
 
         suffix_hidden = self.norm(suffix_hidden)
         return (
